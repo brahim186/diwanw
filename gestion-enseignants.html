@@ -266,13 +266,45 @@
 <!-- Toast de confirmation -->
 <div id="toastWrap" class="fixed bottom-6 inset-x-0 flex justify-center pointer-events-none z-50"></div>
 
+<!-- Modale affichant les identifiants du nouvel enseignant (ne réapparaissent plus jamais) -->
+<div id="credentialsModal" class="hidden fixed inset-0 z-50 bg-navy-900/60 backdrop-blur-sm flex items-center justify-center px-5">
+  <div class="w-full max-w-sm bg-white rounded-3xl shadow-2xl p-8 text-center">
+    <div class="w-14 h-14 mx-auto rounded-2xl bg-emerald-500/10 grid place-items-center mb-4">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <h3 id="credModalTitle" class="font-display font-semibold text-navy text-lg mb-2">Enseignant ajouté</h3>
+    <p class="text-ink/50 text-xs mb-6">Notez ces identifiants maintenant : le mot de passe ne sera plus jamais affiché.</p>
+
+    <div class="text-left space-y-3 mb-6">
+      <div class="bg-mist rounded-2xl px-4 py-3">
+        <p class="text-[10px] font-extrabold uppercase tracking-wide text-ink/40 mb-1">Identifiant</p>
+        <p id="credUsername" class="font-mono font-bold text-navy text-sm break-all">—</p>
+      </div>
+      <div class="bg-mist rounded-2xl px-4 py-3">
+        <p class="text-[10px] font-extrabold uppercase tracking-wide text-ink/40 mb-1">Mot de passe</p>
+        <p id="credPassword" class="font-mono font-bold text-navy text-sm break-all">—</p>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-2">
+      <button id="copyCredsBtn" type="button" class="w-full inline-flex items-center justify-center gap-2 bg-mist hover:bg-line text-navy font-bold text-xs px-5 py-3 rounded-full transition-colors">
+        Copier identifiant + mot de passe
+      </button>
+      <button id="closeCredsBtn" type="button" class="w-full bg-navy hover:bg-navy-700 text-white font-extrabold text-sm px-5 py-3 rounded-full transition-colors">
+        J'ai bien noté les identifiants
+      </button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
   import {
     db, auth, signOut, doc, getDoc, setDoc, deleteDoc, collection, getDocs,
-    usernameToEmail, createTeacherAuthAccount, generatePassword
+    usernameToEmail, createTeacherAuthAccount, generatePassword, resetTeacherPassword
   } from './supabase-config.js';
 
   const TEACHERS_COL = collection(db, 'teachers');
+  let teachersCache = []; // dernière liste chargée, utilisée par le bouton "Réinitialiser"
 
   // --- Sélecteur multiple des niveaux (max 3) ---
   const niveauBtn      = document.getElementById('niveauBtn');
@@ -385,9 +417,10 @@
     try {
       teachers = await loadTeachers();
     } catch (e) {
-      tableBody.innerHTML = `<tr><td colspan="11" class="text-center py-8 text-rose-600 font-bold">Erreur de connexion à Firestore.</td></tr>`;
+      tableBody.innerHTML = `<tr><td colspan="11" class="text-center py-8 text-rose-600 font-bold">Erreur de connexion à la base de données.</td></tr>`;
       return;
     }
+    teachersCache = teachers;
     tableBody.innerHTML = '';
 
     if (teachers.length === 0) {
@@ -425,12 +458,25 @@
     countBadge.textContent = teachers.length + (teachers.length > 1 ? ' enseignants' : ' enseignant');
 
     document.querySelectorAll('.resetBtn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        // ⚠️ Changer le mot de passe d'un AUTRE utilisateur nécessite l'Admin SDK
-        // (Cloud Function), ce que le client seul ne peut pas faire en toute sécurité.
-        // Solution pratique sans backend : supprimer puis ré-ajouter l'enseignant
-        // (nouveau compte, nouveau mot de passe généré automatiquement).
-        alert("Pour changer le mot de passe d'un enseignant sans serveur backend, la solution la plus simple est de le supprimer puis de le réajouter : un nouvel identifiant et mot de passe seront générés automatiquement.");
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        const teacher = teachersCache.find((t) => t.id === id);
+        if (!teacher) return;
+        if (!confirm(`Réinitialiser le mot de passe de ${teacher.prenom} ${teacher.nom} (${teacher.username}) ?\nL'ancien mot de passe cessera immédiatement de fonctionner.`)) return;
+
+        btn.disabled = true;
+        const original = btn.textContent;
+        btn.textContent = 'Réinitialisation...';
+        try {
+          const newPassword = generatePassword();
+          await resetTeacherPassword(id, newPassword);
+          showCredentialsModal(teacher.username, newPassword, 'Mot de passe réinitialisé');
+        } catch (e) {
+          alert("Erreur lors de la réinitialisation : " + e.message);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = original;
+        }
       });
     });
 
@@ -465,6 +511,37 @@
     toastWrap.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
   }
+
+  // --- Modale des identifiants (affichée une seule fois, juste après l'ajout) ---
+  const credentialsModal = document.getElementById('credentialsModal');
+  const credModalTitle   = document.getElementById('credModalTitle');
+  const credUsername     = document.getElementById('credUsername');
+  const credPassword     = document.getElementById('credPassword');
+  const copyCredsBtn     = document.getElementById('copyCredsBtn');
+  const closeCredsBtn    = document.getElementById('closeCredsBtn');
+
+  function showCredentialsModal(username, password, title = 'Enseignant ajouté') {
+    credModalTitle.textContent = title;
+    credUsername.textContent = username;
+    credPassword.textContent = password;
+    copyCredsBtn.textContent = 'Copier identifiant + mot de passe';
+    credentialsModal.classList.remove('hidden');
+  }
+
+  copyCredsBtn.addEventListener('click', async () => {
+    const text = `Identifiant : ${credUsername.textContent}\nMot de passe : ${credPassword.textContent}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      copyCredsBtn.textContent = 'Copié ✓';
+      setTimeout(() => { copyCredsBtn.textContent = 'Copier identifiant + mot de passe'; }, 1500);
+    } catch (e) {
+      alert(text);
+    }
+  });
+
+  closeCredsBtn.addEventListener('click', () => {
+    credentialsModal.classList.add('hidden');
+  });
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -506,7 +583,7 @@
       });
 
       render();
-      showToast(`Enseignant ajouté — identifiant : ${username} / mot de passe : ${password}`);
+      showCredentialsModal(username, password);
       form.reset();
       resetNiveauSelector();
     } catch (err) {
