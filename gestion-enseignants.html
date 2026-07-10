@@ -386,17 +386,10 @@
   const goToDuplicateBtn     = document.getElementById('goToDuplicateBtn');
   let pendingDuplicateId     = null;
 
+  // تم تعطيل التنبيه الفوري لعدم التشويش عند التكرار المقصود
   function checkDuplicateLive() {
-    const match = findDuplicateTeacher(nomInput.value.trim(), prenomInput.value.trim(), editTeacherId.value || null);
-    if (match) {
-      pendingDuplicateId = match.id;
-      duplicateWarningText.textContent =
-        `Un enseignant nommé "${match.prenom} ${match.nom}" est déjà enregistré (identifiant : ${match.username}). Évitez de créer un doublon.`;
-      duplicateWarning.classList.remove('hidden');
-    } else {
-      pendingDuplicateId = null;
-      duplicateWarning.classList.add('hidden');
-    }
+    pendingDuplicateId = null;
+    duplicateWarning.classList.add('hidden');
   }
 
   nomInput.addEventListener('input', checkDuplicateLive);
@@ -615,7 +608,7 @@
       modalDesc.textContent = "Notez ces identifiants maintenant : le mot de passe ne sera plus jamais affiché.";
     } else {
       modalTitle.textContent = "Consultation des identifiants";
-      modalDesc.textContent = "Voici le nom d'utilisateur et le mot de passe enregistrés dans la baseة البيانات.";
+      modalDesc.textContent = "Voici le nom d'utilisateur et le mot de passe enregistrés dans la base de données.";
     }
     
     credentialsModal.classList.remove('hidden');
