@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Formulaire de Pré-inscription | Diwan Al Maaref</title>
+<meta name="description" content="Formulaire de pré-inscription pour les élèves à l'établissement de soutien scolaire Diwan Al Maaref">
+<link rel="icon" type="image/png" href="logo.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Fraunces:wght@500;600&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          navy:  { DEFAULT:'#1B1464', 700:'#170F52', 900:'#100B3B' },
+          purple:{ DEFAULT:'#5B3AA6' },
+          gold:  { DEFAULT:'#F0A93C', light:'#FBC873', dark:'#D98F1F' },
+          ink:   '#221D3D',
+          mist:  '#F6F4FC',
+          line:  '#E7E2F3',
+        },
+        fontFamily: {
+          sans: ['Inter','sans-serif'],
+          display: ['Fraunces','serif'],
+        }
+      }
+    }
+  }
+</script>
+
+<style>
+  html { scroll-behavior: smooth; }
+  body { font-family: 'Inter', sans-serif; color:#221D3D; background:#FFFFFF; }
+  .font-display { font-family: 'Fraunces', serif; }
+  .num { font-family: 'Manrope', sans-serif; }
+
+  ::selection { background:#F0A93C; color:#1B1464; }
+
+  a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, label:focus-within {
+    outline: 2px solid #F0A93C; outline-offset: 2px; border-radius: 6px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration:.01ms !important; transition-duration:.01ms !important; }
+  }
+
+  .field-label { font-weight: 700; color:#1B1464; font-size: .85rem; }
+  .field-hint  { color:#221D3D66; font-size: .72rem; }
+
+  .step-card { transition: box-shadow .3s ease, transform .3s ease; }
+
+  .file-drop {
+    border: 2px dashed #E7E2F3; transition: border-color .25s ease, background .25s ease;
+  }
+  .file-drop.has-file { border-color:#F0A93C; background:#FFF8EC; }
+  .file-drop:hover { border-color:#5B3AA6; }
+
+  .spinner {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 3px solid rgba(255,255,255,.35); border-top-color:#fff;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .progress-dot { transition: background .3s ease, transform .3s ease; }
+
+  .toast {
+    transform: translateY(120%); transition: transform .45s cubic-bezier(.2,.9,.25,1);
+  }
+  .toast.show { transform: translateY(0); }
+
+  input[type="date"] { direction: ltr; text-align: left; }
+</style>
+</head>
+
+<body class="antialiased">
+
+<header class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-line">
+  <div class="max-w-5xl mx-auto px-5 sm:px-8 h-20 flex items-center justify-between">
+    <a href="index.html" class="flex items-center gap-3">
+      <img src="logo.png" alt="Logo Diwan Al Maaref" class="h-12 w-12 object-contain">
+      <span class="hidden sm:flex flex-col leading-tight">
+        <span class="font-display font-semibold text-base text-navy">Diwan Al Maaref</span>
+        <span class="text-[10px] tracking-wide text-gold-dark font-bold">Établissement de Soutien Scolaire</span>
+      </span>
+    </a>
+    <div class="flex items-center gap-3 sm:gap-5">
+      <a href="consultation.html" class="text-sm font-bold text-navy/70 hover:text-gold-dark transition-colors flex items-center gap-2">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <span class="hidden sm:inline">Suivre ma demande</span>
+      </a>
+      <a href="index.html" class="text-sm font-bold text-navy/70 hover:text-gold-dark transition-colors flex items-center gap-2">
+        Retour
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </div>
+</header>
+
+<section class="bg-navy-900 relative overflow-hidden">
+  <div class="absolute inset-0 opacity-[0.06] pointer-events-none flex items-center justify-center">
+    <svg viewBox="0 0 800 300" class="w-full h-full"><g stroke="#F0A93C" stroke-width="1.5">
+      <circle cx="400" cy="150" r="260"/><circle cx="400" cy="150" r="180"/><circle cx="400" cy="150" r="100"/>
+    </g></svg>
+  </div>
+  <div class="max-w-5xl mx-auto px-5 sm:px-8 py-14 sm:py-16 relative text-center">
+    <span class="text-gold text-xs font-extrabold uppercase tracking-[0.2em]">Pré-inscription</span>
+    <h1 class="font-display text-white text-3xl sm:text-4xl font-semibold mt-4 leading-tight">Formulaire d'Inscription de l'Élève</h1>
+    <p class="text-white/70 mt-4 max-w-2xl mx-auto text-sm sm:text-[15px] leading-relaxed">
+      Veuillez remplir toutes les informations avec précision et joindre les documents requis. L'administration de l'établissement vous contactera pour confirmer l'inscription définitive.
+    </p>
+  </div>
+</section>
+
+<main class="max-w-5xl mx-auto px-5 sm:px-8 py-12 sm:py-16">
+
+  <div class="flex items-center justify-center gap-2 mb-12" aria-hidden="true">
+    <span class="progress-dot w-2.5 h-2.5 rounded-full bg-gold"></span>
+    <span class="progress-dot w-2.5 h-2.5 rounded-full bg-gold"></span>
+    <span class="progress-dot w-2.5 h-2.5 rounded-full bg-gold"></span>
+    <span class="progress-dot w-2.5 h-2.5 rounded-full bg-gold"></span>
+  </div>
+
+  <form id="regForm" novalidate class="space-y-8">
+
+    <section class="step-card bg-white border border-line rounded-3xl p-6 sm:p-9 shadow-sm">
+      <div class="flex items-center gap-4 mb-7">
+        <div class="w-11 h-11 rounded-xl bg-navy grid place-items-center shrink-0">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#F0A93C" stroke-width="1.8"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6" stroke="#F0A93C" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <div>
+          <h2 class="font-display font-semibold text-navy text-xl">Informations Personnelles de l'Élève</h2>
+          <p class="text-ink/50 text-xs mt-1">Student's personal information</p>
+        </div>
+      </div>
+
+      <div class="grid sm:grid-cols-2 gap-6">
+        <div>
+          <label for="firstName" class="field-label block mb-2">Prénom <span class="text-red-500">*</span></label>
+          <input id="firstName" name="firstName" type="text" required class="w-full rounded-xl border border-line bg-mist/50 px-4 py-3 text-sm focus:border-gold outline-none" placeholder="Ex: Mohamed">
+          <p class="field-hint mt-1" data-error></p>
+        </div>
+        <div>
+          <label for="lastName" class="field-label block mb-2">Nom <span class="text-red-500">*</span></label>
+          <input id="lastName" name="lastName" type="text" required class="w-full rounded-xl border border-line bg-mist/50 px-4 py-3 text-sm focus:border-gold outline-none" placeholder="Ex: Alami">
+          <p class="field-hint mt-1" data-error></p>
+        </div>
+        <div>
+          <label for="dob" class="field-label block mb-2">Date de naissance <span class="text-red-500">*</span></label>
+          <input id="dob" name="dob" type="date" required class="w-full rounded-xl border border-line bg-mist/50 px-4 py-3 text-sm focus:border-gold outline-none num">
+          <p class="field-hint mt-1" data-error></p>
+        </div>
+        <div>
+          <label for="pob" class="field-label block mb-2">Lieu de naissance <span class="text-red-500">*</span></label>
+          <input id="pob" name="pob" type="text" required class="w-full rounded-xl border border-line bg-mist/50 px-4 py-3 text-sm focus:border-gold outline-none" placeholder="Ex: Kénitra">
+          <p class="field-hint mt-1" data-error></p>
+        </div>
+        <div>
+          <label for="gender" class="field-label block mb-2">Genre / Sexe <span class="text-red-500">*</span></label>
+          <select id="gender" name="gender" required class="w-full rounded-xl border border-line bg-mist/50 px-4 py-3 text-sm focus:border-gold outline-none appearance-none cursor-pointer">
+            <option value="" disabled selected hidden>Sélectionnez le genre</option>
+            <option value="M">Masculin (M)</option>
+            <option value="F">Féminin (F)</option>
+          </select>
+          <p class="field-hint mt-1" data-error></p>
+        </div>
+        <div>
+          <label for="level" class="field-label block mb-2">Niveau d'inscription <span class="text-red-500">*</span></label>
+          <select id="level" name="level" required class="w-full rounded-xl border border-line bg-mist/50 px-4 py-3 text-sm focus:border-gold outline-none appearance-none cursor-pointer">
+            <option value="" disabled selected hidden>Sélectionnez le niveau</option>
+            <optgroup label="Primaire">
+              <option value="1ère année primaire">1ère année primaire</option>
+              <option value="2ème année primaire">2ème année primaire</option>
+              <option value="3ème année primaire">3ème année primaire</option>
+              <option value="4ème année primaire">4ème année primaire</option>
+              <option value="5ème année primaire">5ème année primaire</option>
+              <option value="6ème année primaire">6ème année primaire</option>
+            </optgroup>
+            <optgroup label="Collège">
+              <option value="1ère année collège">1ère année collège</option>
+              <option value="2ème année collège">2ème année collège</option>
+              <option value="3ème année collège">3ème année collège</option>
+            </optgroup>
+            <optgroup label="Lycée">
+              <option value="Tronc Commun">Tronc Commun</option>
+              <option value="1ère année Baccalauréat">1ère année Baccalauréat</option>
+              <option value="2ème année Baccalauréat">2ème année Baccalauréat</option>
+            </optgroup>
+          </select>
+          <p class="field-hint mt-1" data-error></p>
+        </div>
+      </div>
+
+      <div class="mt-6">
+        <label class="field-label block mb-2">Photo d'identité de l'élève <span class="text-red-500">*</span></label>
+        <div id="dropPhoto" class="file-drop rounded-2xl p-5 flex items-center gap-4 cursor-pointer">
+          <div class="w-16 h-16 rounded-xl bg-mist grid place-items-center overflow-hidden shrink-0">
+            <img id="photoPreview" class="hidden w-full h-full object-cover" alt="">
+            <svg id="photoIcon" width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="#5B3AA6" stroke-width="1.8"/><circle cx="9" cy="10" r="1.6" fill="#5B3AA6"/><path d="M4 17l5-4 4 3 3-2 4 3" stroke="#5B3AA6" stroke-width="1.8"/></svg>
+          </div>
+          <div class="flex-1 text-left">
+            <p id="photoLabel" class="text-sm font-bold text-navy">Cliquez pour charger la photo</p>
+            <p class="text-xs text-ink/45 mt-0.5">JPG ou PNG — Taille max 5 Mo</p>
+          </div>
+          <input id="photoFile" name="photoFile" type="file" accept="image/*" required class="hidden">
+        </div>
+        <p class="field-hint mt-1" data-error></p>
+      </div>
+    </section>
+
+    <section class="step-card bg-white border border-line rounded-3xl p-6 sm:p-9 shadow-sm">
+      <div class="flex items-center gap-4 mb-7">
+        <div class="w-11 h-11 rounded-xl bg-navy grid place-items-center shrink-0">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M12 21s-7.5-4.6-10-9.1C.5 8.2 2.6 4.5 6.4 4.1c2-.2 3.7.8 5.6 3 1.9-2.2 3.6-3.2 5.6-3 3.8.4 5.9 4.1 4.4 7.8C19.5 16.4 12 21 12 21z" stroke="#F0A93C" stroke-width="1.8" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <h2 class="font-display font-semibold text-navy text-xl">Informations des Parents</h2>
+          <p class="text-ink/50 text-xs mt-1">Parents and guardians information</p>
+        </div>
+      </div>
+
+      <div class="grid sm:grid-cols-2 gap-6">
+        <div>
+          <label for="fatherName" class="field-label block mb-2">Nom complet du père <span class="text-red-500">*</span></label>
+          <input id="fatherName" name="fatherName" type="text" required class="w-full rounded-xl border border-line bg-mist/50 px-4 py-3 text-sm focus:border-gold outline-none">
+          <p class="field-hint mt-1" data-error></p>
+        </div>
+        <div>
+          <label for="motherName" class="field-label block mb-2">Nom complet de la mère <span class="text-red-500">*</span></label>
+          <input id="motherName" name="motherName" type="text" required class="w-full rounded-xl border border-line bg-mist/50 px-4 py-3 text-sm focus:border-gold outline-none">
+          <p class="field-hint mt-1" data-error></p>
+        </div>
+        <div>
+          <label for="fatherCIN" class="field-label block mb-2">N° CIN du père <span class="text-red-500">*</span></label>
+          <input id="fatherCIN" name="fatherCIN" type="text" required class="w-full rounded-xl border border-line bg-mist/50 px-4 py-3 text-sm focus:border-gold outline-none num" placeholder="Ex: AB123456">
+          <p class="field-hint mt-1" data-error></p>
+        </div>
+        <div>
+          <label for="motherCIN" class="field-label block mb-2">N° CIN de la mère <span class="text-red-500">*</span></label>
+          <input id="motherCIN" name="motherCIN" type="text" required class="w-full rounded-xl border border-line bg-mist/50 px-4 py-3 text-sm focus:border-gold outline-none num" placeholder="Ex: AB654321">
+          <p class="field-hint mt-1" data-error></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="step-card bg-white border border-line rounded-3xl p-6 sm:p-9 shadow-sm">
+      <div class="flex items-center gap-4 mb-7">
+        <div class="w-11 h-11 rounded-xl bg-navy grid place-items-center shrink-0">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 19V6a2 2 0 012-2h9l5 5v10a2 2 0 01-2 2H6a2 2 0 01-2-2z" stroke="#F0A93C" stroke-width="1.8" stroke-linejoin="round"/><path d="M15 4v5h5" stroke="#F0A93C" stroke-width="1.8" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <h2 class="font-display font-semibold text-navy text-xl">Documents Requis</h2>
+          <p class="text-ink/50 text-xs mt-1">Obligatory documents (PDF or image, 5 MB max)</p>
+        </div>
+      </div>
+
+      <div class="grid sm:grid-cols-2 gap-6">
+        <div>
+          <label class="field-label block mb-2">Copie de l'extrait d'acte de naissance <span class="text-red-500">*</span></label>
+          <div id="dropBirth" class="file-drop rounded-2xl p-5 flex items-center gap-4 cursor-pointer">
+            <div class="w-12 h-12 rounded-xl bg-mist grid place-items-center shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 19V6a2 2 0 012-2h9l5 5v10a2 2 0 01-2 2H6a2 2 0 01-2-2z" stroke="#5B3AA6" stroke-width="1.8" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="flex-1">
+              <p id="birthLabel" class="text-sm font-bold text-navy">Cliquez pour charger le document</p>
+              <p class="text-xs text-ink/45 mt-0.5">PDF ou Image</p>
+            </div>
+            <input id="birthFile" name="birthFile" type="file" accept="application/pdf,image/*" required class="hidden">
+          </div>
+          <p class="field-hint mt-1" data-error></p>
+        </div>
+
+        <div>
+          <label class="field-label block mb-2">Copies de la CIN des parents (Recto-Verso) <span class="text-red-500">*</span></label>
+          <div id="dropId" class="file-drop rounded-2xl p-5 flex items-center gap-4 cursor-pointer">
+            <div class="w-12 h-12 rounded-xl bg-mist grid place-items-center shrink-0">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="12" rx="2" stroke="#5B3AA6" stroke-width="1.8"/><circle cx="8" cy="12" r="1.8" stroke="#5B3AA6" stroke-width="1.6"/><path d="M13 10h5M13 14h5" stroke="#5B3AA6" stroke-width="1.6" stroke-linecap="round"/></svg>
+            </div>
+            <div class="flex-1">
+              <p id="idLabel" class="text-sm font-bold text-navy">Cliquez pour charger le document</p>
+              <p class="text-xs text-ink/45 mt-0.5">PDF ou Image (les deux faces)</p>
+            </div>
+            <input id="idFile" name="idFile" type="file" accept="application/pdf,image/*" required class="hidden">
+          </div>
+          <p class="field-hint mt-1" data-error></p>
+        </div>
+      </div>
+    </section>
+
+    <section class="step-card bg-white border border-line rounded-3xl p-6 sm:p-9 shadow-sm">
+      <div class="flex items-center gap-4 mb-7">
+        <div class="w-11 h-11 rounded-xl bg-navy grid place-items-center shrink-0">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M22 16.9v2.5a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3 19.5 19.5 0 01-6-6 19.5 19.5 0 01-3-8.7A2 2 0 014.1 2h2.5a2 2 0 012 1.7c.1.9.3 1.8.6 2.7a2 2 0 01-.5 2.1L7.6 9.6a16 16 0 006 6l1.1-1.1a2 2 0 012.1-.5c.9.3 1.8.5 2.7.6a2 2 0 011.7 2.1z" stroke="#F0A93C" stroke-width="1.8" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <h2 class="font-display font-semibold text-navy text-xl">Coordonnées de Contact</h2>
+          <p class="text-ink/50 text-xs mt-1">Contact information</p>
+        </div>
+      </div>
+
+      <div class="grid sm:grid-cols-2 gap-6">
+        <div>
+          <label for="motherPhone" class="field-label block mb-2">Numéro de téléphone de la mère <span class="text-red-500">*</span></label>
+          <input id="motherPhone" name="motherPhone" type="tel" required class="w-full rounded-xl border border-line bg-mist/50 px-4 py-3 text-sm focus:border-gold outline-none num" placeholder="06XXXXXXXX">
+          <p class="field-hint mt-1" data-error></p>
+        </div>
+        <div>
+          <label for="fatherPhone" class="field-label block mb-2">Numéro de téléphone du père <span class="text-red-500">*</span></label>
+          <input id="fatherPhone" name="fatherPhone" type="tel" required class="w-full rounded-xl border border-line bg-mist/50 px-4 py-3 text-sm focus:border-gold outline-none num" placeholder="06XXXXXXXX">
+          <p class="field-hint mt-1" data-error></p>
+        </div>
+        <div class="sm:col-span-2">
+          <label for="emergencyPhone" class="field-label block mb-2">Numéro d'urgence (si les parents sont injoignables) <span class="text-red-500">*</span></label>
+          <input id="emergencyPhone" name="emergencyPhone" type="tel" required class="w-full rounded-xl border border-line bg-mist/50 px-4 py-3 text-sm focus:border-gold outline-none num" placeholder="06XXXXXXXX">
+          <p class="field-hint mt-1" data-error></p>
+        </div>
+      </div>
+    </section>
+
+    <div class="flex flex-col items-center gap-5 pt-4">
+      <button id="submitBtn" type="submit" class="inline-flex items-center gap-3 bg-navy hover:bg-navy-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-extrabold px-10 py-4 rounded-full transition-colors shadow-xl shadow-navy/25 text-base">
+        <span id="btnSpinner" class="spinner hidden"></span>
+        <span id="btnText">Soumettre l'inscription</span>
+      </button>
+      <p class="text-xs text-ink/45 text-center max-w-md">Toutes les informations et documents soumis sont traités en toute confidentialité et sont utilisés exclusivement à des fins d'inscription administrative.</p>
+    </div>
+
+  </form>
+</main>
+
+<div id="toast" class="toast fixed bottom-6 inset-x-0 mx-auto w-fit max-w-[90vw] px-6 py-4 rounded-2xl shadow-2xl z-50 flex items-center gap-3">
+  <span id="toastIcon"></span>
+  <p id="toastText" class="text-sm font-bold"></p>
+</div>
+
+<footer class="bg-navy-900 py-8 mt-8">
+  <p class="text-center text-white/40 text-xs">© <span id="year"></span> Diwan Al Maaref — Établissement de Soutien Scolaire</p>
+</footer>
+
+<script type="module">
+import { db, doc, setDoc, uploadToStorage, generateMatricule } from './supabase-config.js';
+
+document.getElementById('year').textContent = new Date().getFullYear();
+
+const MAX_FILE_MB = 5;
+
+function wireDropZone(zoneId, inputId, labelId, opts) {
+  const zone = document.getElementById(zoneId);
+  const input = document.getElementById(inputId);
+  const label = document.getElementById(labelId);
+
+  zone.addEventListener('click', () => input.click());
+  zone.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
+  zone.setAttribute('tabindex', '0');
+  zone.setAttribute('role', 'button');
+
+  input.addEventListener('change', () => {
+    const file = input.files[0];
+    if (!file) return;
+
+    if (file.size > MAX_FILE_MB * 1024 * 1024) {
+      showFieldError(input, `La taille du fichier dépasse ${MAX_FILE_MB} Mo`);
+      input.value = '';
+      return;
+    }
+    clearFieldError(input);
+
+    zone.classList.add('has-file');
+    label.textContent = file.name;
+
+    if (opts && opts.previewImg && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = document.getElementById(opts.previewImg);
+        const icon = document.getElementById(opts.iconEl);
+        img.src = e.target.result;
+        img.classList.remove('hidden');
+        if (icon) icon.classList.add('hidden');
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+}
+
+wireDropZone('dropPhoto', 'photoFile', 'photoLabel', { previewImg: 'photoPreview', iconEl: 'photoIcon' });
+wireDropZone('dropBirth', 'birthFile', 'birthLabel');
+wireDropZone('dropId', 'idFile', 'idLabel');
+
+function showFieldError(input, message) {
+  const errorEl = input.closest('div').parentElement.querySelector('[data-error]') ||
+                  input.parentElement.querySelector('[data-error]');
+  if (errorEl) { errorEl.textContent = message; errorEl.classList.add('text-red-500'); }
+  input.classList.add('border-red-400');
+}
+function clearFieldError(input) {
+  const errorEl = input.closest('div').parentElement.querySelector('[data-error]') ||
+                  input.parentElement.querySelector('[data-error]');
+  if (errorEl) { errorEl.textContent = ''; }
+  input.classList.remove('border-red-400');
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    if (!file) { resolve(null); return; }
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function showToast(message, type) {
+  const toast = document.getElementById('toast');
+  const icon = document.getElementById('toastIcon');
+  const text = document.getElementById('toastText');
+  text.textContent = message;
+
+  if (type === 'success') {
+    toast.className = 'toast show fixed bottom-6 inset-x-0 mx-auto w-fit max-w-[90vw] px-6 py-4 rounded-2xl shadow-2xl z-50 flex items-center gap-3 bg-navy text-white';
+    icon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="#F0A93C"/><path d="M8 12.5l2.5 2.5L16 9" stroke="#1B1464" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  } else {
+    toast.className = 'toast show fixed bottom-6 inset-x-0 mx-auto w-fit max-w-[90vw] px-6 py-4 rounded-2xl shadow-2xl z-50 flex items-center gap-3 bg-red-600 text-white';
+    icon.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" fill="white" fill-opacity="0.2"/><path d="M12 8v5M12 16h.01" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>';
+  }
+
+  setTimeout(() => { toast.classList.remove('show'); }, 5000);
+}
+
+const form = document.getElementById('regForm');
+const submitBtn = document.getElementById('submitBtn');
+const btnSpinner = document.getElementById('btnSpinner');
+const btnText = document.getElementById('btnText');
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  form.querySelectorAll('[data-error]').forEach(el => el.textContent = '');
+  form.querySelectorAll('input, select').forEach(el => el.classList.remove('border-red-400'));
+
+  let firstInvalid = null;
+  const requiredInputs = form.querySelectorAll('[required]');
+  requiredInputs.forEach((input) => {
+    const isFile = input.type === 'file';
+    const isEmpty = isFile ? input.files.length === 0 : !input.value.trim();
+    if (isEmpty) {
+      showFieldError(input, 'Ce champ est obligatoire');
+      if (!firstInvalid) firstInvalid = input;
+    }
+  });
+
+  if (firstInvalid) {
+    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    showToast('Veuillez remplir tous les champs obligatoires', 'error');
+    return;
+  }
+
+  submitBtn.disabled = true;
+  btnSpinner.classList.remove('hidden');
+  btnText.textContent = 'Envoi en cours...';
+
+  try {
+    const photoFile = document.getElementById('photoFile').files[0];
+    const birthFile = document.getElementById('birthFile').files[0];
+    const idFile = document.getElementById('idFile').files[0];
+
+    // 1) Génère un matricule unique (compteur transactionnel Firestore)
+    const matricule = await generateMatricule();
+
+    // 2) Upload des documents vers Firebase Storage (en parallèle)
+    const [photoURL, birthCertURL, cinParentsURL] = await Promise.all([
+      photoFile ? uploadToStorage(`students/${matricule}/photo_${photoFile.name}`, photoFile) : '',
+      birthFile ? uploadToStorage(`students/${matricule}/acte_${birthFile.name}`, birthFile) : '',
+      idFile    ? uploadToStorage(`students/${matricule}/cin_${idFile.name}`, idFile) : '',
+    ]);
+
+    // 3) Écrit le dossier de l'élève dans Firestore (id du document = matricule)
+    await setDoc(doc(db, 'students', matricule), {
+      prenom: form.firstName.value.trim(),
+      nom: form.lastName.value.trim(),
+      dateNaissance: form.dob.value,
+      lieuNaissance: form.pob.value.trim(),
+      genre: form.gender.value,
+      niveau: form.level.value.trim(),
+      nomPere: form.fatherName.value.trim(),
+      nomMere: form.motherName.value.trim(),
+      cinPere: form.fatherCIN.value.trim(),
+      cinMere: form.motherCIN.value.trim(),
+      telPere: form.fatherPhone.value.trim(),
+      telMere: form.motherPhone.value.trim(),
+      telUrgence: form.emergencyPhone.value.trim(),
+      photoURL, acteNaissanceURL: birthCertURL, cinParentsURL,
+      statut: 'En attente',
+      groupe: 'Non assigné',
+      horodatage: new Date().toISOString()
+    });
+
+    showToast("Demande d'inscription envoyée avec succès ! Numéro de dossier : " + matricule, 'success');
+    form.reset();
+    document.querySelectorAll('.file-drop').forEach(z => z.classList.remove('has-file'));
+    document.getElementById('photoPreview').classList.add('hidden');
+    document.getElementById('photoIcon').classList.remove('hidden');
+    document.getElementById('photoLabel').textContent = 'Cliquez pour charger la photo';
+    document.getElementById('birthLabel').textContent = 'Cliquez pour charger le document';
+    document.getElementById('idLabel').textContent = 'Cliquez pour charger le document';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  } catch (err) {
+    showToast("Erreur lors de l'envoi : " + err.message, 'error');
+  } finally {
+    submitBtn.disabled = false;
+    btnSpinner.classList.add('hidden');
+    btnText.textContent = "Soumettre l'inscription";
+  }
+});
+</script>
+</body>
+</html>
