@@ -212,6 +212,13 @@
         <input id="salaire" name="salaire" type="number" min="0" step="0.01" placeholder="Ex : 6500" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy placeholder:text-ink/30 outline-none">
       </div>
 
+      <div id="duplicateWarning" class="hidden sm:col-span-2 lg:col-span-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-bold text-gold-dark bg-gold/10 border border-gold/30 rounded-xl px-4 py-3">
+        <span id="duplicateWarningText" class="leading-relaxed"></span>
+        <button type="button" id="goToDuplicateBtn" class="shrink-0 inline-flex items-center gap-1.5 bg-white border border-gold/40 text-gold-dark hover:bg-gold/10 rounded-full px-4 py-2 transition-colors">
+          Ouvrir sa fiche pour modifier
+        </button>
+      </div>
+
       <p id="formError" class="hidden sm:col-span-2 lg:col-span-3 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3">
         Veuillez remplir tous les champs avant d'ajouter l'enseignant.
       </p>
@@ -248,6 +255,7 @@
             <th class="px-4 py-3.5 whitespace-nowrap">Groupe</th>
             <th class="px-4 py-3.5 whitespace-nowrap text-emerald-600">Salaire net</th>
             <th class="px-4 py-3.5 whitespace-nowrap text-purple">Identifiant (Nom d'utilisateur)</th>
+            <th class="px-4 py-3.5 whitespace-nowrap text-purple">Mot de passe</th>
             <th class="px-4 sm:px-8 py-3.5 whitespace-nowrap text-right">Action</th>
           </tr>
         </thead>
@@ -371,6 +379,36 @@
   const submitBtnText  = document.getElementById('submitBtnText');
   const cancelEditBtn  = document.getElementById('cancelEditBtn');
 
+  const nomInput             = document.getElementById('nom');
+  const prenomInput          = document.getElementById('prenom');
+  const duplicateWarning     = document.getElementById('duplicateWarning');
+  const duplicateWarningText = document.getElementById('duplicateWarningText');
+  const goToDuplicateBtn     = document.getElementById('goToDuplicateBtn');
+  let pendingDuplicateId     = null;
+
+  function checkDuplicateLive() {
+    const match = findDuplicateTeacher(nomInput.value.trim(), prenomInput.value.trim(), editTeacherId.value || null);
+    if (match) {
+      pendingDuplicateId = match.id;
+      duplicateWarningText.textContent =
+        `Un enseignant nommé "${match.prenom} ${match.nom}" est déjà enregistré (identifiant : ${match.username}). Évitez de créer un doublon.`;
+      duplicateWarning.classList.remove('hidden');
+    } else {
+      pendingDuplicateId = null;
+      duplicateWarning.classList.add('hidden');
+    }
+  }
+
+  nomInput.addEventListener('input', checkDuplicateLive);
+  prenomInput.addEventListener('input', checkDuplicateLive);
+
+  goToDuplicateBtn.addEventListener('click', () => {
+    if (!pendingDuplicateId) return;
+    const editBtn = document.querySelector(`.editBtn[data-id="${pendingDuplicateId}"]`);
+    if (editBtn) editBtn.click();
+    duplicateWarning.classList.add('hidden');
+  });
+
   async function loadTeachers() {
     const snap = await getDocs(TEACHERS_COL);
     loadedTeachersCache = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -385,6 +423,23 @@
     return stripAccents(str)
       .toLowerCase()
       .replace(/[^a-z]/g, '');
+  }
+
+  function normalizeName(str) {
+    return stripAccents(str || '').toLowerCase().trim().replace(/\s+/g, ' ');
+  }
+
+  // Cherche un enseignant déjà présent dans loadedTeachersCache avec le même nom + prénom
+  // (insensible aux accents/majuscules). excludeId permet d'ignorer la fiche en cours d'édition.
+  function findDuplicateTeacher(nom, prenom, excludeId) {
+    const nNom = normalizeName(nom);
+    const nPrenom = normalizeName(prenom);
+    if (!nNom || !nPrenom) return null;
+    return loadedTeachersCache.find((t) =>
+      t.id !== excludeId &&
+      normalizeName(t.nom) === nNom &&
+      normalizeName(t.prenom) === nPrenom
+    ) || null;
   }
 
   function generateUsername(prenom, nom, existingUsernames) {
@@ -415,12 +470,12 @@
   }
 
   async function render() {
-    tableBody.innerHTML = `<tr><td colspan="10" class="text-center py-8 text-navy/50">Chargement des enseignants...</td></tr>`;
+    tableBody.innerHTML = `<tr><td colspan="11" class="text-center py-8 text-navy/50">Chargement des enseignants...</td></tr>`;
     let teachers;
     try {
       teachers = await loadTeachers();
     } catch (e) {
-      tableBody.innerHTML = `<tr><td colspan="10" class="text-center py-8 text-rose-600 font-bold">Erreur de connexion à Firestore.</td></tr>`;
+      tableBody.innerHTML = `<tr><td colspan="11" class="text-center py-8 text-rose-600 font-bold">Erreur de connexion à Firestore.</td></tr>`;
       return;
     }
     tableBody.innerHTML = '';
@@ -447,6 +502,9 @@
           <div class="flex items-center gap-3">
             <span class="font-mono text-xs font-bold text-purple">${t.username}</span>
           </div>
+        </td>
+        <td class="px-4 py-4 whitespace-nowrap">
+          <span class="font-mono text-xs font-bold text-navy/70">${t.password || '—'}</span>
         </td>
         <td class="px-4 sm:px-8 py-4 whitespace-nowrap text-right">
           <div class="flex items-center justify-end gap-3.5">
@@ -505,6 +563,8 @@
           formTitle.textContent = "Modifier l'enseignant : " + teacher.prenom + " " + teacher.nom;
           submitBtnText.textContent = "Enregistrer les modifications";
           cancelEditBtn.classList.remove('hidden');
+          duplicateWarning.classList.add('hidden');
+          pendingDuplicateId = null;
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }
       });
@@ -586,6 +646,8 @@
     submitBtnText.textContent = "Ajouter l'enseignant";
     cancelEditBtn.classList.add('hidden');
     formError.classList.add('hidden');
+    duplicateWarning.classList.add('hidden');
+    pendingDuplicateId = null;
   });
 
   form.addEventListener('submit', async (e) => {
@@ -602,10 +664,21 @@
     const isEditMode = editTeacherId.value !== "";
 
     if (!nom || !prenom || !genre || !adresse || !telephone || niveaux.length === 0 || !groupe || salaire === '') {
+      formError.textContent = "Veuillez remplir tous les champs avant d'ajouter l'enseignant.";
       formError.classList.remove('hidden');
       return;
     }
     formError.classList.add('hidden');
+
+    if (!isEditMode) {
+      const dup = findDuplicateTeacher(nom, prenom, null);
+      if (dup) {
+        checkDuplicateLive();
+        formError.textContent = "Cet enseignant semble déjà enregistré. Utilisez \"Ouvrir sa fiche pour modifier\" ci-dessus, ou changez le nom si c'est une personne différente.";
+        formError.classList.remove('hidden');
+        return;
+      }
+    }
 
     const submitBtn = form.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
@@ -641,6 +714,8 @@
         showCredentialsModal(username, password, true);
         form.reset();
         resetNiveauSelector();
+        duplicateWarning.classList.add('hidden');
+        pendingDuplicateId = null;
       }
     } catch (err) {
       alert("Erreur lors de l'opération : " + err.message);
