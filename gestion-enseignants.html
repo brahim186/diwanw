@@ -429,8 +429,6 @@
     return stripAccents(str || '').toLowerCase().trim().replace(/\s+/g, ' ');
   }
 
-  // Cherche un enseignant déjà présent dans loadedTeachersCache avec le même nom + prénom
-  // (insensible aux accents/majuscules). excludeId permet d'ignorer la fiche en cours d'édition.
   function findDuplicateTeacher(nom, prenom, excludeId) {
     const nNom = normalizeName(nom);
     const nPrenom = normalizeName(prenom);
@@ -617,7 +615,7 @@
       modalDesc.textContent = "Notez ces identifiants maintenant : le mot de passe ne sera plus jamais affiché.";
     } else {
       modalTitle.textContent = "Consultation des identifiants";
-      modalDesc.textContent = "Voici le nom d'utilisateur et le mot de passe enregistrés dans la base de données.";
+      modalDesc.textContent = "Voici le nom d'utilisateur et le mot de passe enregistrés dans la baseة البيانات.";
     }
     
     credentialsModal.classList.remove('hidden');
@@ -669,16 +667,6 @@
       return;
     }
     formError.classList.add('hidden');
-
-    if (!isEditMode) {
-      const dup = findDuplicateTeacher(nom, prenom, null);
-      if (dup) {
-        checkDuplicateLive();
-        formError.textContent = "Cet enseignant semble déjà enregistré. Utilisez \"Ouvrir sa fiche pour modifier\" ci-dessus, ou changez le nom si c'est une personne différente.";
-        formError.classList.remove('hidden');
-        return;
-      }
-    }
 
     const submitBtn = form.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
