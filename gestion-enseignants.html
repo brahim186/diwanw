@@ -105,11 +105,13 @@
     <p class="text-ink/50 text-sm mt-2">Ajoutez un enseignant et générez automatiquement ses identifiants de connexion.</p>
   </div>
 
-  <!-- Formulaire d'ajout -->
+  <!-- Formulaire d'ajout / Modification -->
   <section class="bg-white border border-line rounded-3xl p-6 sm:p-8 shadow-sm">
-    <h3 class="font-display font-semibold text-navy text-lg mb-6">Ajouter un enseignant</h3>
+    <h3 id="formTitle" class="font-display font-semibold text-navy text-lg mb-6">Ajouter un enseignant</h3>
 
     <form id="teacherForm" novalidate class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      <!-- حقل مخفي لتخزين معرف المعلم أثناء عملية التعديل -->
+      <input type="hidden" id="editTeacherId" value="">
 
       <div>
         <label for="nom" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Nom</label>
@@ -216,10 +218,13 @@
         Veuillez remplir tous les champs avant d'ajouter l'enseignant.
       </p>
 
-      <div class="sm:col-span-2 lg:col-span-3 flex justify-end">
-        <button type="submit" class="btn-primary inline-flex items-center gap-2 bg-navy text-white font-extrabold text-sm rounded-full px-7 py-3.5">
+      <div class="sm:col-span-2 lg:col-span-3 flex justify-end gap-3">
+        <button type="button" id="cancelEditBtn" class="hidden inline-flex items-center gap-2 bg-line text-navy font-extrabold text-sm rounded-full px-6 py-3.5 transition-all">
+          Annuler
+        </button>
+        <button type="submit" id="submitBtn" class="btn-primary inline-flex items-center gap-2 bg-navy text-white font-extrabold text-sm rounded-full px-7 py-3.5">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
-          Ajouter l'enseignant
+          <span id="submitBtnText">Ajouter l'enseignant</span>
         </button>
       </div>
 
@@ -265,14 +270,14 @@
 <!-- Toast de confirmation -->
 <div id="toastWrap" class="fixed bottom-6 inset-x-0 flex justify-center pointer-events-none z-50"></div>
 
-<!-- Modale affichant les identifiants du nouvel enseignant (ne réapparaissent plus jamais) -->
+<!-- Modale d'affichage des identifiants (تفتح عند الإضافة وعند النقر على زر العين) -->
 <div id="credentialsModal" class="hidden fixed inset-0 z-50 bg-navy-900/60 backdrop-blur-sm flex items-center justify-center px-5">
   <div class="w-full max-w-sm bg-white rounded-3xl shadow-2xl p-8 text-center">
     <div class="w-14 h-14 mx-auto rounded-2xl bg-emerald-500/10 grid place-items-center mb-4">
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
-    <h3 class="font-display font-semibold text-navy text-lg mb-2">Enseignant ajouté</h3>
-    <p class="text-ink/50 text-xs mb-6">Notez ces identifiants maintenant : le mot de passe ne sera plus jamais affiché.</p>
+    <h3 id="modalTitle" class="font-display font-semibold text-navy text-lg mb-2">Identifiants de l'enseignant</h3>
+    <p id="modalDesc" class="text-ink/50 text-xs mb-6">Notez ces identifiants maintenant.</p>
 
     <div class="text-left space-y-3 mb-6">
       <div class="bg-mist rounded-2xl px-4 py-3">
@@ -290,7 +295,7 @@
         Copier identifiant + mot de passe
       </button>
       <button id="closeCredsBtn" type="button" class="w-full bg-navy hover:bg-navy-700 text-white font-extrabold text-sm px-5 py-3 rounded-full transition-colors">
-        J'ai bien noté les identifiants
+        Fermer
       </button>
     </div>
   </div>
@@ -303,6 +308,7 @@
   } from './supabase-config.js';
 
   const TEACHERS_COL = collection(db, 'teachers');
+  let loadedTeachersCache = []; // ذاكرة مخرنة مؤقتاً لتسهيل عمليات التعديل والعين السريعة
 
   // --- Sélecteur multiple des niveaux (max 3) ---
   const niveauBtn      = document.getElementById('niveauBtn');
@@ -366,10 +372,16 @@
   const emptyState     = document.getElementById('emptyState');
   const countBadge     = document.getElementById('countBadge');
   const toastWrap      = document.getElementById('toastWrap');
+  
+  const editTeacherId  = document.getElementById('editTeacherId');
+  const formTitle      = document.getElementById('formTitle');
+  const submitBtnText  = document.getElementById('submitBtnText');
+  const cancelEditBtn  = document.getElementById('cancelEditBtn');
 
   async function loadTeachers() {
     const snap = await getDocs(TEACHERS_COL);
-    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    loadedTeachersCache = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    return loadedTeachersCache;
   }
 
   function stripAccents(str) {
@@ -441,14 +453,25 @@
         <td class="px-4 py-4 whitespace-nowrap">
           <div class="flex items-center gap-3">
             <span class="font-mono text-xs font-bold text-purple">${t.username}</span>
-            <button data-id="${t.id}" class="resetBtn text-[11px] font-extrabold text-gold-dark hover:text-navy underline decoration-dotted">Réinitialiser</button>
           </div>
         </td>
         <td class="px-4 sm:px-8 py-4 whitespace-nowrap text-right">
-          <button data-id="${t.id}" class="deleteBtn inline-flex items-center gap-1.5 text-xs font-bold text-rose-500 hover:text-rose-700 transition-colors">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            Supprimer
-          </button>
+          <div class="flex items-center justify-end gap-3.5">
+            <!-- زر العين للمشاهدة المباشرة -->
+            <button data-id="${t.id}" class="viewBtn text-purple hover:text-navy transition-colors" title="Voir les identifiants">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+            <!-- زر التعديل المباشر -->
+            <button data-id="${t.id}" class="editBtn text-gold-dark hover:text-gold flex items-center gap-1 text-xs font-bold" title="Modifier">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Modifier
+            </button>
+            <!-- زر الحذف -->
+            <button data-id="${t.id}" class="deleteBtn inline-flex items-center gap-1.5 text-xs font-bold text-rose-500 hover:text-rose-700 transition-colors">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Supprimer
+            </button>
+          </div>
         </td>
       `;
       tableBody.appendChild(tr);
@@ -456,16 +479,49 @@
 
     countBadge.textContent = teachers.length + (teachers.length > 1 ? ' enseignants' : ' enseignant');
 
-    document.querySelectorAll('.resetBtn').forEach((btn) => {
+    // تفعيل وظيفة زر العين (Voir)
+    document.querySelectorAll('.viewBtn').forEach((btn) => {
       btn.addEventListener('click', () => {
-        // ⚠️ Changer le mot de passe d'un AUTRE utilisateur nécessite l'Admin SDK
-        // (Cloud Function), ce que le client seul ne peut pas faire en toute sécurité.
-        // Solution pratique sans backend : supprimer puis ré-ajouter l'enseignant
-        // (nouveau compte, nouveau mot de passe généré automatiquement).
-        alert("Pour changer le mot de passe d'un enseignant sans serveur backend, la solution la plus simple est de le supprimer puis de le réajouter : un nouvel identifiant et mot de passe seront générés automatiquement.");
+        const id = btn.getAttribute('data-id');
+        const teacher = loadedTeachersCache.find(t => t.id === id);
+        if (teacher) {
+          showCredentialsModal(teacher.username, teacher.password || '—', false);
+        }
       });
     });
 
+    // تفعيل وظيفة زر التعديل (Modifier)
+    document.querySelectorAll('.editBtn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        const teacher = loadedTeachersCache.find(t => t.id === id);
+        if (teacher) {
+          // نقل البيانات إلى المدخلات العلوية
+          document.getElementById('nom').value = teacher.nom;
+          document.getElementById('prenom').value = teacher.prenom;
+          document.getElementById('genre').value = teacher.genre;
+          document.getElementById('adresse').value = teacher.adresse;
+          document.getElementById('telephone').value = teacher.telephone;
+          document.getElementById('groupe').value = teacher.groupe;
+          document.getElementById('salaire').value = teacher.salaire;
+          
+          resetNiveauSelector();
+          niveauOptions.forEach(cb => {
+            if (teacher.niveaux && teacher.niveaux.includes(cb.value)) cb.checked = true;
+          });
+          updateNiveauBtnLabel();
+          refreshNiveauLocks();
+
+          editTeacherId.value = teacher.id;
+          formTitle.textContent = "Modifier l'enseignant : " + teacher.prenom + " " + teacher.nom;
+          submitBtnText.textContent = "Enregistrer les modifications";
+          cancelEditBtn.classList.remove('hidden');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      });
+    });
+
+    // تفعيل وظيفة زر الحذف
     document.querySelectorAll('.deleteBtn').forEach((btn) => {
       btn.addEventListener('click', async () => {
         if (!confirm('Voulez-vous vraiment supprimer cet enseignant ? (son accès sera aussi révoqué)')) return;
@@ -473,9 +529,6 @@
         btn.disabled = true;
         btn.textContent = 'Suppression...';
         try {
-          // Supprime le profil Firestore. Le compte Auth reste orphelin (Firebase Auth ne peut
-          // être supprimé que côté admin/Cloud Function) mais n'a plus aucun accès aux données
-          // car il n'a plus de document dans /teachers, ce que vérifient les Security Rules.
           await deleteDoc(doc(db, 'teachers', id));
           showToast('Enseignant supprimé avec succès');
           render();
@@ -498,17 +551,28 @@
     setTimeout(() => toast.remove(), 3000);
   }
 
-  // --- Modale des identifiants (affichée une seule fois, juste après l'ajout) ---
+  // --- Modale des identifiants ---
   const credentialsModal = document.getElementById('credentialsModal');
   const credUsername     = document.getElementById('credUsername');
   const credPassword     = document.getElementById('credPassword');
   const copyCredsBtn     = document.getElementById('copyCredsBtn');
   const closeCredsBtn    = document.getElementById('closeCredsBtn');
+  const modalTitle       = document.getElementById('modalTitle');
+  const modalDesc        = document.getElementById('modalDesc');
 
-  function showCredentialsModal(username, password) {
+  function showCredentialsModal(username, password, isNew = true) {
     credUsername.textContent = username;
     credPassword.textContent = password;
     copyCredsBtn.textContent = 'Copier identifiant + mot de passe';
+    
+    if (isNew) {
+      modalTitle.textContent = "Enseignant ajouté";
+      modalDesc.textContent = "Notez ces identifiants maintenant : le mot de passe ne sera plus jamais affiché.";
+    } else {
+      modalTitle.textContent = "Consultation des identifiants";
+      modalDesc.textContent = "Voici le nom d'utilisateur et le mot de passe enregistrés dans la base de données.";
+    }
+    
     credentialsModal.classList.remove('hidden');
   }
 
@@ -527,6 +591,17 @@
     credentialsModal.classList.add('hidden');
   });
 
+  // إلغاء عملية التعديل وإعادة تعيين الحقول الافتراضية
+  cancelEditBtn.addEventListener('click', () => {
+    form.reset();
+    resetNiveauSelector();
+    editTeacherId.value = "";
+    formTitle.textContent = "Ajouter un enseignant";
+    submitBtnText.textContent = "Ajouter l'enseignant";
+    cancelEditBtn.classList.add('hidden');
+    formError.classList.add('hidden');
+  });
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -538,6 +613,7 @@
     const niveaux   = getSelectedNiveaux();
     const groupe    = document.getElementById('groupe').value;
     const salaire   = document.getElementById('salaire').value;
+    const isEditMode = editTeacherId.value !== "";
 
     if (!nom || !prenom || !genre || !adresse || !telephone || niveaux.length === 0 || !groupe || salaire === '') {
       formError.classList.remove('hidden');
@@ -548,30 +624,44 @@
     const submitBtn = form.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
     const originalBtnHtml = submitBtn.innerHTML;
-    submitBtn.innerHTML = 'Ajout en cours...';
+    submitBtn.innerHTML = isEditMode ? 'Enregistrement...' : 'Ajout en cours...';
 
     try {
-      const teachers = await loadTeachers();
-      const existingUsernames = teachers.map((t) => t.username);
-      const username = generateUsername(prenom, nom, existingUsernames);
-      const password = generatePassword();
-      const email = usernameToEmail(username);
+      if (isEditMode) {
+        // تحديث المعطيات داخل الـ Firestore دون تغيير المعرّفات أو الرموز السرية الأساسية
+        const currentId = editTeacherId.value;
+        await setDoc(doc(db, 'teachers', currentId), {
+          nom, prenom, genre, adresse, telephone, niveaux, groupe,
+          salaire: Number(salaire)
+        }, { merge: true });
 
-      // 1) Crée le compte Firebase Auth de l'enseignant (sans déconnecter l'admin)
-      const uid = await createTeacherAuthAccount(email, password);
+        showToast('Enseignant modifié avec succès');
+        cancelEditBtn.click();
+        render();
+      } else {
+        // الإضافة العادية لمعلم جديد في قاعدة البيانات
+        const teachers = await loadTeachers();
+        const existingUsernames = teachers.map((t) => t.username);
+        const username = generateUsername(prenom, nom, existingUsernames);
+        const password = generatePassword();
+        const email = usernameToEmail(username);
 
-      // 2) Crée son profil Firestore (id du document = uid Auth)
-      await setDoc(doc(db, 'teachers', uid), {
-        nom, prenom, genre, adresse, telephone, niveaux, groupe,
-        salaire: Number(salaire), username, createdAt: new Date().toISOString()
-      });
+        // 1) إنشاء الحساب في Firebase Auth
+        const uid = await createTeacherAuthAccount(email, password);
 
-      render();
-      showCredentialsModal(username, password);
-      form.reset();
-      resetNiveauSelector();
+        // 2) إنشاء الملف التعريفي في Firestore مع الاحتفاظ بالـ password لقراءته لاحقاً عبر زر العين
+        await setDoc(doc(db, 'teachers', uid), {
+          nom, prenom, genre, adresse, telephone, niveaux, groupe,
+          salaire: Number(salaire), username, password, createdAt: new Date().toISOString()
+        });
+
+        render();
+        showCredentialsModal(username, password, true);
+        form.reset();
+        resetNiveauSelector();
+      }
     } catch (err) {
-      alert("Erreur lors de l'ajout : " + err.message);
+      alert("Erreur lors de l'opération : " + err.message);
     } finally {
       submitBtn.disabled = false;
       submitBtn.innerHTML = originalBtnHtml;
