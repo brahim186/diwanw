@@ -105,12 +105,10 @@
     <p class="text-ink/50 text-sm mt-2">Ajoutez un enseignant et générez automatiquement ses identifiants de connexion.</p>
   </div>
 
-  <!-- Formulaire d'ajout / Modification -->
   <section class="bg-white border border-line rounded-3xl p-6 sm:p-8 shadow-sm">
     <h3 id="formTitle" class="font-display font-semibold text-navy text-lg mb-6">Ajouter un enseignant</h3>
 
     <form id="teacherForm" novalidate class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-      <!-- حقل مخفي لتخزين معرف المعلم أثناء عملية التعديل -->
       <input type="hidden" id="editTeacherId" value="">
 
       <div>
@@ -231,7 +229,6 @@
     </form>
   </section>
 
-  <!-- Liste des enseignants -->
   <section class="bg-white border border-line rounded-3xl shadow-sm overflow-hidden">
     <div class="px-6 sm:px-8 py-6 flex items-center justify-between border-b border-line">
       <h3 class="font-display font-semibold text-navy text-lg">Liste des enseignants</h3>
@@ -255,8 +252,7 @@
           </tr>
         </thead>
         <tbody id="teacherTableBody" class="divide-y divide-line">
-          <!-- Lignes injectées par JavaScript -->
-        </tbody>
+          </tbody>
       </table>
     </div>
 
@@ -267,10 +263,8 @@
 
 </main>
 
-<!-- Toast de confirmation -->
 <div id="toastWrap" class="fixed bottom-6 inset-x-0 flex justify-center pointer-events-none z-50"></div>
 
-<!-- Modale d'affichage des identifiants (تفتح عند الإضافة وعند النقر على زر العين) -->
 <div id="credentialsModal" class="hidden fixed inset-0 z-50 bg-navy-900/60 backdrop-blur-sm flex items-center justify-center px-5">
   <div class="w-full max-w-sm bg-white rounded-3xl shadow-2xl p-8 text-center">
     <div class="w-14 h-14 mx-auto rounded-2xl bg-emerald-500/10 grid place-items-center mb-4">
@@ -303,14 +297,13 @@
 
 <script type="module">
   import {
-    db, auth, signOut, doc, getDoc, setDoc, deleteDoc, collection, getDocs,
+    db, auth, signOut, doc, setDoc, deleteDoc, collection, getDocs,
     usernameToEmail, createTeacherAuthAccount, generatePassword
   } from './supabase-config.js';
 
   const TEACHERS_COL = collection(db, 'teachers');
-  let loadedTeachersCache = []; // ذاكرة مخرنة مؤقتاً لتسهيل عمليات التعديل والعين السريعة
+  let loadedTeachersCache = [];
 
-  // --- Sélecteur multiple des niveaux (max 3) ---
   const niveauBtn      = document.getElementById('niveauBtn');
   const niveauBtnLabel = document.getElementById('niveauBtnLabel');
   const niveauPanel    = document.getElementById('niveauPanel');
@@ -457,16 +450,13 @@
         </td>
         <td class="px-4 sm:px-8 py-4 whitespace-nowrap text-right">
           <div class="flex items-center justify-end gap-3.5">
-            <!-- زر العين للمشاهدة المباشرة -->
             <button data-id="${t.id}" class="viewBtn text-purple hover:text-navy transition-colors" title="Voir les identifiants">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
-            <!-- زر التعديل المباشر -->
             <button data-id="${t.id}" class="editBtn text-gold-dark hover:text-gold flex items-center gap-1 text-xs font-bold" title="Modifier">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               Modifier
             </button>
-            <!-- زر الحذف -->
             <button data-id="${t.id}" class="deleteBtn inline-flex items-center gap-1.5 text-xs font-bold text-rose-500 hover:text-rose-700 transition-colors">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
               Supprimer
@@ -479,7 +469,6 @@
 
     countBadge.textContent = teachers.length + (teachers.length > 1 ? ' enseignants' : ' enseignant');
 
-    // تفعيل وظيفة زر العين (Voir)
     document.querySelectorAll('.viewBtn').forEach((btn) => {
       btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-id');
@@ -490,13 +479,11 @@
       });
     });
 
-    // تفعيل وظيفة زر التعديل (Modifier)
     document.querySelectorAll('.editBtn').forEach((btn) => {
       btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-id');
         const teacher = loadedTeachersCache.find(t => t.id === id);
         if (teacher) {
-          // نقل البيانات إلى المدخلات العلوية
           document.getElementById('nom').value = teacher.nom;
           document.getElementById('prenom').value = teacher.prenom;
           document.getElementById('genre').value = teacher.genre;
@@ -506,9 +493,11 @@
           document.getElementById('salaire').value = teacher.salaire;
           
           resetNiveauSelector();
-          niveauOptions.forEach(cb => {
-            if (teacher.niveaux && teacher.niveaux.includes(cb.value)) cb.checked = true;
-          });
+          if (teacher.niveaux) {
+            niveauOptions.forEach(cb => {
+              if (teacher.niveaux.includes(cb.value)) cb.checked = true;
+            });
+          }
           updateNiveauBtnLabel();
           refreshNiveauLocks();
 
@@ -521,7 +510,6 @@
       });
     });
 
-    // تفعيل وظيفة زر الحذف
     document.querySelectorAll('.deleteBtn').forEach((btn) => {
       btn.addEventListener('click', async () => {
         if (!confirm('Voulez-vous vraiment supprimer cet enseignant ? (son accès sera aussi révoqué)')) return;
@@ -551,7 +539,6 @@
     setTimeout(() => toast.remove(), 3000);
   }
 
-  // --- Modale des identifiants ---
   const credentialsModal = document.getElementById('credentialsModal');
   const credUsername     = document.getElementById('credUsername');
   const credPassword     = document.getElementById('credPassword');
@@ -591,7 +578,6 @@
     credentialsModal.classList.add('hidden');
   });
 
-  // إلغاء عملية التعديل وإعادة تعيين الحقول الافتراضية
   cancelEditBtn.addEventListener('click', () => {
     form.reset();
     resetNiveauSelector();
@@ -628,7 +614,6 @@
 
     try {
       if (isEditMode) {
-        // تحديث المعطيات داخل الـ Firestore دون تغيير المعرّفات أو الرموز السرية الأساسية
         const currentId = editTeacherId.value;
         await setDoc(doc(db, 'teachers', currentId), {
           nom, prenom, genre, adresse, telephone, niveaux, groupe,
@@ -639,17 +624,14 @@
         cancelEditBtn.click();
         render();
       } else {
-        // الإضافة العادية لمعلم جديد في قاعدة البيانات
-        const teachers = await loadTeachers();
-        const existingUsernames = teachers.map((t) => t.username);
+        const teachersList = await loadTeachers();
+        const existingUsernames = teachersList.map((t) => t.username);
         const username = generateUsername(prenom, nom, existingUsernames);
         const password = generatePassword();
         const email = usernameToEmail(username);
 
-        // 1) إنشاء الحساب في Firebase Auth
         const uid = await createTeacherAuthAccount(email, password);
 
-        // 2) إنشاء الملف التعريفي في Firestore مع الاحتفاظ بالـ password لقراءته لاحقاً عبر زر العين
         await setDoc(doc(db, 'teachers', uid), {
           nom, prenom, genre, adresse, telephone, niveaux, groupe,
           salaire: Number(salaire), username, password, createdAt: new Date().toISOString()
