@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suivi de ma Demande d'Inscription | Diwan Al Maaref</title>
+<meta name="description" content="Consultez l'état de votre demande de pré-inscription à l'établissement de soutien scolaire Diwan Al Maaref">
+<link rel="icon" type="image/png" href="logo.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          navy:  { DEFAULT:'#1B1464', 700:'#170F52', 900:'#100B3B' },
+          purple:{ DEFAULT:'#5B3AA6' },
+          gold:  { DEFAULT:'#F0A93C', light:'#FBC873', dark:'#D98F1F' },
+          ink:   '#221D3D',
+          mist:  '#F6F4FC',
+          line:  '#E7E2F3',
+        },
+        fontFamily: { sans: ['Inter','sans-serif'], display: ['Fraunces','serif'] }
+      }
+    }
+  }
+</script>
+
+<style>
+  body { font-family:'Inter', sans-serif; color:#221D3D; background:#F6F4FC; }
+  .font-display { font-family:'Fraunces', serif; }
+  .num { font-family:'Manrope', sans-serif; }
+  ::selection { background:#F0A93C; color:#1B1464; }
+
+  a:focus-visible, button:focus-visible, input:focus-visible {
+    outline: 2px solid #F0A93C; outline-offset: 2px; border-radius: 6px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration:.01ms !important; transition-duration:.01ms !important; }
+  }
+
+  .spinner {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 3px solid rgba(27,20,100,.15); border-top-color:#1B1464;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .fade-in { animation: fadeIn .5s ease both; }
+  @keyframes fadeIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: translateY(0); } }
+
+  .status-ring {
+    background: conic-gradient(from 0deg, #F0A93C, #5B3AA6, #1B1464, #F0A93C);
+    padding: 3px;
+  }
+
+  .pulse-dot {
+    animation: pulseDot 1.8s ease-in-out infinite;
+  }
+  @keyframes pulseDot {
+    0%, 100% { opacity:1; } 50% { opacity:.35; }
+  }
+</style>
+</head>
+
+<body class="antialiased min-h-screen">
+
+<header class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-line">
+  <div class="max-w-5xl mx-auto px-5 sm:px-8 h-20 flex items-center justify-between">
+    <a href="index.html" class="flex items-center gap-3">
+      <img src="logo.png" alt="Logo Diwan Al Maaref" class="h-12 w-12 object-contain">
+      <span class="hidden sm:flex flex-col leading-tight">
+        <span class="font-display font-semibold text-base text-navy">Diwan Al Maaref</span>
+        <span class="text-[10px] tracking-wide text-gold-dark font-bold">Établissement de Soutien Scolaire</span>
+      </span>
+    </a>
+    <div class="flex items-center gap-3 sm:gap-5">
+      <a href="inscription.html" class="text-sm font-bold text-navy/70 hover:text-gold-dark transition-colors flex items-center gap-2">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"/></svg>
+        <span class="hidden sm:inline">Nouvelle inscription</span>
+      </a>
+      <a href="index.html" class="text-sm font-bold text-navy/70 hover:text-gold-dark transition-colors flex items-center gap-2">
+        Retour au site
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
+    </div>
+  </div>
+</header>
+
+<div class="min-h-screen flex flex-col items-center px-5 py-10 sm:py-16">
+
+  <div class="flex flex-col items-center text-center mb-8 fade-in">
+    <h1 class="font-display font-semibold text-navy text-2xl sm:text-3xl">Suivi de ma Demande</h1>
+    <p class="text-ink/50 text-sm mt-2 max-w-sm">Saisissez le prénom et le nom de l'élève pour connaître l'état de la demande d'inscription</p>
+  </div>
+
+  <!-- FORM CARD -->
+  <div id="searchCard" class="w-full max-w-sm bg-white border border-line rounded-3xl shadow-xl p-8 sm:p-10 fade-in">
+    <form id="searchForm" class="space-y-4">
+      <div>
+        <label for="prenomInput" class="block text-xs font-bold text-navy uppercase tracking-wide mb-2">Prénom de l'élève</label>
+        <input id="prenomInput" type="text" required placeholder="Ex: Mohamed" class="w-full rounded-xl border border-line bg-mist/60 px-4 py-3 text-sm focus:border-gold outline-none" autocomplete="given-name">
+      </div>
+      <div>
+        <label for="nomInput" class="block text-xs font-bold text-navy uppercase tracking-wide mb-2">Nom de l'élève</label>
+        <input id="nomInput" type="text" required placeholder="Ex: Alami" class="w-full rounded-xl border border-line bg-mist/60 px-4 py-3 text-sm focus:border-gold outline-none" autocomplete="family-name">
+      </div>
+      <p id="searchError" class="text-xs font-semibold text-red-500 hidden"></p>
+      <button type="submit" class="w-full inline-flex items-center justify-center gap-2 bg-navy hover:bg-navy-700 text-white font-extrabold px-6 py-3.5 rounded-full transition-colors">
+        <span id="searchSpinner" class="spinner hidden"></span>
+        <span id="searchBtnText">Vérifier mon statut</span>
+      </button>
+    </form>
+  </div>
+
+  <!-- NOT FOUND -->
+  <div id="notFoundCard" class="hidden w-full max-w-sm bg-white border border-line rounded-3xl shadow-xl p-8 sm:p-10 text-center fade-in">
+    <svg width="44" height="44" viewBox="0 0 24 24" fill="none" class="mx-auto mb-4"><circle cx="11" cy="11" r="7" stroke="#5B3AA6" stroke-width="1.6"/><path d="M21 21l-4-4" stroke="#5B3AA6" stroke-width="1.6" stroke-linecap="round"/><path d="M8 11h6" stroke="#5B3AA6" stroke-width="1.6" stroke-linecap="round"/></svg>
+    <p class="text-navy font-bold mb-1">Aucune demande trouvée</p>
+    <p class="text-ink/45 text-sm mb-6">Vérifiez l'orthographe exacte du prénom et du nom utilisés lors de l'inscription.</p>
+    <button id="retryFromNotFound" class="text-sm font-bold text-navy/70 hover:text-gold-dark border border-line rounded-full px-5 py-2.5 transition-colors">Réessayer</button>
+  </div>
+
+  <!-- MULTI MATCH PICKER -->
+  <div id="pickerCard" class="hidden w-full max-w-sm bg-white border border-line rounded-3xl shadow-xl p-6 sm:p-8 fade-in">
+    <p class="text-navy font-bold text-sm mb-1">Plusieurs dossiers trouvés</p>
+    <p class="text-ink/45 text-xs mb-5">Sélectionnez le bon matricule ci-dessous</p>
+    <div id="pickerList" class="space-y-2"></div>
+    <button id="retryFromPicker" class="mt-5 w-full text-sm font-bold text-navy/70 hover:text-gold-dark border border-line rounded-full px-5 py-2.5 transition-colors">Nouvelle recherche</button>
+  </div>
+
+  <!-- RESULT CARD -->
+  <div id="resultCard" class="hidden w-full max-w-md fade-in">
+    <div class="bg-white border border-line rounded-3xl shadow-xl overflow-hidden">
+
+      <div id="statusBanner" class="px-7 py-5 flex items-center gap-3">
+        <span id="statusIcon" class="w-9 h-9 rounded-full grid place-items-center shrink-0"></span>
+        <div>
+          <p id="statusLabel" class="font-display font-semibold text-lg"></p>
+          <p id="statusSub" class="text-xs opacity-80"></p>
+        </div>
+      </div>
+
+      <div class="px-7 sm:px-8 py-7 flex flex-col items-center text-center">
+        <div class="status-ring rounded-full mb-4">
+          <img id="resultPhoto" src="" alt="Photo de l'élève" class="w-24 h-24 rounded-full object-cover bg-mist border-4 border-white">
+        </div>
+        <h2 id="resultName" class="font-display font-semibold text-navy text-xl"></h2>
+        <p id="resultId" class="text-ink/40 text-xs num mt-1"></p>
+
+        <div class="grid grid-cols-2 gap-3 w-full mt-6 text-left">
+          <div class="bg-mist/60 rounded-2xl px-4 py-3">
+            <p class="text-[10px] font-bold text-ink/40 uppercase tracking-wide mb-1">Date de naissance</p>
+            <p id="resultDob" class="text-sm font-bold text-navy num">—</p>
+          </div>
+          <div class="bg-mist/60 rounded-2xl px-4 py-3">
+            <p class="text-[10px] font-bold text-ink/40 uppercase tracking-wide mb-1">Genre / Sexe</p>
+            <p id="resultGender" class="text-sm font-bold text-navy">—</p>
+          </div>
+          <div class="bg-mist/60 rounded-2xl px-4 py-3 col-span-2">
+            <p class="text-[10px] font-bold text-ink/40 uppercase tracking-wide mb-1">Niveau d'inscription</p>
+            <p id="resultLevel" class="text-sm font-bold text-purple">—</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex flex-col items-center gap-3 mt-5">
+      <button id="downloadPdfBtn" class="hidden w-full max-w-xs inline-flex items-center justify-center gap-2 bg-navy hover:bg-navy-700 text-white font-extrabold px-6 py-3 rounded-full transition-colors text-sm">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Télécharger le PDF
+      </button>
+      <button id="retryFromResult" class="text-sm font-bold text-navy/60 hover:text-gold-dark transition-colors">Nouvelle recherche</button>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+import { supabase } from './supabase-config.js';
+
+const searchCard = document.getElementById('searchCard');
+const notFoundCard = document.getElementById('notFoundCard');
+const pickerCard = document.getElementById('pickerCard');
+const resultCard = document.getElementById('resultCard');
+
+const searchForm = document.getElementById('searchForm');
+const searchError = document.getElementById('searchError');
+const searchSpinner = document.getElementById('searchSpinner');
+const searchBtnText = document.getElementById('searchBtnText');
+
+function showOnly(card) {
+  [searchCard, notFoundCard, pickerCard, resultCard].forEach(c => c.classList.add('hidden'));
+  card.classList.remove('hidden');
+}
+
+function formatDob(dob) {
+  if (!dob) return '—';
+  const d = new Date(dob);
+  if (isNaN(d.getTime())) return dob;
+  return d.toLocaleDateString('fr-FR');
+}
+
+searchForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const prenom = document.getElementById('prenomInput').value.trim();
+  const nom = document.getElementById('nomInput').value.trim();
+  runSearch(prenom, nom);
+});
+
+[document.getElementById('retryFromNotFound'), document.getElementById('retryFromPicker'), document.getElementById('retryFromResult')]
+  .forEach(btn => btn.addEventListener('click', () => showOnly(searchCard)));
+
+async function runSearch(prenom, nom) {
+  searchError.classList.add('hidden');
+  searchSpinner.classList.remove('hidden');
+  searchBtnText.textContent = 'Recherche...';
+
+  try {
+    const { data, error } = await supabase
+      .from('students')
+      .select('*')
+      .ilike('prenom', prenom)
+      .ilike('nom', nom);
+
+    if (error) {
+      searchError.textContent = "Une erreur est survenue.";
+      searchError.classList.remove('hidden');
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      showOnly(notFoundCard);
+      return;
+    }
+
+    if (data.length === 1) {
+      renderResult(data[0]);
+    } else {
+      renderPicker(data);
+    }
+  } catch (err) {
+    searchError.textContent = "Impossible de se connecter au serveur.";
+    searchError.classList.remove('hidden');
+  } finally {
+    searchSpinner.classList.add('hidden');
+    searchBtnText.textContent = 'Vérifier mon statut';
+  }
+}
+
+function renderPicker(records) {
+  const list = document.getElementById('pickerList');
+  list.innerHTML = '';
+  records.forEach((r) => {
+    const btn = document.createElement('button');
+    btn.className = 'w-full flex items-center justify-between gap-3 border border-line rounded-2xl px-4 py-3 text-left hover:border-gold transition-colors';
+    btn.innerHTML =
+      '<span><span class="block text-sm font-bold text-navy">' + escapeHtml(r.prenom) + ' ' + escapeHtml(r.nom) + '</span>' +
+      '<span class="block text-xs text-ink/40 num">Matricule ' + escapeHtml(r.id) + '</span></span>' +
+      '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="#5B3AA6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    btn.addEventListener('click', () => renderResult(r));
+    list.appendChild(btn);
+  });
+  showOnly(pickerCard);
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+
+function renderResult(r) {
+  const banner = document.getElementById('statusBanner');
+  const icon = document.getElementById('statusIcon');
+  const label = document.getElementById('statusLabel');
+  const sub = document.getElementById('statusSub');
+
+  banner.className = 'px-7 py-5 flex items-center gap-3';
+  const statut = r.statut || 'En attente';
+
+  if (statut === 'Accepté') {
+    banner.classList.add('bg-emerald-50');
+    icon.className = 'w-9 h-9 rounded-full grid place-items-center shrink-0 bg-emerald-500 text-white';
+    icon.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    label.className = 'font-display font-semibold text-lg text-emerald-700';
+    label.textContent = 'Demande acceptée';
+    sub.className = 'text-xs opacity-80 text-emerald-700';
+    sub.textContent = "Félicitations ! L'inscription de l'élève a été validée.";
+  } else if (statut === 'Refusé') {
+    banner.classList.add('bg-red-50');
+    icon.className = 'w-9 h-9 rounded-full grid place-items-center shrink-0 bg-red-500 text-white';
+    icon.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    label.className = 'font-display font-semibold text-lg text-red-600';
+    label.textContent = 'Demande refusée';
+    sub.className = 'text-xs opacity-80 text-red-600';
+    sub.textContent = "Contactez l'administration pour plus d'informations.";
+  } else {
+    banner.classList.add('bg-mist');
+    icon.className = 'w-9 h-9 rounded-full grid place-items-center shrink-0 bg-gold text-navy';
+    icon.innerHTML = '<span class="pulse-dot w-2.5 h-2.5 rounded-full bg-navy"></span>';
+    label.className = 'font-display font-semibold text-lg text-navy';
+    label.textContent = 'En attente';
+    sub.className = 'text-xs opacity-80 text-navy/60';
+    sub.textContent = 'Votre demande est en cours de traitement.';
+  }
+
+  document.getElementById('resultName').textContent = (r.prenom || '—') + ' ' + (r.nom || '');
+  document.getElementById('resultId').textContent = 'Matricule N° ' + (r.id || '—');
+  document.getElementById('resultDob').textContent = formatDob(r.dateNaissance);
+  document.getElementById('resultGender').textContent = r.genre || '—';
+  document.getElementById('resultLevel').textContent = r.niveau || '—';
+
+  const photoImg = document.getElementById('resultPhoto');
+  if (r.photoURL) {
+    photoImg.src = r.photoURL;
+  } else {
+    photoImg.removeAttribute('src');
+  }
+
+  const pdfBtn = document.getElementById('downloadPdfBtn');
+  if (statut === 'Accepté' || statut === 'Refusé') {
+    pdfBtn.classList.remove('hidden');
+    pdfBtn.onclick = () => buildAndDownloadPdf(r);
+  } else {
+    pdfBtn.classList.add('hidden');
+    pdfBtn.onclick = null;
+  }
+
+  showOnly(resultCard);
+}
+
+function buildAndDownloadPdf(r) {
+  const container = document.createElement('div');
+  container.style.padding = '40px';
+  container.style.fontFamily = 'Arial, sans-serif';
+  container.style.color = '#221D3D';
+  container.style.backgroundColor = '#FFFFFF';
+
+  const badgeColor = r.statut === 'Accepté' ? '#10B981' : '#EF4444';
+  const photoTag = r.photoURL
+    ? '<img src="' + r.photoURL + '" style="width:90px;height:90px;border-radius:50%;object-fit:cover;border:3px solid #F0A93C;" crossorigin="anonymous">'
+    : '';
+
+  container.innerHTML = `
+    <div style="text-align: center; border-bottom:2px solid #1B1464; padding-bottom:20px; margin-bottom:30px;">
+      <img src="logo.png" alt="Logo" style="height: 70px; width: 70px; display: block; margin: 0 auto 10px auto;">
+      <h1 style="color:#1B1464; font-size:22px; margin:0; font-weight:bold;">Institution Diwan Al Maaref</h1>
+      <p style="color:#F0A93C; font-size:12px; margin:5px 0 0 0; font-weight:bold; text-transform:uppercase;">Attestation de Suivi d'Inscription</p>
+    </div>
+
+    <div style="display:flex; align-items:center; gap:20px; margin-bottom:30px; background:#F6F4FC; padding:18px 20px; border-radius:12px;">
+      ${photoTag}
+      <div style="flex:1;">
+        <div style="font-size:17px; font-weight:bold; color:#1B1464;">${r.prenom || '—'} ${r.nom || ''}</div>
+        <div style="font-size:12px; color:#666; margin-top:2px;">Matricule N° ${r.id ?? '—'}</div>
+      </div>
+      <div style="text-align:right;">
+        <span style="font-size:11px; text-transform:uppercase; color:#666; font-weight:bold;">Statut du Dossier</span>
+        <div style="font-size:16px; font-weight:bold; color:${badgeColor}; margin-top:4px;">${r.statut === 'Accepté' ? 'ACCEPTÉ' : 'REFUSÉ'}</div>
+      </div>
+    </div>
+
+    <div style="border:1px solid #E7E2F3; border-radius:16px; padding:20px; background:#FFF; margin-bottom:30px;">
+      <h2 style="color:#F0A93C; font-size:13px; text-transform:uppercase; margin-top:0; margin-bottom:15px; border-bottom:1px solid #E7E2F3; padding-bottom:8px;">Informations de l'Élève</h2>
+      <table style="width:100%; font-size:13px; border-collapse:collapse;">
+        <tr style="height:30px;"><td style="color:#666; width:45%;">Prénom:</td><td style="font-weight:bold; color:#1B1464;">${r.prenom || '—'}</td></tr>
+        <tr style="height:30px;"><td style="color:#666;">Nom:</td><td style="font-weight:bold; color:#1B1464;">${r.nom || '—'}</td></tr>
+        <tr style="height:30px;"><td style="color:#666;">Date de naissance:</td><td style="font-weight:bold;">${formatDob(r.dateNaissance)}</td></tr>
+        <tr style="height:30px;"><td style="color:#666;">Genre / Sexe:</td><td style="font-weight:bold;">${r.genre || '—'}</td></tr>
+        <tr style="height:30px;"><td style="color:#666;">Niveau d'étude:</td><td style="font-weight:bold; color:#5B3AA6;">${r.niveau || '—'}</td></tr>
+      </table>
+    </div>
+
+    <div style="margin-top:50px; border-top:1px dashed #E7E2F3; padding-top:20px; text-align:center; font-size:11px; color:#999;">
+      Document généré automatiquement par le portail de suivi des inscriptions de Diwan Al Maaref.<br>
+      Ce document ne remplace pas une attestation officielle délivrée par l'administration.
+    </div>
+  `;
+
+  const options = {
+    margin:       12,
+    filename:     `Suivi_${r.id}_${r.nom || 'Eleve'}.pdf`,
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2, useCORS: true },
+    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
+  html2pdf().set(options).from(container).save();
+}
+</script>
+</body>
+</html>

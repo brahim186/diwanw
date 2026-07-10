@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Espace Enseignant | Diwan Al Maaref</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="logo.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Fraunces:wght@500;600&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          navy:  { DEFAULT:'#1B1464', 700:'#170F52', 900:'#100B3B' },
+          purple:{ DEFAULT:'#5B3AA6' },
+          gold:  { DEFAULT:'#F0A93C', light:'#FBC873', dark:'#D98F1F' },
+          ink:   '#221D3D', mist:'#F6F4FC', line:'#E7E2F3',
+        },
+        fontFamily: { sans: ['Inter','sans-serif'], display: ['Fraunces','serif'] }
+      }
+    }
+  }
+</script>
+
+<style>
+  body { font-family:'Inter', sans-serif; color:#221D3D; background:#F6F4FC; }
+  .font-display { font-family:'Fraunces', serif; }
+  a:focus-visible, button:focus-visible { outline: 2px solid #F0A93C; outline-offset: 2px; border-radius: 6px; }
+  .row-enter { animation: rowEnter .35s cubic-bezier(.2,.8,.25,1) both; }
+  @keyframes rowEnter { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+</style>
+</head>
+
+<body class="antialiased min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-line">
+  <div class="max-w-6xl mx-auto px-5 sm:px-8 h-20 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <img src="logo.png" alt="Logo Diwan Al Maaref" class="h-11 w-11 object-contain">
+      <div class="hidden sm:flex flex-col leading-tight">
+        <span class="font-display font-semibold text-navy text-base">Espace Enseignant</span>
+        <span class="text-[11px] text-gold-dark font-bold">Diwan Al Maaref</span>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="saisie-notes.html" class="inline-flex items-center gap-2 text-xs font-bold text-navy/70 hover:text-gold-dark border border-line rounded-full px-4 py-2.5 transition-colors bg-white">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 12h6M9 16h6M9 8h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M4 19V6a2 2 0 012-2h9l5 5v10a2 2 0 01-2 2H6a2 2 0 01-2-2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+        <span class="hidden sm:inline">Saisie des notes</span>
+      </a>
+      <button id="logoutBtn" type="button" class="inline-flex items-center gap-2 text-xs font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 rounded-full px-4 py-2.5 transition-colors bg-rose-50">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="hidden sm:inline">Déconnexion</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-5 sm:px-8 py-12 flex flex-col gap-8">
+
+  <div>
+    <h2 id="welcomeTitle" class="font-display font-semibold text-navy text-3xl">Bonjour</h2>
+    <p class="text-ink/50 text-sm mt-2">Voici un aperçu de votre profil et de vos élèves.</p>
+  </div>
+
+  <section class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="bg-white border border-line rounded-2xl p-5">
+      <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Genre</p>
+      <p id="infoGenre" class="font-bold text-navy text-sm">—</p>
+    </div>
+    <div class="bg-white border border-line rounded-2xl p-5">
+      <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Téléphone</p>
+      <p id="infoTelephone" class="font-bold text-navy text-sm">—</p>
+    </div>
+    <div class="bg-white border border-line rounded-2xl p-5">
+      <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Adresse</p>
+      <p id="infoAdresse" class="font-bold text-navy text-sm truncate">—</p>
+    </div>
+    <div class="bg-white border border-line rounded-2xl p-5">
+      <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Groupe</p>
+      <p id="infoGroupe" class="font-bold text-navy text-sm">—</p>
+    </div>
+  </section>
+
+  <section class="bg-white border border-line rounded-3xl p-6 sm:p-8 shadow-sm">
+    <h3 class="font-display font-semibold text-navy text-lg mb-4">Mes classes</h3>
+    <div id="classesWrap" class="flex flex-wrap gap-2"></div>
+  </section>
+
+  <section class="bg-white border border-line rounded-3xl shadow-sm overflow-hidden">
+    <div class="px-6 sm:px-8 py-6 flex items-center justify-between border-b border-line">
+      <h3 class="font-display font-semibold text-navy text-lg">Mes élèves</h3>
+      <span id="studentCount" class="text-xs font-extrabold text-navy/60 bg-mist rounded-full px-3 py-1.5">0 élève</span>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-[11px] font-extrabold uppercase tracking-wide text-ink/40 bg-mist/60">
+            <th class="px-6 sm:px-8 py-3.5 whitespace-nowrap">Nom</th>
+            <th class="px-4 py-3.5 whitespace-nowrap">Prénom</th>
+            <th class="px-4 py-3.5 whitespace-nowrap">Matricule</th>
+            <th class="px-4 py-3.5 whitespace-nowrap">Niveau</th>
+            <th class="px-4 sm:px-8 py-3.5 whitespace-nowrap">Groupe</th>
+          </tr>
+        </thead>
+        <tbody id="studentsTableBody" class="divide-y divide-line"></tbody>
+      </table>
+    </div>
+    <div id="emptyState" class="hidden px-8 py-14 text-center">
+      <p class="text-ink/40 text-sm">Aucun élève trouvé pour vos classes.</p>
+    </div>
+  </section>
+
+</main>
+
+<script type="module">
+  import { auth, db, signOut, collection, getDocs, query, where, requireTeacher }
+    from './supabase-config.js';
+
+  function levelBadgeClass(lvl) {
+    const m = {
+      'Maternelle': 'bg-emerald-50 text-emerald-700 border border-emerald-200/60',
+      'Primaire':   'bg-purple/5 text-purple border border-purple/10',
+      'Collège':    'bg-gold/5 text-gold-dark border border-gold/10'
+    };
+    for (const key in m) if (lvl && lvl.includes(key)) return m[key];
+    return 'bg-mist text-ink/60';
+  }
+  const groupBadgeClass = () => 'bg-navy/5 text-navy border border-navy/10';
+
+  requireTeacher(async (user, teacher) => {
+    document.getElementById('welcomeTitle').textContent = `Bonjour, ${teacher.prenom} ${teacher.nom}`;
+    document.getElementById('infoGenre').textContent = teacher.genre || '—';
+    document.getElementById('infoTelephone').textContent = teacher.telephone || '—';
+    document.getElementById('infoAdresse').textContent = teacher.adresse || '—';
+    document.getElementById('infoGroupe').textContent = teacher.groupe || '—';
+
+    const classesWrap = document.getElementById('classesWrap');
+    const niveaux = teacher.niveaux || [];
+    const groupe = teacher.groupe;
+
+    if (niveaux.length) {
+      niveaux.forEach((niveau) => {
+        const span = document.createElement('span');
+        span.className = `inline-flex items-center gap-1.5 text-xs font-extrabold rounded-full px-3.5 py-2 ${levelBadgeClass(niveau)}`;
+        span.textContent = `${niveau} — ${groupe}`;
+        classesWrap.appendChild(span);
+      });
+    } else {
+      classesWrap.innerHTML = '<p class="text-ink/40 text-sm">Aucune classe assignée pour le moment.</p>';
+    }
+
+    const tbody = document.getElementById('studentsTableBody');
+    const emptyState = document.getElementById('emptyState');
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-navy/50">Chargement des élèves...</td></tr>`;
+
+    try {
+      // Les Security Rules Firestore filtrent déjà côté serveur : seuls les élèves
+      // du même niveau ET du même groupe que l'enseignant sont lisibles.
+      const q = query(collection(db, 'students'), where('groupe', '==', groupe), where('statut', '==', 'Accepté'));
+      const snap = await getDocs(q);
+      const myStudents = snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .filter((s) => niveaux.includes(s.niveau));
+
+      tbody.innerHTML = '';
+      if (myStudents.length === 0) {
+        emptyState.classList.remove('hidden');
+        document.getElementById('studentCount').textContent = '0 élève';
+      } else {
+        emptyState.classList.add('hidden');
+        document.getElementById('studentCount').textContent = myStudents.length + (myStudents.length > 1 ? ' élèves' : ' élève');
+        myStudents.forEach((s) => {
+          const tr = document.createElement('tr');
+          tr.className = 'row-enter hover:bg-mist/50 transition-colors';
+          tr.innerHTML = `
+            <td class="px-6 sm:px-8 py-4 font-bold text-navy whitespace-nowrap">${s.nom}</td>
+            <td class="px-4 py-4 whitespace-nowrap">${s.prenom}</td>
+            <td class="px-4 py-4 whitespace-nowrap font-mono text-xs font-bold text-purple">${s.id}</td>
+            <td class="px-4 py-4 whitespace-nowrap"><span class="inline-block text-[11px] font-extrabold rounded-full px-3 py-1 ${levelBadgeClass(s.niveau)}">${s.niveau}</span></td>
+            <td class="px-4 sm:px-8 py-4 whitespace-nowrap"><span class="inline-block text-[11px] font-extrabold rounded-full px-3 py-1 ${groupBadgeClass()}">${s.groupe}</span></td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-rose-600 font-bold">Erreur lors du chargement des élèves.</td></tr>`;
+    }
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await signOut(auth);
+    window.location.href = 'connexion-enseignant.html';
+  });
+</script>
+
+</body>
+</html>

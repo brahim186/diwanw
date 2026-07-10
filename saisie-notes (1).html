@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Saisie des Notes | Diwan Al Maaref</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="logo.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Fraunces:wght@500;600&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          navy:  { DEFAULT:'#1B1464', 700:'#170F52', 900:'#100B3B' },
+          purple:{ DEFAULT:'#5B3AA6' },
+          gold:  { DEFAULT:'#F0A93C', light:'#FBC873', dark:'#D98F1F' },
+          ink:   '#221D3D',
+          mist:  '#F6F4FC',
+          line:  '#E7E2F3',
+        },
+        fontFamily: { sans: ['Inter','sans-serif'], display: ['Fraunces','serif'] }
+      }
+    }
+  }
+</script>
+
+<style>
+  body { font-family:'Inter', sans-serif; color:#221D3D; background:#F6F4FC; }
+  .font-display { font-family:'Fraunces', serif; }
+  ::selection { background:#F0A93C; color:#1B1464; }
+
+  a:focus-visible, button:focus-visible, input:focus-visible {
+    outline: 2px solid #F0A93C; outline-offset: 2px; border-radius: 6px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration:.01ms !important; transition-duration:.01ms !important; }
+  }
+
+  .note-field {
+    transition: border-color .2s ease, box-shadow .2s ease;
+  }
+  .note-field:focus {
+    border-color: #5B3AA6;
+    box-shadow: 0 0 0 4px rgba(91,58,166,.12);
+  }
+  .note-field.saved { border-color: #10B981; }
+
+  .badge-lvl-primaire { background:#EEF2FF; color:#4338CA; }
+  .badge-lvl-college   { background:#FDF4E3; color:#B7791F; }
+  .badge-lvl-lycee     { background:#FDECEE; color:#BE123C; }
+
+  .row-enter { animation: rowEnter .35s cubic-bezier(.2,.8,.25,1) both; }
+  @keyframes rowEnter { from { opacity:0; transform: translateY(-6px); } to { opacity:1; transform: translateY(0); } }
+
+  .toast { animation: toastIn .3s ease both, toastOut .3s ease 1.7s both; }
+  @keyframes toastIn { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
+  @keyframes toastOut { from { opacity:1; } to { opacity:0; transform: translateY(-6px); } }
+</style>
+</head>
+
+<body class="antialiased min-h-screen">
+
+<!-- La garde d'accès Firebase est initialisée plus bas, dans le <script type="module"> -->
+
+<header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-line">
+  <div class="max-w-6xl mx-auto px-5 sm:px-8 h-20 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <img src="logo.png" alt="Logo Diwan Al Maaref" class="h-11 w-11 object-contain">
+      <div class="hidden sm:flex flex-col leading-tight">
+        <span class="font-display font-semibold text-navy text-base">Saisie des Notes</span>
+        <span class="text-[11px] text-gold-dark font-bold">Diwan Al Maaref</span>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="espace-enseignant.html" class="inline-flex items-center gap-2 text-xs font-bold text-navy/70 hover:text-gold-dark border border-line rounded-full px-4 py-2.5 transition-colors bg-white">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="hidden sm:inline">Mon espace</span>
+      </a>
+      <button id="logoutBtn" type="button" class="inline-flex items-center gap-2 text-xs font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 rounded-full px-4 py-2.5 transition-colors bg-rose-50">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="hidden sm:inline">Déconnexion</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-5 sm:px-8 py-12 flex flex-col gap-6">
+
+  <div>
+    <h2 class="font-display font-semibold text-navy text-3xl">Saisie des Notes</h2>
+    <p class="text-ink/50 text-sm mt-2">Entrez les notes de vos élèves pour chaque examen. Les notes sont enregistrées automatiquement (sur 20).</p>
+  </div>
+
+  <section class="bg-white border border-line rounded-3xl shadow-sm overflow-hidden">
+    <div class="px-6 sm:px-8 py-6 flex items-center justify-between border-b border-line">
+      <h3 class="font-display font-semibold text-navy text-lg">Liste des élèves</h3>
+      <span id="countBadge" class="text-xs font-extrabold text-navy/60 bg-mist rounded-full px-3 py-1.5">0 élève</span>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-[11px] font-extrabold uppercase tracking-wide text-ink/40 bg-mist/60">
+            <th class="px-6 sm:px-8 py-3.5 whitespace-nowrap">Nom</th>
+            <th class="px-4 py-3.5 whitespace-nowrap">Prénom</th>
+            <th class="px-4 py-3.5 whitespace-nowrap">Matricule</th>
+            <th class="px-4 py-3.5 whitespace-nowrap">Niveau</th>
+            <th class="px-4 py-3.5 whitespace-nowrap text-center">Examen 1</th>
+            <th class="px-4 py-3.5 whitespace-nowrap text-center">Examen 2</th>
+            <th class="px-4 sm:px-8 py-3.5 whitespace-nowrap text-center">Examen 3</th>
+          </tr>
+        </thead>
+        <tbody id="studentsTableBody" class="divide-y divide-line"></tbody>
+      </table>
+    </div>
+
+    <div id="emptyState" class="hidden px-8 py-14 text-center">
+      <p class="text-ink/40 text-sm">Aucun élève trouvé pour vos classes. Contactez l'administration si cela ne semble pas correct.</p>
+    </div>
+  </section>
+
+</main>
+
+<div id="toastWrap" class="fixed bottom-6 inset-x-0 flex justify-center pointer-events-none z-50"></div>
+
+<script type="module">
+  import {
+    auth, db, signOut, doc, getDoc, setDoc, collection, getDocs, query, where, requireTeacher
+  } from './supabase-config.js';
+
+  function levelBadgeClass(niveau) {
+    if (!niveau) return 'badge-lvl-lycee';
+    if (niveau.includes('primaire')) return 'badge-lvl-primaire';
+    if (niveau.includes('collège')) return 'badge-lvl-college';
+    return 'badge-lvl-lycee';
+  }
+
+  async function loadMyStudents(teacher) {
+    const q = query(collection(db, 'students'), where('groupe', '==', teacher.groupe), where('statut', '==', 'Accepté'));
+    const snap = await getDocs(q);
+    return snap.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .filter((s) => (teacher.niveaux || []).includes(s.niveau));
+  }
+
+  async function loadNoteFor(studentId) {
+    const snap = await getDoc(doc(db, 'notes', studentId));
+    return snap.exists() ? snap.data() : {};
+  }
+
+  async function saveNoteFor(studentId, notesObj) {
+    await setDoc(doc(db, 'notes', studentId), notesObj, { merge: true });
+  }
+
+  function showToast(message) {
+    const toastWrap = document.getElementById('toastWrap');
+    const toast = document.createElement('div');
+    toast.className = 'toast pointer-events-auto bg-navy text-white text-sm font-bold rounded-full px-6 py-3 shadow-lg flex items-center gap-2';
+    toast.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#F0A93C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      ${message}
+    `;
+    toastWrap.appendChild(toast);
+    setTimeout(() => toast.remove(), 2000);
+  }
+
+  requireTeacher(async (user, teacher) => {
+    const tbody = document.getElementById('studentsTableBody');
+    const emptyState = document.getElementById('emptyState');
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-navy/50">Chargement...</td></tr>`;
+
+    let myStudents;
+    try {
+      myStudents = await loadMyStudents(teacher);
+    } catch (e) {
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-rose-600 font-bold">Erreur de chargement.</td></tr>`;
+      return;
+    }
+
+    document.getElementById('countBadge').textContent =
+      myStudents.length + (myStudents.length > 1 ? ' élèves' : ' élève');
+    tbody.innerHTML = '';
+
+    if (myStudents.length === 0) {
+      emptyState.classList.remove('hidden');
+      return;
+    }
+
+    for (const s of myStudents) {
+      const studentNotes = await loadNoteFor(s.id);
+      const tr = document.createElement('tr');
+      tr.className = 'row-enter hover:bg-mist/50 transition-colors';
+      tr.innerHTML = `
+        <td class="px-6 sm:px-8 py-3.5 font-bold text-navy whitespace-nowrap">${s.nom}</td>
+        <td class="px-4 py-3.5 whitespace-nowrap">${s.prenom}</td>
+        <td class="px-4 py-3.5 whitespace-nowrap font-mono text-xs font-bold text-purple">${s.id}</td>
+        <td class="px-4 py-3.5 whitespace-nowrap"><span class="inline-block text-[11px] font-extrabold rounded-full px-3 py-1 ${levelBadgeClass(s.niveau)}">${s.niveau}</span></td>
+        <td class="px-2 py-3.5 text-center">
+          <input type="number" min="0" max="20" step="0.25" data-student="${s.id}" data-exam="examen1"
+            value="${studentNotes.examen1 ?? ''}"
+            class="note-field w-20 rounded-xl border border-line bg-mist px-2 py-2 text-sm text-center text-navy outline-none">
+        </td>
+        <td class="px-2 py-3.5 text-center">
+          <input type="number" min="0" max="20" step="0.25" data-student="${s.id}" data-exam="examen2"
+            value="${studentNotes.examen2 ?? ''}"
+            class="note-field w-20 rounded-xl border border-line bg-mist px-2 py-2 text-sm text-center text-navy outline-none">
+        </td>
+        <td class="px-2 sm:px-8 py-3.5 text-center">
+          <input type="number" min="0" max="20" step="0.25" data-student="${s.id}" data-exam="examen3"
+            value="${studentNotes.examen3 ?? ''}"
+            class="note-field w-20 rounded-xl border border-line bg-mist px-2 py-2 text-sm text-center text-navy outline-none">
+        </td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    tbody.querySelectorAll('.note-field').forEach((input) => {
+      input.addEventListener('change', async () => {
+        let val = parseFloat(input.value);
+        if (isNaN(val)) { val = null; }
+        else { val = Math.max(0, Math.min(20, val)); input.value = val; }
+
+        const studentId = input.getAttribute('data-student');
+        const exam = input.getAttribute('data-exam');
+
+        try {
+          await saveNoteFor(studentId, { [exam]: val });
+          input.classList.add('saved');
+          setTimeout(() => input.classList.remove('saved'), 1000);
+          showToast('Note enregistrée');
+        } catch (e) {
+          alert("Erreur lors de l'enregistrement de la note.");
+        }
+      });
+    });
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await signOut(auth);
+    window.location.href = 'connexion-enseignant.html';
+  });
+</script>
+
+</body>
+</html>

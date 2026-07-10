@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Élèves Admis | Diwan Al Maaref</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="logo.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Fraunces:wght@500;600&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          navy:  { DEFAULT:'#1B1464', 700:'#170F52', 900:'#100B3B' },
+          purple:{ DEFAULT:'#5B3AA6' },
+          gold:  { DEFAULT:'#F0A93C', light:'#FBC873', dark:'#D98F1F' },
+          ink:   '#221D3D',
+          mist:  '#F6F4FC',
+          line:  '#E7E2F3',
+        },
+        fontFamily: { sans: ['Inter','sans-serif'], display: ['Fraunces','serif'] }
+      }
+    }
+  }
+</script>
+
+<style>
+  body { font-family:'Inter', sans-serif; color:#221D3D; background:#F6F4FC; }
+  .font-display { font-family:'Fraunces', serif; }
+  .num { font-family:'Manrope', sans-serif; }
+  ::selection { background:#F0A93C; color:#1B1464; }
+
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+    outline: 2px solid #F0A93C; outline-offset: 2px; border-radius: 6px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration:.01ms !important; transition-duration:.01ms !important; }
+  }
+
+  .spinner {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 3px solid rgba(27,20,100,.15); border-top-color:#1B1464;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .row-card { transition: background .2s ease; }
+  .row-card:hover { background: #FBF9FE; }
+
+  .group-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none'><path d='M6 9l6 6 6-6' stroke='%235B3AA6' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: left .7rem center;
+  }
+
+  .saved-flash { animation: flash 1s ease; }
+  @keyframes flash {
+    0%   { background-color:#D1FAE5; }
+    100% { background-color:transparent; }
+  }
+</style>
+</head>
+
+<body class="antialiased min-h-screen">
+
+<!-- Écran affiché si aucune session admin active -->
+<div id="noSessionGate" class="hidden min-h-screen flex items-center justify-center px-5">
+  <div class="w-full max-w-sm bg-white border border-line rounded-3xl shadow-xl p-8 sm:p-10 text-center">
+    <img src="logo.png" alt="Logo Diwan Al Maaref" class="h-16 w-16 object-contain mb-5 mx-auto">
+    <h1 class="font-display font-semibold text-navy text-lg mb-2">Session requise</h1>
+    <p class="text-ink/50 text-sm mb-6">Veuillez vous connecter depuis le tableau de bord administratif principal pour accéder à cette page.</p>
+    <a href="admin-dashboard.html" class="inline-flex items-center justify-center gap-2 bg-navy hover:bg-navy-700 text-white font-extrabold px-6 py-3 rounded-full transition-colors text-sm">
+      Aller au Tableau de Bord
+    </a>
+  </div>
+</div>
+
+<div id="dashboard" class="hidden">
+
+  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-line">
+    <div class="max-w-6xl mx-auto px-5 sm:px-8 h-20 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <img src="logo.png" alt="Logo Diwan Al Maaref" class="h-11 w-11 object-contain">
+        <div class="hidden sm:flex flex-col leading-tight">
+          <span class="font-display font-semibold text-navy text-base">Élèves Admis</span>
+          <span class="text-[11px] text-gold-dark font-bold">Diwan Al Maaref — Administration</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="admin-dashboard.html" class="inline-flex items-center gap-2 text-xs font-bold text-navy/70 hover:text-gold-dark border border-line rounded-full px-4 py-2.5 transition-colors bg-white">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="hidden sm:inline">Retour au tableau de bord</span>
+        </a>
+        <button id="refreshBtn" class="w-10 h-10 grid place-items-center rounded-full border border-line text-navy hover:border-gold hover:text-gold-dark transition-colors" aria-label="Actualiser les données">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 11-3-6.7" stroke="currentColor" stroke-width="2"/><path d="M21 3v6h-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button id="logoutBtn" class="text-sm font-bold text-navy/60 hover:text-red-500 transition-colors">Déconnexion</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-5 sm:px-8 py-10">
+
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 mb-6">
+      <div>
+        <h2 class="font-display font-semibold text-navy text-2xl">Liste des Élèves Admis</h2>
+        <p class="text-ink/50 text-sm mt-1"><span id="totalCount" class="font-bold text-navy num">0</span> élève(s) admis — <span id="assignedCount" class="font-bold text-purple num">0</span> affecté(s) à un groupe</p>
+      </div>
+      <div class="relative w-full sm:w-72">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="absolute left-4 top-1/2 -translate-y-1/2 text-ink/30"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input id="searchInput" type="text" placeholder="Rechercher par nom ou matricule..." class="w-full rounded-full border border-line bg-white pl-11 pr-4 py-2.5 text-sm focus:border-gold outline-none">
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3 mb-8">
+      <select id="levelFilter" class="rounded-full border border-line bg-white px-4 py-2 text-xs font-bold text-navy focus:border-gold outline-none">
+        <option value="">Tous les niveaux</option>
+      </select>
+      <select id="groupFilter" class="rounded-full border border-line bg-white px-4 py-2 text-xs font-bold text-navy focus:border-gold outline-none">
+        <option value="">Tous les groupes</option>
+        <option value="__none__">Non affecté</option>
+      </select>
+    </div>
+
+    <div id="loadingState" class="flex flex-col items-center justify-center py-24 gap-4">
+      <span class="spinner" style="width:32px;height:32px;border-width:4px;"></span>
+      <p class="text-ink/50 text-sm">Chargement des données en cours...</p>
+    </div>
+
+    <div id="emptyState" class="hidden flex-col items-center justify-center py-24 gap-3 text-center">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none"><path d="M9 12h6M9 16h6M9 8h6" stroke="#5B3AA6" stroke-width="1.6" stroke-linecap="round"/><path d="M4 19V6a2 2 0 012-2h9l5 5v10a2 2 0 01-2 2H6a2 2 0 01-2-2z" stroke="#5B3AA6" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      <p class="text-navy font-bold">Aucun élève admis pour le moment</p>
+      <p class="text-ink/45 text-sm">Les élèves dont le dossier est accepté apparaîtront automatiquement ici.</p>
+    </div>
+
+    <div id="tableWrap" class="hidden bg-white border border-line rounded-3xl overflow-hidden shadow-sm">
+      <div class="grid grid-cols-[90px_1fr_1fr_120px_110px_170px] gap-2 px-5 sm:px-7 py-4 bg-navy text-white text-[11px] sm:text-xs font-extrabold uppercase tracking-wide">
+        <span>Matricule</span>
+        <span>Prénom</span>
+        <span>Nom</span>
+        <span>Naissance</span>
+        <span>Niveau</span>
+        <span>Groupe</span>
+      </div>
+      <div id="rowsContainer" class="divide-y divide-line"></div>
+    </div>
+
+  </main>
+</div>
+
+<template id="rowTemplate">
+  <div class="row-card grid grid-cols-[90px_1fr_1fr_120px_110px_170px] gap-2 items-center px-5 sm:px-7 py-4">
+    <span class="num font-bold text-navy text-sm" data-field="id"></span>
+    <span class="font-semibold text-ink text-sm truncate" data-field="firstName"></span>
+    <span class="font-semibold text-ink text-sm truncate" data-field="lastName"></span>
+    <span class="text-ink/60 text-xs sm:text-sm num" data-field="dob"></span>
+    <span class="text-xs sm:text-sm font-bold text-purple" data-field="level"></span>
+    <select data-field="groupSelect" class="group-select w-full rounded-full border border-line bg-mist/60 pl-7 pr-3 py-2 text-xs font-bold text-navy focus:border-gold outline-none cursor-pointer"></select>
+  </div>
+</template>
+
+<script type="module">
+import { auth, db, signOut, collection, getDocs, doc, updateDoc, requireAdmin } from './supabase-config.js';
+
+// Liste des groupes disponibles — à ajuster selon les besoins de l'établissement.
+const AVAILABLE_GROUPS = ['Groupe A', 'Groupe B', 'Groupe C', 'Groupe D', 'Groupe E', 'Groupe F'];
+
+let allRecords = [];   // tous les élèves admis (statut === 'Accepté'), avec { id, ...data }
+
+const dashboard = document.getElementById('dashboard');
+const noSessionGate = document.getElementById('noSessionGate');
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await signOut(auth);
+  location.href = 'connexion.html';
+});
+
+document.getElementById('refreshBtn').addEventListener('click', () => fetchRecords());
+
+requireAdmin(() => fetchRecords());
+
+async function fetchRecords() {
+  const loadingState = document.getElementById('loadingState');
+  const tableWrap = document.getElementById('tableWrap');
+  const emptyState = document.getElementById('emptyState');
+
+  noSessionGate.classList.add('hidden');
+  dashboard.classList.remove('hidden');
+  loadingState.classList.remove('hidden');
+  tableWrap.classList.add('hidden');
+  emptyState.classList.add('hidden');
+
+  try {
+    const snap = await getDocs(collection(db, 'students'));
+    const records = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    allRecords = records.filter((r) => r.statut === 'Accepté');
+    populateLevelFilter(allRecords);
+    populateGroupFilter();
+    applyFilters();
+  } catch (err) {
+    loadingState.classList.add('hidden');
+    emptyState.classList.remove('hidden');
+    emptyState.querySelector('p.font-bold').textContent = "Erreur réseau lors du chargement.";
+  } finally {
+    loadingState.classList.add('hidden');
+  }
+}
+
+function populateLevelFilter(records) {
+  const select = document.getElementById('levelFilter');
+  const current = select.value;
+  const levels = [...new Set(records.map(r => r.niveau).filter(Boolean))].sort();
+  select.innerHTML = '<option value="">Tous les niveaux</option>' +
+    levels.map(l => `<option value="${l}">${l}</option>`).join('');
+  select.value = current || '';
+}
+
+function populateGroupFilter() {
+  const select = document.getElementById('groupFilter');
+  const current = select.value;
+  select.innerHTML =
+    '<option value="">Tous les groupes</option>' +
+    '<option value="__none__">Non affecté</option>' +
+    AVAILABLE_GROUPS.map(g => `<option value="${g}">${g}</option>`).join('');
+  select.value = current || '';
+}
+
+function applyFilters() {
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  const level = document.getElementById('levelFilter').value;
+  const group = document.getElementById('groupFilter').value;
+
+  let filtered = allRecords.filter(r => {
+    const matchesQuery = !q ||
+      (r.prenom || '').toLowerCase().includes(q) ||
+      (r.nom || '').toLowerCase().includes(q) ||
+      (r.id || '').toLowerCase().includes(q);
+    const matchesLevel = !level || r.niveau === level;
+    const studentGroup = (r.groupe && r.groupe !== 'Non assigné') ? r.groupe : '';
+    const matchesGroup = !group ||
+      (group === '__none__' ? !studentGroup : studentGroup === group);
+    return matchesQuery && matchesLevel && matchesGroup;
+  });
+
+  renderRecords(filtered);
+}
+
+document.getElementById('searchInput').addEventListener('input', applyFilters);
+document.getElementById('levelFilter').addEventListener('change', applyFilters);
+document.getElementById('groupFilter').addEventListener('change', applyFilters);
+
+function renderRecords(records) {
+  const container = document.getElementById('rowsContainer');
+  const tableWrap = document.getElementById('tableWrap');
+  const emptyState = document.getElementById('emptyState');
+  const totalCount = document.getElementById('totalCount');
+  const assignedCount = document.getElementById('assignedCount');
+
+  container.innerHTML = '';
+  totalCount.textContent = allRecords.length;
+  assignedCount.textContent = allRecords.filter(r => r.groupe && r.groupe !== 'Non assigné').length;
+
+  if (records.length === 0) {
+    tableWrap.classList.add('hidden');
+    emptyState.classList.remove('hidden');
+    emptyState.querySelector('p.font-bold').textContent = "Aucun élève ne correspond à cette recherche";
+    emptyState.querySelector('p.text-ink\\/45').textContent = "Essayez de modifier vos filtres ou votre recherche.";
+    return;
+  }
+  emptyState.classList.add('hidden');
+  tableWrap.classList.remove('hidden');
+
+  const template = document.getElementById('rowTemplate');
+
+  records.forEach((r) => {
+    const node = template.content.cloneNode(true);
+    const rowRoot = node.querySelector('.row-card');
+
+    node.querySelector('[data-field="id"]').textContent = r.id ?? '—';
+    node.querySelector('[data-field="firstName"]').textContent = r.prenom || '—';
+    node.querySelector('[data-field="lastName"]').textContent = r.nom || '—';
+    node.querySelector('[data-field="dob"]').textContent = r.dateNaissance || '—';
+    node.querySelector('[data-field="level"]').textContent = r.niveau || '—';
+
+    const select = node.querySelector('[data-field="groupSelect"]');
+    select.innerHTML = '<option value="">— Choisir —</option>' +
+      AVAILABLE_GROUPS.map(g => `<option value="${g}">${g}</option>`).join('');
+    select.value = (r.groupe && r.groupe !== 'Non assigné') ? r.groupe : '';
+
+    select.addEventListener('change', async () => {
+      const val = select.value || 'Non assigné';
+      select.disabled = true;
+      try {
+        await updateDoc(doc(db, 'students', r.id), { groupe: val });
+        r.groupe = val;
+        rowRoot.classList.add('saved-flash');
+        setTimeout(() => rowRoot.classList.remove('saved-flash'), 1000);
+        document.getElementById('assignedCount').textContent =
+          allRecords.filter(x => x.groupe && x.groupe !== 'Non assigné').length;
+      } catch (e) {
+        alert("Erreur lors de l'enregistrement du groupe.");
+      } finally {
+        select.disabled = false;
+      }
+    });
+
+    container.appendChild(rowRoot);
+  });
+}
+</script>
+</body>
+</html>
