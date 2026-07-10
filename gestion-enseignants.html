@@ -245,8 +245,7 @@
             <th class="px-4 py-3.5 whitespace-nowrap">Niveau</th>
             <th class="px-4 py-3.5 whitespace-nowrap">Groupe</th>
             <th class="px-4 py-3.5 whitespace-nowrap text-emerald-600">Salaire net</th>
-            <th class="px-4 py-3.5 whitespace-nowrap text-purple">Nom d'utilisateur</th>
-            <th class="px-4 py-3.5 whitespace-nowrap text-gold-dark">Mot de passe</th>
+            <th class="px-4 py-3.5 whitespace-nowrap text-purple">Identifiant (Nom d'utilisateur)</th>
             <th class="px-4 sm:px-8 py-3.5 whitespace-nowrap text-right">Action</th>
           </tr>
         </thead>
@@ -272,7 +271,7 @@
     <div class="w-14 h-14 mx-auto rounded-2xl bg-emerald-500/10 grid place-items-center mb-4">
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>
-    <h3 id="credModalTitle" class="font-display font-semibold text-navy text-lg mb-2">Enseignant ajouté</h3>
+    <h3 class="font-display font-semibold text-navy text-lg mb-2">Enseignant ajouté</h3>
     <p class="text-ink/50 text-xs mb-6">Notez ces identifiants maintenant : le mot de passe ne sera plus jamais affiché.</p>
 
     <div class="text-left space-y-3 mb-6">
@@ -300,11 +299,10 @@
 <script type="module">
   import {
     db, auth, signOut, doc, getDoc, setDoc, deleteDoc, collection, getDocs,
-    usernameToEmail, createTeacherAuthAccount, generatePassword, resetTeacherPassword
+    usernameToEmail, createTeacherAuthAccount, generatePassword
   } from './supabase-config.js';
 
   const TEACHERS_COL = collection(db, 'teachers');
-  let teachersCache = []; // dernière liste chargée, utilisée par le bouton "Réinitialiser"
 
   // --- Sélecteur multiple des niveaux (max 3) ---
   const niveauBtn      = document.getElementById('niveauBtn');
@@ -412,15 +410,14 @@
   }
 
   async function render() {
-    tableBody.innerHTML = `<tr><td colspan="11" class="text-center py-8 text-navy/50">Chargement des enseignants...</td></tr>`;
+    tableBody.innerHTML = `<tr><td colspan="10" class="text-center py-8 text-navy/50">Chargement des enseignants...</td></tr>`;
     let teachers;
     try {
       teachers = await loadTeachers();
     } catch (e) {
-      tableBody.innerHTML = `<tr><td colspan="11" class="text-center py-8 text-rose-600 font-bold">Erreur de connexion à la base de données.</td></tr>`;
+      tableBody.innerHTML = `<tr><td colspan="10" class="text-center py-8 text-rose-600 font-bold">Erreur de connexion à Firestore.</td></tr>`;
       return;
     }
-    teachersCache = teachers;
     tableBody.innerHTML = '';
 
     if (teachers.length === 0) {
@@ -441,9 +438,11 @@
         <td class="px-4 py-4 whitespace-nowrap"><div class="flex flex-wrap gap-1 max-w-[220px]">${t.niveaux.map((n) => `<span class="inline-block text-[10px] font-extrabold rounded-full px-2.5 py-1 ${levelBadgeClass(n)}">${n}</span>`).join('')}</div></td>
         <td class="px-4 py-4 whitespace-nowrap"><span class="inline-block text-[11px] font-extrabold rounded-full px-3 py-1 ${groupBadgeClass(t.groupe)}">${t.groupe}</span></td>
         <td class="px-4 py-4 whitespace-nowrap font-bold text-emerald-600">${formatSalaire(t.salaire)}</td>
-        <td class="px-4 py-4 whitespace-nowrap font-mono text-xs font-bold text-purple">${t.username}</td>
         <td class="px-4 py-4 whitespace-nowrap">
-          <button data-id="${t.id}" class="resetBtn text-[11px] font-extrabold text-gold-dark hover:text-navy underline decoration-dotted">Réinitialiser</button>
+          <div class="flex items-center gap-3">
+            <span class="font-mono text-xs font-bold text-purple">${t.username}</span>
+            <button data-id="${t.id}" class="resetBtn text-[11px] font-extrabold text-gold-dark hover:text-navy underline decoration-dotted">Réinitialiser</button>
+          </div>
         </td>
         <td class="px-4 sm:px-8 py-4 whitespace-nowrap text-right">
           <button data-id="${t.id}" class="deleteBtn inline-flex items-center gap-1.5 text-xs font-bold text-rose-500 hover:text-rose-700 transition-colors">
@@ -458,25 +457,12 @@
     countBadge.textContent = teachers.length + (teachers.length > 1 ? ' enseignants' : ' enseignant');
 
     document.querySelectorAll('.resetBtn').forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        const id = btn.getAttribute('data-id');
-        const teacher = teachersCache.find((t) => t.id === id);
-        if (!teacher) return;
-        if (!confirm(`Réinitialiser le mot de passe de ${teacher.prenom} ${teacher.nom} (${teacher.username}) ?\nL'ancien mot de passe cessera immédiatement de fonctionner.`)) return;
-
-        btn.disabled = true;
-        const original = btn.textContent;
-        btn.textContent = 'Réinitialisation...';
-        try {
-          const newPassword = generatePassword();
-          await resetTeacherPassword(id, newPassword);
-          showCredentialsModal(teacher.username, newPassword, 'Mot de passe réinitialisé');
-        } catch (e) {
-          alert("Erreur lors de la réinitialisation : " + e.message);
-        } finally {
-          btn.disabled = false;
-          btn.textContent = original;
-        }
+      btn.addEventListener('click', () => {
+        // ⚠️ Changer le mot de passe d'un AUTRE utilisateur nécessite l'Admin SDK
+        // (Cloud Function), ce que le client seul ne peut pas faire en toute sécurité.
+        // Solution pratique sans backend : supprimer puis ré-ajouter l'enseignant
+        // (nouveau compte, nouveau mot de passe généré automatiquement).
+        alert("Pour changer le mot de passe d'un enseignant sans serveur backend, la solution la plus simple est de le supprimer puis de le réajouter : un nouvel identifiant et mot de passe seront générés automatiquement.");
       });
     });
 
@@ -514,14 +500,12 @@
 
   // --- Modale des identifiants (affichée une seule fois, juste après l'ajout) ---
   const credentialsModal = document.getElementById('credentialsModal');
-  const credModalTitle   = document.getElementById('credModalTitle');
   const credUsername     = document.getElementById('credUsername');
   const credPassword     = document.getElementById('credPassword');
   const copyCredsBtn     = document.getElementById('copyCredsBtn');
   const closeCredsBtn    = document.getElementById('closeCredsBtn');
 
-  function showCredentialsModal(username, password, title = 'Enseignant ajouté') {
-    credModalTitle.textContent = title;
+  function showCredentialsModal(username, password) {
     credUsername.textContent = username;
     credPassword.textContent = password;
     copyCredsBtn.textContent = 'Copier identifiant + mot de passe';
