@@ -82,7 +82,7 @@
 
   <div>
     <h2 id="welcomeTitle" class="font-display font-semibold text-navy text-2xl sm:text-3xl">Bonjour</h2>
-    <p class="text-ink/50 text-sm mt-2">Saisissez vos notes pour chaque matière. Le total d'une matière s'affiche automatiquement dès que 2 notes au moins sont renseignées. Les coefficients sont fixés par l'administration.</p>
+    <p class="text-ink/50 text-sm mt-2">Voici les notes saisies par vos enseignants pour chaque matière. Le total s'affiche automatiquement dès que 2 notes au moins ont été saisies. Les coefficients sont fixés par l'administration.</p>
   </div>
 
   <!-- Infos élève -->
@@ -207,7 +207,20 @@
     return map;
   }
 
-  function buildTable(subjects, coeffMap) {
+  // Charge toutes les notes déjà saisies par les enseignants pour cet élève (une ligne par
+  // matière dans la table "notes", id = "<matricule>::<matière>"), et les regroupe par matière.
+  async function loadStudentNotes(matricule) {
+    const q = query(collection(db, 'notes'), where('studentId', '==', matricule));
+    const snap = await getDocs(q);
+    const map = {};
+    snap.docs.forEach((d) => {
+      const row = d.data();
+      if (row.matiere) map[row.matiere] = row;
+    });
+    return map;
+  }
+
+  function buildTable(subjects, coeffMap, notesMap) {
     const tableSection = document.getElementById('tableSection');
     const emptyState = document.getElementById('emptyState');
     const subjectsBody = document.getElementById('subjectsBody');
@@ -224,26 +237,27 @@
     subjectsBody.innerHTML = '';
     countBadge.textContent = subjects.length + (subjects.length > 1 ? ' matières' : ' matière');
 
+    function noteCell(val) {
+      return (val === null || val === undefined || val === '')
+        ? '<span class="text-ink/25">—</span>'
+        : `<span class="num font-bold text-navy">${val}</span>`;
+    }
+
     subjects.forEach((subject, idx) => {
       const coeff = coeffMap[subject] ?? 1;
+      const notes = notesMap[subject] || {};
       const tr = document.createElement('tr');
       tr.className = 'row-enter hover:bg-mist/40 transition-colors';
       tr.dataset.index = idx;
       tr.dataset.coeff = coeff;
+      tr.dataset.n1 = notes.examen1 ?? '';
+      tr.dataset.n2 = notes.examen2 ?? '';
+      tr.dataset.n3 = notes.examen3 ?? '';
       tr.innerHTML = `
         <td class="px-6 sm:px-8 py-3.5 font-bold text-navy text-sm">${subject}</td>
-        <td class="px-2 py-3.5 text-center">
-          <input type="number" min="0" max="20" step="0.25" data-role="note" data-slot="1"
-            class="note-field w-20 rounded-xl border border-line bg-mist px-2 py-2 text-sm text-center text-navy outline-none" placeholder="—">
-        </td>
-        <td class="px-2 py-3.5 text-center">
-          <input type="number" min="0" max="20" step="0.25" data-role="note" data-slot="2"
-            class="note-field w-20 rounded-xl border border-line bg-mist px-2 py-2 text-sm text-center text-navy outline-none" placeholder="—">
-        </td>
-        <td class="px-2 py-3.5 text-center">
-          <input type="number" min="0" max="20" step="0.25" data-role="note" data-slot="3"
-            class="note-field w-20 rounded-xl border border-line bg-mist px-2 py-2 text-sm text-center text-navy outline-none" placeholder="—">
-        </td>
+        <td class="px-2 py-3.5 text-center">${noteCell(notes.examen1)}</td>
+        <td class="px-2 py-3.5 text-center">${noteCell(notes.examen2)}</td>
+        <td class="px-2 py-3.5 text-center">${noteCell(notes.examen3)}</td>
         <td class="px-2 py-3.5 text-center">
           <span class="coeff-pill inline-block num font-extrabold text-xs rounded-full px-3 py-1.5" title="Coefficient fixé par l'administration">${coeff}</span>
         </td>
@@ -257,24 +271,13 @@
       subjectsBody.appendChild(tr);
     });
 
-    subjectsBody.querySelectorAll('input[data-role="note"]').forEach((input) => {
-      input.addEventListener('input', () => {
-        if (input.value !== '') {
-          let v = parseFloat(input.value);
-          if (!isNaN(v)) input.value = Math.max(0, Math.min(20, v));
-        }
-        recalcAll();
-      });
-    });
-
     recalcAll();
   }
 
-  // Total d'une matière : n'apparaît que si 2 notes ou plus sont renseignées.
+  // Total d'une matière : n'apparaît que si 2 notes ou plus ont été saisies par l'enseignant.
   function recalcRow(tr) {
-    const noteInputs = [...tr.querySelectorAll('input[data-role="note"]')];
-    const filled = noteInputs
-      .map((i) => i.value.trim() === '' ? null : parseFloat(i.value))
+    const filled = [tr.dataset.n1, tr.dataset.n2, tr.dataset.n3]
+      .map((v) => v === '' ? null : parseFloat(v))
       .filter((v) => v !== null && !isNaN(v));
 
     const totalEl   = tr.querySelector('[data-role="total"]');
@@ -341,7 +344,14 @@
       coeffMap = {};
     }
 
-    buildTable(subjects, coeffMap);
+    let notesMap = {};
+    try {
+      notesMap = await loadStudentNotes(student.matricule);
+    } catch (e) {
+      notesMap = {};
+    }
+
+    buildTable(subjects, coeffMap, notesMap);
   });
 
   document.getElementById('logoutBtn').addEventListener('click', async () => {
