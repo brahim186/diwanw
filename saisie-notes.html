@@ -96,6 +96,7 @@
   <div>
     <h2 class="font-display font-semibold text-navy text-3xl">Saisie des Notes</h2>
     <p class="text-ink/50 text-sm mt-2">Entrez les notes de vos élèves pour chaque examen. Les notes sont enregistrées automatiquement (sur 20).</p>
+    <p class="mt-3"><span id="matiereBadge" class="hidden inline-flex items-center gap-2 text-xs font-extrabold text-purple bg-purple/10 rounded-full px-4 py-2">Matière : —</span></p>
   </div>
 
   <section class="bg-white border border-line rounded-3xl shadow-sm overflow-hidden">
@@ -150,13 +151,19 @@
       .filter((s) => (teacher.niveaux || []).includes(s.niveau));
   }
 
-  async function loadNoteFor(studentId) {
-    const snap = await getDoc(doc(db, 'notes', studentId));
+  // Une note est identifiée par "<matricule>::<matière>" : chaque enseignant ne touche
+  // qu'aux notes de la matière qu'il enseigne (teacher.matiere), voir requireTeacher plus bas.
+  function noteDocId(studentId, matiere) {
+    return `${studentId}::${matiere}`;
+  }
+
+  async function loadNoteFor(studentId, matiere) {
+    const snap = await getDoc(doc(db, 'notes', noteDocId(studentId, matiere)));
     return snap.exists() ? snap.data() : {};
   }
 
-  async function saveNoteFor(studentId, notesObj) {
-    await setDoc(doc(db, 'notes', studentId), notesObj, { merge: true });
+  async function saveNoteFor(studentId, matiere, notesObj) {
+    await setDoc(doc(db, 'notes', noteDocId(studentId, matiere)), { studentId, matiere, ...notesObj }, { merge: true });
   }
 
   function showToast(message) {
@@ -174,6 +181,18 @@
   requireTeacher(async (user, teacher) => {
     const tbody = document.getElementById('studentsTableBody');
     const emptyState = document.getElementById('emptyState');
+    const matiereBadge = document.getElementById('matiereBadge');
+
+    if (teacher.matiere) {
+      matiereBadge.textContent = 'Matière : ' + teacher.matiere;
+      matiereBadge.classList.remove('hidden');
+    }
+
+    if (!teacher.matiere) {
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-rose-600 font-bold">Aucune matière n'est assignée à votre profil. Contactez l'administration.</td></tr>`;
+      return;
+    }
+
     tbody.innerHTML = `<tr><td colspan="7" class="text-center py-6 text-navy/50">Chargement...</td></tr>`;
 
     let myStudents;
@@ -194,7 +213,7 @@
     }
 
     for (const s of myStudents) {
-      const studentNotes = await loadNoteFor(s.id);
+      const studentNotes = await loadNoteFor(s.id, teacher.matiere);
       const tr = document.createElement('tr');
       tr.className = 'row-enter hover:bg-mist/50 transition-colors';
       tr.innerHTML = `
@@ -231,7 +250,7 @@
         const exam = input.getAttribute('data-exam');
 
         try {
-          await saveNoteFor(studentId, { [exam]: val });
+          await saveNoteFor(studentId, teacher.matiere, { [exam]: val });
           input.classList.add('saved');
           setTimeout(() => input.classList.remove('saved'), 1000);
           showToast('Note enregistrée');
