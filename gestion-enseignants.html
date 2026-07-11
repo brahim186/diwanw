@@ -386,7 +386,9 @@
   const goToDuplicateBtn     = document.getElementById('goToDuplicateBtn');
   let pendingDuplicateId     = null;
 
-  // تم تعطيل التنبيه الفوري لعدم التشويش عند التكرار المقصود
+  // إعادة تفعيل التنبيه: كل مرة كيتبدل الاسم أو النسب، كنمسحو التأكيد السابق
+  // باش التكرار يتفحص من جديد عند الضغط على "إضافة" (شوف findDuplicateTeacher
+  // فـ submit listener تحت).
   function checkDuplicateLive() {
     pendingDuplicateId = null;
     duplicateWarning.classList.add('hidden');
@@ -660,6 +662,24 @@
       return;
     }
     formError.classList.add('hidden');
+
+    // Vérification anti-doublon : uniquement en mode "ajout" (pas en mode édition,
+    // où l'enseignant en cours d'édition ne doit pas se signaler lui-même).
+    if (!isEditMode) {
+      const duplicate = findDuplicateTeacher(nom, prenom, null);
+      if (duplicate && pendingDuplicateId !== duplicate.id) {
+        // Premher clic sur "Ajouter" avec ce nom/prénom : on bloque et on prévient,
+        // on ne soumet PAS encore (pas de compte Auth créé, pas d'écriture en base).
+        pendingDuplicateId = duplicate.id;
+        duplicateWarningText.textContent =
+          `Un enseignant nommé "${duplicate.prenom} ${duplicate.nom}" existe déjà (identifiant : ${duplicate.username}). ` +
+          `Si c'est intentionnel, cliquez à nouveau sur "Ajouter l'enseignant" pour confirmer.`;
+        duplicateWarning.classList.remove('hidden');
+        duplicateWarning.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      // Sinon (pas de doublon, ou doublon déjà confirmé par un 2e clic) : on continue.
+    }
 
     const submitBtn = form.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
