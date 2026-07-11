@@ -195,6 +195,13 @@
       </div>
 
       <div>
+        <label for="matiere" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Matière enseignée</label>
+        <select id="matiere" name="matiere" disabled class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy outline-none disabled:text-ink/30">
+          <option value="" disabled selected>Sélectionner d'abord un niveau</option>
+        </select>
+      </div>
+
+      <div>
         <label for="groupe" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Groupe</label>
         <select id="groupe" name="groupe" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy outline-none">
           <option value="" disabled selected>Sélectionner</option>
@@ -252,6 +259,7 @@
             <th class="px-4 py-3.5 whitespace-nowrap">Adresse</th>
             <th class="px-4 py-3.5 whitespace-nowrap">Téléphone</th>
             <th class="px-4 py-3.5 whitespace-nowrap">Niveau</th>
+            <th class="px-4 py-3.5 whitespace-nowrap">Matière</th>
             <th class="px-4 py-3.5 whitespace-nowrap">Groupe</th>
             <th class="px-4 py-3.5 whitespace-nowrap text-emerald-600">Salaire net</th>
             <th class="px-4 py-3.5 whitespace-nowrap text-purple">Identifiant (Nom d'utilisateur)</th>
@@ -312,6 +320,56 @@
   const TEACHERS_COL = collection(db, 'teachers');
   let loadedTeachersCache = [];
 
+  // Matières possibles par cycle — mêmes listes que gestion-coefficients.html / mes-notes.html
+  // (lycée fusionné : la distinction Sciences/Lettres n'est pas nécessaire ici, un enseignant
+  // du lycée peut être amené à enseigner sa matière dans les deux filières).
+  const SUBJECTS = {
+    primaire: [
+      'Langue arabe', 'Langue française', 'Mathématiques', 'Éducation islamique',
+      'Éveil scientifique / Sciences', 'Histoire-Géographie et Éducation civique',
+      'Éducation artistique', 'Éducation physique', 'Langue amazighe'
+    ],
+    college: [
+      'Langue arabe', 'Langue française', 'Mathématiques', 'Physique-Chimie',
+      'Sciences de la Vie et de la Terre (SVT)', 'Histoire-Géographie', 'Éducation islamique',
+      'Éducation physique', 'Informatique', 'Éducation technologique', 'Arts plastiques / Éducation musicale'
+    ],
+    lycee: [
+      'Langue arabe', 'Histoire-Géographie', 'Philosophie', 'Langue française', 'Langue anglaise',
+      'Éducation islamique', 'Mathématiques', 'Sciences de la Vie et de la Terre (SVT)',
+      'Éducation physique', 'Informatique', 'Physique-Chimie'
+    ]
+  };
+
+  function mapNiveauToCycle(niveau) {
+    if (niveau.includes('primaire')) return 'primaire';
+    if (niveau.includes('collège')) return 'college';
+    return 'lycee'; // Tronc Commun / 1ère / 2ème année Baccalauréat
+  }
+
+  const matiereSelect = document.getElementById('matiere');
+
+  // Reconstruit la liste des matières disponibles à partir des niveaux cochés.
+  // preserveValue : matière à re-sélectionner si elle est toujours proposée (utilisé en mode édition).
+  function updateMatiereOptions(preserveValue) {
+    const niveaux = getSelectedNiveaux();
+    const current = preserveValue !== undefined ? preserveValue : matiereSelect.value;
+    const cycles = [...new Set(niveaux.map(mapNiveauToCycle))];
+    const subjects = [...new Set(cycles.flatMap((c) => SUBJECTS[c] || []))].sort();
+
+    if (subjects.length === 0) {
+      matiereSelect.innerHTML = '<option value="" disabled selected>Sélectionner d\'abord un niveau</option>';
+      matiereSelect.disabled = true;
+      return;
+    }
+
+    matiereSelect.disabled = false;
+    const stillAvailable = current && subjects.includes(current);
+    matiereSelect.innerHTML =
+      `<option value="" disabled ${stillAvailable ? '' : 'selected'}>Sélectionner</option>` +
+      subjects.map((s) => `<option value="${s}" ${s === current ? 'selected' : ''}>${s}</option>`).join('');
+  }
+
   const niveauBtn      = document.getElementById('niveauBtn');
   const niveauBtnLabel = document.getElementById('niveauBtnLabel');
   const niveauPanel    = document.getElementById('niveauPanel');
@@ -347,6 +405,7 @@
     cb.addEventListener('change', () => {
       updateNiveauBtnLabel();
       refreshNiveauLocks();
+      updateMatiereOptions();
     });
   });
 
@@ -365,6 +424,7 @@
     niveauOptions.forEach((cb) => { cb.checked = false; cb.disabled = false; });
     updateNiveauBtnLabel();
     niveauLimitMsg.classList.add('hidden');
+    updateMatiereOptions('');
   }
 
   const form           = document.getElementById('teacherForm');
@@ -463,12 +523,12 @@
   }
 
   async function render() {
-    tableBody.innerHTML = `<tr><td colspan="11" class="text-center py-8 text-navy/50">Chargement des enseignants...</td></tr>`;
+    tableBody.innerHTML = `<tr><td colspan="12" class="text-center py-8 text-navy/50">Chargement des enseignants...</td></tr>`;
     let teachers;
     try {
       teachers = await loadTeachers();
     } catch (e) {
-      tableBody.innerHTML = `<tr><td colspan="11" class="text-center py-8 text-rose-600 font-bold">Erreur de connexion à Firestore.</td></tr>`;
+      tableBody.innerHTML = `<tr><td colspan="12" class="text-center py-8 text-rose-600 font-bold">Erreur de connexion à Firestore.</td></tr>`;
       return;
     }
     tableBody.innerHTML = '';
@@ -489,6 +549,7 @@
         <td class="px-4 py-4 text-ink/60 max-w-[180px] truncate" title="${t.adresse}">${t.adresse}</td>
         <td class="px-4 py-4 whitespace-nowrap text-ink/60">${t.telephone}</td>
         <td class="px-4 py-4 whitespace-nowrap"><div class="flex flex-wrap gap-1 max-w-[220px]">${t.niveaux.map((n) => `<span class="inline-block text-[10px] font-extrabold rounded-full px-2.5 py-1 ${levelBadgeClass(n)}">${n}</span>`).join('')}</div></td>
+        <td class="px-4 py-4 whitespace-nowrap"><span class="inline-block text-[11px] font-extrabold rounded-full px-3 py-1 bg-purple/10 text-purple">${t.matiere || '—'}</span></td>
         <td class="px-4 py-4 whitespace-nowrap"><span class="inline-block text-[11px] font-extrabold rounded-full px-3 py-1 ${groupBadgeClass(t.groupe)}">${t.groupe}</span></td>
         <td class="px-4 py-4 whitespace-nowrap font-bold text-emerald-600">${formatSalaire(t.salaire)}</td>
         <td class="px-4 py-4 whitespace-nowrap">
@@ -551,6 +612,7 @@
           }
           updateNiveauBtnLabel();
           refreshNiveauLocks();
+          updateMatiereOptions(teacher.matiere || '');
 
           editTeacherId.value = teacher.id;
           formTitle.textContent = "Modifier l'enseignant : " + teacher.prenom + " " + teacher.nom;
@@ -652,11 +714,12 @@
     const adresse   = document.getElementById('adresse').value.trim();
     const telephone = document.getElementById('telephone').value.trim();
     const niveaux   = getSelectedNiveaux();
+    const matiere   = document.getElementById('matiere').value;
     const groupe    = document.getElementById('groupe').value;
     const salaire   = document.getElementById('salaire').value;
     const isEditMode = editTeacherId.value !== "";
 
-    if (!nom || !prenom || !genre || !adresse || !telephone || niveaux.length === 0 || !groupe || salaire === '') {
+    if (!nom || !prenom || !genre || !adresse || !telephone || niveaux.length === 0 || !matiere || !groupe || salaire === '') {
       formError.textContent = "Veuillez remplir tous les champs avant d'ajouter l'enseignant.";
       formError.classList.remove('hidden');
       return;
@@ -690,7 +753,7 @@
       if (isEditMode) {
         const currentId = editTeacherId.value;
         await setDoc(doc(db, 'teachers', currentId), {
-          nom, prenom, genre, adresse, telephone, niveaux, groupe,
+          nom, prenom, genre, adresse, telephone, niveaux, matiere, groupe,
           salaire: Number(salaire)
         }, { merge: true });
 
@@ -707,7 +770,7 @@
         const uid = await createTeacherAuthAccount(email, password);
 
         await setDoc(doc(db, 'teachers', uid), {
-          nom, prenom, genre, adresse, telephone, niveaux, groupe,
+          nom, prenom, genre, adresse, telephone, niveaux, matiere, groupe,
           salaire: Number(salaire), username, password, createdAt: new Date().toISOString()
         });
 
