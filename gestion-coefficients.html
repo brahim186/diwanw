@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coefficients | Diwan Al Maaref</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="logo.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Fraunces:wght@500;600&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          navy:  { DEFAULT:'#1B1464', 700:'#170F52', 900:'#100B3B' },
+          purple:{ DEFAULT:'#5B3AA6' },
+          gold:  { DEFAULT:'#F0A93C', light:'#FBC873', dark:'#D98F1F' },
+          ink:   '#221D3D',
+          mist:  '#F6F4FC',
+          line:  '#E7E2F3',
+        },
+        fontFamily: { sans: ['Inter','sans-serif'], display: ['Fraunces','serif'] }
+      }
+    }
+  }
+</script>
+
+<style>
+  body { font-family:'Inter', sans-serif; color:#221D3D; background:#F6F4FC; }
+  .font-display { font-family:'Fraunces', serif; }
+  .num { font-family:'Manrope', sans-serif; }
+  ::selection { background:#F0A93C; color:#1B1464; }
+
+  a:focus-visible, button:focus-visible, input:focus-visible {
+    outline: 2px solid #F0A93C; outline-offset: 2px; border-radius: 6px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration:.01ms !important; transition-duration:.01ms !important; }
+  }
+
+  .tab-btn { transition: background-color .2s ease, color .2s ease; }
+  .tab-btn.active { background:#1B1464; color:#fff; }
+
+  .coeff-field { transition: border-color .2s ease, box-shadow .2s ease; }
+  .coeff-field:focus { border-color:#5B3AA6; box-shadow:0 0 0 4px rgba(91,58,166,.12); }
+  .coeff-field.saved { border-color:#10B981; }
+
+  .row-enter { animation: rowEnter .3s cubic-bezier(.2,.8,.25,1) both; }
+  @keyframes rowEnter { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+
+  .toast { animation: toastIn .3s ease both, toastOut .3s ease 1.7s both; }
+  @keyframes toastIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes toastOut { from{opacity:1} to{opacity:0;transform:translateY(-6px)} }
+</style>
+</head>
+
+<body class="antialiased min-h-screen">
+
+<!-- Écran affiché si aucune session admin active -->
+<div id="noSessionGate" class="hidden min-h-screen flex items-center justify-center px-5">
+  <div class="w-full max-w-sm bg-white border border-line rounded-3xl shadow-xl p-8 sm:p-10 text-center">
+    <img src="logo.png" alt="Logo Diwan Al Maaref" class="h-16 w-16 object-contain mb-5 mx-auto">
+    <h1 class="font-display font-semibold text-navy text-lg mb-2">Session requise</h1>
+    <p class="text-ink/50 text-sm mb-6">Veuillez vous connecter depuis le tableau de bord administratif principal pour accéder à cette page.</p>
+    <a href="admin-dashboard.html" class="inline-flex items-center justify-center gap-2 bg-navy hover:bg-navy-700 text-white font-extrabold px-6 py-3 rounded-full transition-colors text-sm">
+      Aller au Tableau de Bord
+    </a>
+  </div>
+</div>
+
+<div id="dashboard" class="hidden">
+
+  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-line">
+    <div class="max-w-6xl mx-auto px-5 sm:px-8 h-20 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <img src="logo.png" alt="Logo Diwan Al Maaref" class="h-11 w-11 object-contain">
+        <div class="hidden sm:flex flex-col leading-tight">
+          <span class="font-display font-semibold text-navy text-base">Coefficients</span>
+          <span class="text-[11px] text-gold-dark font-bold">Diwan Al Maaref — Administration</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="espace-administration.html" class="inline-flex items-center gap-2 text-xs font-bold text-navy/70 hover:text-gold-dark border border-line rounded-full px-4 py-2.5 transition-colors bg-white">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="hidden sm:inline">Espace Administration</span>
+        </a>
+        <button id="logoutBtn" class="text-sm font-bold text-navy/60 hover:text-red-500 transition-colors">Déconnexion</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-4xl mx-auto px-5 sm:px-8 py-12 flex flex-col gap-6">
+
+    <div>
+      <h2 class="font-display font-semibold text-navy text-3xl">Coefficients par matière</h2>
+      <p class="text-ink/50 text-sm mt-2">Fixez le coefficient de chaque matière pour chaque cycle. Ces coefficients sont utilisés automatiquement dans l'espace élève pour calculer la moyenne générale.</p>
+    </div>
+
+    <!-- Onglets de cycle -->
+    <div class="flex flex-wrap gap-2">
+      <button data-cycle="primaire" class="tab-btn active text-xs font-extrabold rounded-full px-4 py-2.5 border border-line bg-white">Primaire</button>
+      <button data-cycle="college" class="tab-btn text-xs font-extrabold rounded-full px-4 py-2.5 border border-line bg-white">Collège</button>
+      <button data-cycle="lycee_sciences" class="tab-btn text-xs font-extrabold rounded-full px-4 py-2.5 border border-line bg-white">Lycée — Sciences</button>
+      <button data-cycle="lycee_lettres" class="tab-btn text-xs font-extrabold rounded-full px-4 py-2.5 border border-line bg-white">Lycée — Lettres et Sc. Humaines</button>
+    </div>
+
+    <section class="bg-white border border-line rounded-3xl shadow-sm overflow-hidden">
+      <div class="px-6 sm:px-8 py-6 border-b border-line">
+        <h3 id="cycleTitle" class="font-display font-semibold text-navy text-lg">Cycle Primaire</h3>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-[11px] font-extrabold uppercase tracking-wide text-ink/40 bg-mist/60">
+              <th class="px-6 sm:px-8 py-3.5 whitespace-nowrap">Matière</th>
+              <th class="px-6 sm:px-8 py-3.5 whitespace-nowrap text-center">Coefficient</th>
+            </tr>
+          </thead>
+          <tbody id="coeffBody" class="divide-y divide-line"></tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div id="toastWrap" class="fixed bottom-6 inset-x-0 flex justify-center pointer-events-none z-50"></div>
+
+<script type="module">
+  import { auth, db, signOut, collection, getDocs, query, where, setDoc, doc, requireAdmin } from './supabase-config.js';
+
+  const SUBJECTS = {
+    primaire: [
+      'Langue arabe', 'Langue française', 'Mathématiques', 'Éducation islamique',
+      'Éveil scientifique / Sciences', 'Histoire-Géographie et Éducation civique',
+      'Éducation artistique', 'Éducation physique', 'Langue amazighe'
+    ],
+    college: [
+      'Langue arabe', 'Langue française', 'Mathématiques', 'Physique-Chimie',
+      'Sciences de la Vie et de la Terre (SVT)', 'Histoire-Géographie', 'Éducation islamique',
+      'Éducation physique', 'Informatique', 'Éducation technologique', 'Arts plastiques / Éducation musicale'
+    ],
+    lycee_lettres: [
+      'Langue arabe', 'Histoire-Géographie', 'Philosophie', 'Langue française', 'Langue anglaise',
+      'Éducation islamique', 'Mathématiques', 'Sciences de la Vie et de la Terre (SVT)',
+      'Éducation physique', 'Informatique'
+    ],
+    lycee_sciences: [
+      'Mathématiques', 'Physique-Chimie', 'Sciences de la Vie et de la Terre (SVT)',
+      'Langue française', 'Langue arabe', 'Langue anglaise', 'Histoire-Géographie',
+      'Éducation islamique', 'Philosophie', 'Éducation physique', 'Informatique'
+    ]
+  };
+
+  const CYCLE_LABELS = {
+    primaire: 'Cycle Primaire',
+    college: 'Cycle Collégial',
+    lycee_sciences: 'Cycle Qualifiant — Tronc Commun / Bac Sciences',
+    lycee_lettres: 'Cycle Qualifiant — Tronc Commun / Bac Lettres et Sciences Humaines'
+  };
+
+  const coeffBody = document.getElementById('coeffBody');
+  const cycleTitle = document.getElementById('cycleTitle');
+  const tabBtns = document.querySelectorAll('.tab-btn');
+  let currentCycle = 'primaire';
+
+  function showToast(message) {
+    const toastWrap = document.getElementById('toastWrap');
+    const toast = document.createElement('div');
+    toast.className = 'toast pointer-events-auto bg-navy text-white text-sm font-bold rounded-full px-6 py-3 shadow-lg flex items-center gap-2';
+    toast.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#F0A93C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>${message}`;
+    toastWrap.appendChild(toast);
+    setTimeout(() => toast.remove(), 2000);
+  }
+
+  async function loadCoefficients(cycle) {
+    const q = query(collection(db, 'subject_coefficients'), where('cycle', '==', cycle));
+    const snap = await getDocs(q);
+    const map = {};
+    snap.docs.forEach((d) => {
+      const row = d.data();
+      map[row.matiere] = row.coefficient;
+    });
+    return map;
+  }
+
+  async function renderCycle(cycle) {
+    currentCycle = cycle;
+    cycleTitle.textContent = CYCLE_LABELS[cycle];
+    tabBtns.forEach((b) => b.classList.toggle('active', b.dataset.cycle === cycle));
+
+    coeffBody.innerHTML = `<tr><td colspan="2" class="text-center py-6 text-navy/50">Chargement...</td></tr>`;
+
+    let coeffMap = {};
+    try {
+      coeffMap = await loadCoefficients(cycle);
+    } catch (e) {
+      coeffBody.innerHTML = `<tr><td colspan="2" class="text-center py-6 text-rose-600 font-bold">Erreur de chargement.</td></tr>`;
+      return;
+    }
+
+    coeffBody.innerHTML = '';
+    SUBJECTS[cycle].forEach((subject) => {
+      const value = coeffMap[subject] ?? 1;
+      const tr = document.createElement('tr');
+      tr.className = 'row-enter hover:bg-mist/40 transition-colors';
+      tr.innerHTML = `
+        <td class="px-6 sm:px-8 py-3.5 font-bold text-navy text-sm">${subject}</td>
+        <td class="px-6 sm:px-8 py-3.5 text-center">
+          <input type="number" min="0.5" max="10" step="0.5" value="${value}" data-matiere="${subject}"
+            class="coeff-field w-24 rounded-xl border border-line bg-mist px-2 py-2 text-sm text-center text-purple font-extrabold outline-none">
+        </td>
+      `;
+      coeffBody.appendChild(tr);
+    });
+
+    coeffBody.querySelectorAll('.coeff-field').forEach((input) => {
+      input.addEventListener('change', async () => {
+        let val = parseFloat(input.value);
+        if (isNaN(val) || val <= 0) val = 1;
+        input.value = val;
+
+        const matiere = input.dataset.matiere;
+        const id = `${currentCycle}::${matiere}`;
+        try {
+          await setDoc(doc(db, 'subject_coefficients', id), { cycle: currentCycle, matiere, coefficient: val });
+          input.classList.add('saved');
+          setTimeout(() => input.classList.remove('saved'), 1000);
+          showToast('Coefficient enregistré');
+        } catch (e) {
+          alert("Erreur lors de l'enregistrement du coefficient.");
+        }
+      });
+    });
+  }
+
+  tabBtns.forEach((btn) => {
+    btn.addEventListener('click', () => renderCycle(btn.dataset.cycle));
+  });
+
+  requireAdmin(() => renderCycle(currentCycle));
+
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await signOut(auth);
+    location.href = 'connexion.html';
+  });
+</script>
+
+</body>
+</html>
