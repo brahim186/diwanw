@@ -106,6 +106,17 @@ export async function createTeacherAuthAccount(email, password) {
 // pour rester clair dans les pages qui l'utilisent.
 export const createStudentAuthAccount = createTeacherAuthAccount;
 
+// Traduit un matricule élève en email de connexion, via la fonction SQL
+// "get_student_login_email" (security definer, voir schema.sql). Nécessaire car l'email
+// d'un élève est généré à partir de son prénom/nom (generateStudentEmail) et n'est donc
+// pas déductible directement du matricule côté client. Retourne null si le matricule ne
+// correspond à aucun compte élève créé.
+export async function matriculeToEmail(matricule) {
+  const { data, error } = await supabase.rpc('get_student_login_email', { p_matricule: matricule });
+  if (error) throw error;
+  return data || null;
+}
+
 // --- Identifiants de connexion des élèves (table "student_credentials") --------------
 // Écriture réservée aux comptes connectés (admin) via les policies RLS.
 export async function saveStudentCredentials(uid, studentId, email, password) {
@@ -252,6 +263,57 @@ export function requireAdmin(onAuthenticated) {
     lastHandledUid = null;
     if (dashboard) dashboard.classList.add('hidden');
     if (gate) gate.classList.remove('hidden');
+  }
+
+  supabase.auth.getSession().then(({ data }) => {
+    const user = data.session?.user;
+    evaluate(user ? { uid: user.id, email: user.email } : null);
+  });
+  supabase.auth.onAuthStateChange((_event, session) => {
+    const user = session?.user;
+    evaluate(user ? { uid: user.id, email: user.email } : null);
+  });
+}
+
+// requireStudent : pour les pages sans gate visuelle (mes-notes) ; redirige directement
+// vers connexion-eleve.html si l'accès n'est pas valide. Le profil passé à
+// onAuthenticated(user, student) fusionne la ligne "student_credentials" (uid -> studentId)
+// et la ligne "students" correspondante (fiche complète), avec un champ "matricule" ajouté.
+export function requireStudent(onAuthenticated) {
+  let handled = false;
+  let lastHandledUid = null;
+
+  async function evaluate(user) {
+    if (!user) {
+      lastHandledUid = null;
+      if (!handled) { handled = true; window.location.href = 'connexion-eleve.html'; }
+      return;
+    }
+    const { data: credRow } = await supabase
+      .from('student_credentials')
+      .select('*')
+      .eq('id', user.uid)
+      .maybeSingle();
+
+    if (!credRow) {
+      lastHandledUid = null;
+      if (!handled) {
+        handled = true;
+        await supabase.auth.signOut();
+        window.location.href = 'connexion-eleve.html';
+      }
+      return;
+    }
+
+    if (lastHandledUid !== user.uid) {
+      lastHandledUid = user.uid;
+      const { data: studentRow } = await supabase
+        .from('students')
+        .select('*')
+        .eq('id', credRow.studentId)
+        .maybeSingle();
+      onAuthenticated(user, { ...(studentRow || {}), matricule: credRow.studentId });
+    }
   }
 
   supabase.auth.getSession().then(({ data }) => {
