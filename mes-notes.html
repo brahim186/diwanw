@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mes Notes | Diwan Al Maaref</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="logo.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Fraunces:wght@500;600&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          navy:  { DEFAULT:'#1B1464', 700:'#170F52', 900:'#100B3B' },
+          purple:{ DEFAULT:'#5B3AA6' },
+          gold:  { DEFAULT:'#F0A93C', light:'#FBC873', dark:'#D98F1F' },
+          ink:   '#221D3D',
+          mist:  '#F6F4FC',
+          line:  '#E7E2F3',
+        },
+        fontFamily: { sans: ['Inter','sans-serif'], display: ['Fraunces','serif'] }
+      }
+    }
+  }
+</script>
+
+<style>
+  body { font-family:'Inter', sans-serif; color:#221D3D; background:#F6F4FC; }
+  .font-display { font-family:'Fraunces', serif; }
+  .num { font-family:'Manrope', sans-serif; }
+  ::selection { background:#F0A93C; color:#1B1464; }
+
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+    outline: 2px solid #F0A93C; outline-offset: 2px; border-radius: 6px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration:.01ms !important; transition-duration:.01ms !important; }
+  }
+
+  .note-field { transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease; }
+  .note-field:focus { border-color:#5B3AA6; box-shadow:0 0 0 4px rgba(91,58,166,.12); }
+
+  .row-enter { animation: rowEnter .3s cubic-bezier(.2,.8,.25,1) both; }
+  @keyframes rowEnter { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+
+  .total-pop { animation: totalPop .35s cubic-bezier(.2,.8,.25,1); }
+  @keyframes totalPop { 0%{transform:scale(.85);opacity:.4} 100%{transform:scale(1);opacity:1} }
+
+  .badge-ok   { background:#ECFDF5; color:#059669; }
+  .badge-mid  { background:#FFFBEB; color:#B7791F; }
+  .badge-low  { background:#FEF2F2; color:#DC2626; }
+
+  .coeff-pill { background:#EFEAFB; color:#5B3AA6; }
+</style>
+</head>
+
+<body class="antialiased min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-line">
+  <div class="max-w-6xl mx-auto px-5 sm:px-8 h-20 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <img src="logo.png" alt="Logo Diwan Al Maaref" class="h-11 w-11 object-contain">
+      <div class="hidden sm:flex flex-col leading-tight">
+        <span class="font-display font-semibold text-navy text-base">Mes Notes</span>
+        <span class="text-[11px] text-gold-dark font-bold">Diwan Al Maaref — Espace Élève</span>
+      </div>
+    </div>
+    <button id="logoutBtn" type="button" class="inline-flex items-center gap-2 text-xs font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 rounded-full px-4 py-2.5 transition-colors bg-rose-50">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="hidden sm:inline">Déconnexion</span>
+    </button>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-5 sm:px-8 py-10 sm:py-12 flex flex-col gap-6">
+
+  <div>
+    <h2 id="welcomeTitle" class="font-display font-semibold text-navy text-2xl sm:text-3xl">Bonjour</h2>
+    <p class="text-ink/50 text-sm mt-2">Saisissez vos notes pour chaque matière. Le total d'une matière s'affiche automatiquement dès que 2 notes au moins sont renseignées. Les coefficients sont fixés par l'administration.</p>
+  </div>
+
+  <!-- Infos élève -->
+  <section class="grid sm:grid-cols-3 gap-4">
+    <div class="bg-white border border-line rounded-2xl p-5">
+      <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Matricule</p>
+      <p id="infoMatricule" class="font-bold text-navy text-sm num">—</p>
+    </div>
+    <div class="bg-white border border-line rounded-2xl p-5">
+      <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Niveau scolaire</p>
+      <p id="infoNiveau" class="font-bold text-navy text-sm">—</p>
+    </div>
+    <div class="bg-white border border-line rounded-2xl p-5">
+      <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Groupe</p>
+      <p id="infoGroupe" class="font-bold text-navy text-sm">—</p>
+    </div>
+  </section>
+
+  <!-- Tableau des notes -->
+  <section id="tableSection" class="hidden bg-white border border-line rounded-3xl shadow-sm overflow-hidden">
+    <div class="px-6 sm:px-8 py-6 flex items-center justify-between border-b border-line flex-wrap gap-3">
+      <h3 class="font-display font-semibold text-navy text-lg">Mes matières</h3>
+      <span id="countBadge" class="text-xs font-extrabold text-navy/60 bg-mist rounded-full px-3 py-1.5">0 matière</span>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-[11px] font-extrabold uppercase tracking-wide text-ink/40 bg-mist/60">
+            <th class="px-6 sm:px-8 py-3.5 whitespace-nowrap">Matière</th>
+            <th class="px-3 py-3.5 whitespace-nowrap text-center">Note 1</th>
+            <th class="px-3 py-3.5 whitespace-nowrap text-center">Note 2</th>
+            <th class="px-3 py-3.5 whitespace-nowrap text-center">Note 3</th>
+            <th class="px-3 py-3.5 whitespace-nowrap text-center">Coeff.</th>
+            <th class="px-3 py-3.5 whitespace-nowrap text-center">Total</th>
+            <th class="px-3 sm:px-8 py-3.5 whitespace-nowrap text-center">Moyenne</th>
+          </tr>
+        </thead>
+        <tbody id="subjectsBody" class="divide-y divide-line"></tbody>
+      </table>
+    </div>
+
+    <!-- Récapitulatif général -->
+    <div class="px-6 sm:px-8 py-6 border-t border-line bg-mist/40 grid sm:grid-cols-3 gap-4">
+      <div class="bg-white border border-line rounded-2xl px-5 py-4">
+        <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1">Matières comptabilisées</p>
+        <p id="countedSubjects" class="num font-extrabold text-navy text-xl">0</p>
+      </div>
+      <div class="bg-white border border-line rounded-2xl px-5 py-4">
+        <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1">Total général</p>
+        <p id="grandTotal" class="num font-extrabold text-navy text-xl">—</p>
+      </div>
+      <div class="bg-white border border-line rounded-2xl px-5 py-4">
+        <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1">Moyenne générale (sur coeff.)</p>
+        <p id="overallAverage" class="num font-extrabold text-navy text-xl">—</p>
+      </div>
+    </div>
+  </section>
+
+  <div id="emptyState" class="hidden bg-white border border-dashed border-line rounded-3xl p-14 text-center">
+    <p class="text-ink/40 text-sm">Aucune matière n'a été trouvée pour votre niveau. Contactez l'administration si cela ne semble pas correct.</p>
+  </div>
+
+</main>
+
+<script type="module">
+  import {
+    auth, db, signOut, collection, getDocs, query, where, requireStudent
+  } from './supabase-config.js';
+
+  // ---------------------------------------------------------------------------------
+  // Listes des matières par cycle (le cycle est déduit du champ "niveau" de l'élève)
+  // ---------------------------------------------------------------------------------
+  const SUBJECTS = {
+    primaire: [
+      'Langue arabe', 'Langue française', 'Mathématiques', 'Éducation islamique',
+      'Éveil scientifique / Sciences', 'Histoire-Géographie et Éducation civique',
+      'Éducation artistique', 'Éducation physique', 'Langue amazighe'
+    ],
+    college: [
+      'Langue arabe', 'Langue française', 'Mathématiques', 'Physique-Chimie',
+      'Sciences de la Vie et de la Terre (SVT)', 'Histoire-Géographie', 'Éducation islamique',
+      'Éducation physique', 'Informatique', 'Éducation technologique', 'Arts plastiques / Éducation musicale'
+    ],
+    lycee_lettres: [
+      'Langue arabe', 'Histoire-Géographie', 'Philosophie', 'Langue française', 'Langue anglaise',
+      'Éducation islamique', 'Mathématiques', 'Sciences de la Vie et de la Terre (SVT)',
+      'Éducation physique', 'Informatique'
+    ],
+    lycee_sciences: [
+      'Mathématiques', 'Physique-Chimie', 'Sciences de la Vie et de la Terre (SVT)',
+      'Langue française', 'Langue arabe', 'Langue anglaise', 'Histoire-Géographie',
+      'Éducation islamique', 'Philosophie', 'Éducation physique', 'Informatique'
+    ]
+  };
+
+  // Déduit le cycle (et pour le lycée, la filière) à partir du texte libre "niveau"
+  // enregistré sur la fiche de l'élève (ex: "3ème année primaire", "Tronc Commun Sciences"...).
+  function detectCycle(niveau) {
+    const n = (niveau || '').toLowerCase();
+    if (n.includes('primaire')) return 'primaire';
+    if (n.includes('collég') || n.includes('college') || n.includes('collège')) return 'college';
+    if (n.includes('lettres') || n.includes('humaines')) return 'lycee_lettres';
+    return 'lycee_sciences';
+  }
+
+  function averageBadgeClass(avg) {
+    if (avg === null) return '';
+    if (avg >= 10) return 'badge-ok';
+    if (avg >= 8)  return 'badge-mid';
+    return 'badge-low';
+  }
+
+  async function loadCoefficients(cycle) {
+    const q = query(collection(db, 'subject_coefficients'), where('cycle', '==', cycle));
+    const snap = await getDocs(q);
+    const map = {};
+    snap.docs.forEach((d) => {
+      const row = d.data();
+      map[row.matiere] = row.coefficient;
+    });
+    return map;
+  }
+
+  function buildTable(subjects, coeffMap) {
+    const tableSection = document.getElementById('tableSection');
+    const emptyState = document.getElementById('emptyState');
+    const subjectsBody = document.getElementById('subjectsBody');
+    const countBadge = document.getElementById('countBadge');
+
+    if (subjects.length === 0) {
+      tableSection.classList.add('hidden');
+      emptyState.classList.remove('hidden');
+      return;
+    }
+
+    tableSection.classList.remove('hidden');
+    emptyState.classList.add('hidden');
+    subjectsBody.innerHTML = '';
+    countBadge.textContent = subjects.length + (subjects.length > 1 ? ' matières' : ' matière');
+
+    subjects.forEach((subject, idx) => {
+      const coeff = coeffMap[subject] ?? 1;
+      const tr = document.createElement('tr');
+      tr.className = 'row-enter hover:bg-mist/40 transition-colors';
+      tr.dataset.index = idx;
+      tr.dataset.coeff = coeff;
+      tr.innerHTML = `
+        <td class="px-6 sm:px-8 py-3.5 font-bold text-navy text-sm">${subject}</td>
+        <td class="px-2 py-3.5 text-center">
+          <input type="number" min="0" max="20" step="0.25" data-role="note" data-slot="1"
+            class="note-field w-20 rounded-xl border border-line bg-mist px-2 py-2 text-sm text-center text-navy outline-none" placeholder="—">
+        </td>
+        <td class="px-2 py-3.5 text-center">
+          <input type="number" min="0" max="20" step="0.25" data-role="note" data-slot="2"
+            class="note-field w-20 rounded-xl border border-line bg-mist px-2 py-2 text-sm text-center text-navy outline-none" placeholder="—">
+        </td>
+        <td class="px-2 py-3.5 text-center">
+          <input type="number" min="0" max="20" step="0.25" data-role="note" data-slot="3"
+            class="note-field w-20 rounded-xl border border-line bg-mist px-2 py-2 text-sm text-center text-navy outline-none" placeholder="—">
+        </td>
+        <td class="px-2 py-3.5 text-center">
+          <span class="coeff-pill inline-block num font-extrabold text-xs rounded-full px-3 py-1.5" title="Coefficient fixé par l'administration">${coeff}</span>
+        </td>
+        <td class="px-2 py-3.5 text-center">
+          <span data-role="total" class="num font-extrabold text-navy text-sm">—</span>
+        </td>
+        <td class="px-2 sm:px-8 py-3.5 text-center">
+          <span data-role="moyenne" class="inline-block min-w-[3rem] text-[11px] font-extrabold rounded-full px-3 py-1.5 num text-ink/40">—</span>
+        </td>
+      `;
+      subjectsBody.appendChild(tr);
+    });
+
+    subjectsBody.querySelectorAll('input[data-role="note"]').forEach((input) => {
+      input.addEventListener('input', () => {
+        if (input.value !== '') {
+          let v = parseFloat(input.value);
+          if (!isNaN(v)) input.value = Math.max(0, Math.min(20, v));
+        }
+        recalcAll();
+      });
+    });
+
+    recalcAll();
+  }
+
+  // Total d'une matière : n'apparaît que si 2 notes ou plus sont renseignées.
+  function recalcRow(tr) {
+    const noteInputs = [...tr.querySelectorAll('input[data-role="note"]')];
+    const filled = noteInputs
+      .map((i) => i.value.trim() === '' ? null : parseFloat(i.value))
+      .filter((v) => v !== null && !isNaN(v));
+
+    const totalEl   = tr.querySelector('[data-role="total"]');
+    const moyenneEl = tr.querySelector('[data-role="moyenne"]');
+
+    if (filled.length >= 2) {
+      const total   = filled.reduce((a, b) => a + b, 0);
+      const moyenne = total / filled.length;
+      totalEl.textContent = total.toFixed(2);
+      totalEl.classList.add('total-pop');
+      setTimeout(() => totalEl.classList.remove('total-pop'), 350);
+      moyenneEl.textContent = moyenne.toFixed(2);
+      moyenneEl.className = 'inline-block min-w-[3rem] text-[11px] font-extrabold rounded-full px-3 py-1.5 num ' + averageBadgeClass(moyenne);
+      tr.dataset.total = total;
+      tr.dataset.moyenne = moyenne;
+      tr.dataset.valid = '1';
+    } else {
+      totalEl.textContent = '—';
+      moyenneEl.textContent = '—';
+      moyenneEl.className = 'inline-block min-w-[3rem] text-[11px] font-extrabold rounded-full px-3 py-1.5 num text-ink/40';
+      delete tr.dataset.total;
+      delete tr.dataset.moyenne;
+      delete tr.dataset.valid;
+    }
+  }
+
+  function recalcAll() {
+    let grandTotal = 0;
+    let weightedSum = 0;
+    let coeffSum = 0;
+    let countedSubjects = 0;
+
+    document.querySelectorAll('#subjectsBody tr').forEach((tr) => {
+      recalcRow(tr);
+      if (tr.dataset.valid === '1') {
+        const coeff = parseFloat(tr.dataset.coeff) || 0;
+        const moyenne = parseFloat(tr.dataset.moyenne);
+        grandTotal += parseFloat(tr.dataset.total);
+        weightedSum += moyenne * coeff;
+        coeffSum += coeff;
+        countedSubjects += 1;
+      }
+    });
+
+    document.getElementById('countedSubjects').textContent = countedSubjects;
+    document.getElementById('grandTotal').textContent = countedSubjects > 0 ? grandTotal.toFixed(2) : '—';
+    document.getElementById('overallAverage').textContent =
+      (countedSubjects > 0 && coeffSum > 0) ? (weightedSum / coeffSum).toFixed(2) + ' / 20' : '—';
+  }
+
+  requireStudent(async (user, student) => {
+    document.getElementById('welcomeTitle').textContent = `Bonjour ${student.prenom || ''} ${student.nom || ''}`.trim();
+    document.getElementById('infoMatricule').textContent = student.matricule || '—';
+    document.getElementById('infoNiveau').textContent = student.niveau || '—';
+    document.getElementById('infoGroupe').textContent = student.groupe || '—';
+
+    const cycle = detectCycle(student.niveau);
+    const subjects = SUBJECTS[cycle] || [];
+
+    let coeffMap = {};
+    try {
+      coeffMap = await loadCoefficients(cycle);
+    } catch (e) {
+      coeffMap = {};
+    }
+
+    buildTable(subjects, coeffMap);
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await signOut(auth);
+    window.location.href = 'connexion-eleve.html';
+  });
+</script>
+
+</body>
+</html>

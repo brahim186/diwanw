@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Connexion Élève | Diwan Al Maaref</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="logo.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Fraunces:wght@500;600&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          navy:  { DEFAULT:'#1B1464', 700:'#170F52', 900:'#100B3B' },
+          purple:{ DEFAULT:'#5B3AA6' },
+          gold:  { DEFAULT:'#F0A93C', light:'#FBC873', dark:'#D98F1F' },
+          ink:   '#221D3D', mist:'#F6F4FC', line:'#E7E2F3',
+        },
+        fontFamily: { sans: ['Inter','sans-serif'], display: ['Fraunces','serif'] }
+      }
+    }
+  }
+</script>
+
+<style>
+  body { font-family:'Inter', sans-serif; color:#221D3D; background:#F6F4FC; }
+  .font-display { font-family:'Fraunces', serif; }
+  a:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid #F0A93C; outline-offset: 2px; border-radius: 6px; }
+  .field { transition: border-color .2s ease, box-shadow .2s ease; }
+  .field:focus { border-color: #5B3AA6; box-shadow: 0 0 0 4px rgba(91,58,166,.12); }
+  .btn-login { transition: transform .2s cubic-bezier(.2,.8,.25,1), box-shadow .2s ease, background-color .2s ease; }
+  .btn-login:hover { transform: translateY(-2px); box-shadow: 0 14px 28px -12px rgba(27,20,100,.45); background-color:#170F52; }
+  .btn-login:active { transform: translateY(0); }
+  .shake { animation: shake .4s ease; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-6px)} 40%,80%{transform:translateX(6px)} }
+  .card-enter { animation: cardEnter .5s cubic-bezier(.2,.8,.25,1) both; }
+  @keyframes cardEnter { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
+</style>
+</head>
+
+<body class="antialiased min-h-screen grid place-items-center px-5 py-10">
+
+  <form id="loginForm" novalidate class="card-enter w-full max-w-sm bg-white border border-line rounded-3xl shadow-sm p-8 sm:p-10 flex flex-col items-center text-center">
+
+    <img src="logo.png" alt="Logo Diwan Al Maaref" class="h-20 w-20 object-contain mb-5">
+    <h1 class="font-display font-semibold text-navy text-2xl">Espace Élève</h1>
+    <p class="text-ink/50 text-sm mt-2 leading-relaxed">Connectez-vous avec votre matricule et votre mot de passe</p>
+
+    <div class="w-full mt-7 text-left">
+      <label for="matricule" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Matricule</label>
+      <input id="matricule" name="matricule" type="text" autocomplete="username" placeholder="Ex : DA-2026-0001"
+        class="field w-full rounded-2xl border border-line bg-mist px-4 py-3.5 text-sm text-navy placeholder:text-ink/30 outline-none transition-colors">
+    </div>
+
+    <div class="w-full mt-4 text-left">
+      <label for="password" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Mot de passe</label>
+      <div class="relative">
+        <input id="password" name="password" type="password" autocomplete="current-password" placeholder="••••••••"
+          class="field w-full rounded-2xl border border-line bg-mist px-4 py-3.5 pr-11 text-sm text-navy placeholder:text-ink/30 outline-none transition-colors">
+        <button type="button" id="togglePwd" aria-label="Afficher le mot de passe" class="absolute inset-y-0 right-0 px-3.5 grid place-items-center text-ink/40 hover:text-navy transition-colors">
+          <svg id="eyeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <p id="errorMsg" class="hidden w-full text-left text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3 mt-4">
+      Matricule ou mot de passe incorrect.
+    </p>
+
+    <button type="submit" class="btn-login w-full mt-7 bg-navy text-white font-extrabold text-sm rounded-full py-3.5 inline-flex items-center justify-center gap-2">
+      Connexion
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+
+    <a href="index.html" class="mt-6 text-xs font-bold text-ink/40 hover:text-navy transition-colors">← Retour au site</a>
+  </form>
+
+<script type="module">
+  import { auth, db, doc, getDoc, matriculeToEmail, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+    from './supabase-config.js';
+
+  const form      = document.getElementById('loginForm');
+  const errorMsg  = document.getElementById('errorMsg');
+  const togglePwd = document.getElementById('togglePwd');
+  const pwdInput  = document.getElementById('password');
+  const eyeIcon   = document.getElementById('eyeIcon');
+  const submitBtn = form.querySelector('button[type="submit"]');
+
+  togglePwd.addEventListener('click', () => {
+    const isText = pwdInput.type === 'text';
+    pwdInput.type = isText ? 'password' : 'text';
+    eyeIcon.innerHTML = isText
+      ? '<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/>'
+      : '<path d="M3 3l18 18M10.6 10.6a3 3 0 004.24 4.24M9.5 5.14A11 11 0 0112 5c7 0 11 7 11 7a13.4 13.4 0 01-3.1 3.9M6.5 6.6C3.9 8.3 2 11 2 11s4 7 10 7c1.2 0 2.3-.2 3.4-.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>';
+  });
+
+  // Si déjà connecté ET compte élève valide → direct vers mes-notes.html
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) return;
+    const accountDoc = await getDoc(doc(db, 'student_accounts', user.uid));
+    if (accountDoc.exists()) window.location.replace('mes-notes.html');
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const matricule = document.getElementById('matricule').value.trim();
+    const password = pwdInput.value;
+
+    if (!matricule || !password) {
+      errorMsg.textContent = "Veuillez remplir tous les champs.";
+      errorMsg.classList.remove('hidden');
+      return;
+    }
+
+    errorMsg.classList.add('hidden');
+    submitBtn.disabled = true;
+    const originalBtnHtml = submitBtn.innerHTML;
+    submitBtn.innerHTML = 'Connexion en cours...';
+
+    try {
+      const email = matriculeToEmail(matricule);
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      const accountDoc = await getDoc(doc(db, 'student_accounts', cred.user.uid));
+
+      if (accountDoc.exists()) {
+        window.location.href = 'mes-notes.html';
+      } else {
+        await signOut(auth);
+        throw new Error('NOT_STUDENT');
+      }
+    } catch (err) {
+      errorMsg.textContent = "Matricule ou mot de passe incorrect.";
+      errorMsg.classList.remove('hidden');
+      form.classList.remove('shake');
+      void form.offsetWidth;
+      form.classList.add('shake');
+      pwdInput.value = '';
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnHtml;
+    }
+  });
+</script>
+</body>
+</html>
