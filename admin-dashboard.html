@@ -497,11 +497,32 @@ async function ensureStudentAccount(record) {
     return { email: existing.email, password: existing.password, isNew: false };
   }
 
-  const existingEmails = await listStudentCredentialEmails();
-  const email = generateStudentEmail(record.prenom, record.nom, existingEmails);
-  const password = generatePassword();
+  // On génère l'email et on tente de créer le compte Auth. Si l'email est déjà pris côté
+  // Auth (ex: reliquat d'une tentative précédente qui avait échoué avant l'enregistrement
+  // en base — l'utilisateur Auth existe mais pas la ligne student_credentials associée),
+  // on réessaie avec un email suivant (suffixe +1, +2...) plutôt que d'échouer.
+  const excludedEmails = await listStudentCredentialEmails();
+  let email, password, uid;
+  let lastError = null;
 
-  const uid = await createStudentAuthAccount(email, password);
+  for (let attempt = 0; attempt < 5; attempt++) {
+    email = generateStudentEmail(record.prenom, record.nom, excludedEmails);
+    password = generatePassword();
+    try {
+      uid = await createStudentAuthAccount(email, password);
+      lastError = null;
+      break;
+    } catch (err) {
+      lastError = err;
+      const msg = (err.message || '').toLowerCase();
+      const isEmailTaken = msg.includes('already registered') || msg.includes('already exists') || msg.includes('user_already_exists');
+      if (!isEmailTaken) throw err;
+      excludedEmails.push(email); // on exclut cet email et on réessaie avec le suivant
+    }
+  }
+
+  if (lastError) throw lastError;
+
   await saveStudentCredentials(uid, record.id, email, password);
 
   return { email, password, isNew: true };
