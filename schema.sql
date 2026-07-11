@@ -100,39 +100,48 @@ alter table public.counters enable row level security;
 -- students -----------------------------------------------------------------
 -- Lecture publique nécessaire pour : la page "Suivre ma demande" (consultation.html,
 -- recherche par nom avant même d'être admis) et le formulaire d'inscription public.
+drop policy if exists "students_select_all" on public.students;
 create policy "students_select_all" on public.students
   for select using (true);
 
 -- N'importe qui (visiteur non connecté) peut déposer une demande d'inscription,
 -- mais uniquement avec le statut initial "En attente".
+drop policy if exists "students_insert_public" on public.students;
 create policy "students_insert_public" on public.students
   for insert with check (statut is null or statut = 'En attente');
 
 -- Seuls les comptes connectés (admin ou enseignant) peuvent modifier un dossier
 -- (changement de statut, affectation de groupe...).
+drop policy if exists "students_update_authenticated" on public.students;
 create policy "students_update_authenticated" on public.students
   for update using (auth.role() = 'authenticated');
 
+drop policy if exists "students_delete_authenticated" on public.students;
 create policy "students_delete_authenticated" on public.students
   for delete using (auth.role() = 'authenticated');
 
 -- notes ----------------------------------------------------------------------
+drop policy if exists "notes_all_authenticated" on public.notes;
 create policy "notes_all_authenticated" on public.notes
   for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
 -- teachers ---------------------------------------------------------------------
 -- Un enseignant doit pouvoir lire SON PROPRE profil (pour se connecter), et
 -- l'admin doit pouvoir lister/ajouter/supprimer tous les enseignants.
+drop policy if exists "teachers_select_authenticated" on public.teachers;
 create policy "teachers_select_authenticated" on public.teachers
   for select using (auth.role() = 'authenticated');
 
+drop policy if exists "teachers_insert_authenticated" on public.teachers;
 create policy "teachers_insert_authenticated" on public.teachers
   for insert with check (auth.role() = 'authenticated');
 
+drop policy if exists "teachers_delete_authenticated" on public.teachers;
 create policy "teachers_delete_authenticated" on public.teachers
   for delete using (auth.role() = 'authenticated');
 
 -- admins -------------------------------------------------------------------
+drop policy if exists "admins_select_authenticated" on public.admins;
 create policy "admins_select_authenticated" on public.admins
   for select using (auth.role() = 'authenticated');
 
@@ -146,20 +155,77 @@ insert into storage.buckets (id, name, public)
 values ('documents', 'documents', true)
 on conflict (id) do nothing;
 
+drop policy if exists "documents_public_read" on storage.objects;
 create policy "documents_public_read" on storage.objects
   for select using (bucket_id = 'documents');
 
+drop policy if exists "documents_public_upload" on storage.objects;
 create policy "documents_public_upload" on storage.objects
   for insert with check (bucket_id = 'documents');
 
+drop policy if exists "documents_authenticated_manage" on storage.objects;
 create policy "documents_authenticated_manage" on storage.objects
   for update using (bucket_id = 'documents' and auth.role() = 'authenticated');
 
+drop policy if exists "documents_authenticated_delete" on storage.objects;
 create policy "documents_authenticated_delete" on storage.objects
   for delete using (bucket_id = 'documents' and auth.role() = 'authenticated');
 
 -- ------------------------------------------------------------------------------------
--- 5) Étapes manuelles restantes (à faire dans le Dashboard Supabase, pas en SQL) :
+-- 5) MIGRATION — Comptes de connexion des élèves admis (à exécuter une seule fois si
+--    votre base existe déjà : les sections 1 à 4 ci-dessus sont déjà en place chez vous,
+--    seul ce bloc est nouveau et peut être exécuté seul dans le SQL Editor).
+-- ------------------------------------------------------------------------------------
+create table if not exists public.student_credentials (
+  id           uuid primary key references auth.users(id) on delete cascade,
+  "studentId"  text unique references public.students(id) on delete cascade,
+  email        text,
+  password     text,
+  "createdAt"  timestamptz default now()
+);
+
+alter table public.student_credentials enable row level security;
+
+-- Écriture/lecture directe réservées aux comptes connectés (admin) : c'est l'admin qui
+-- crée le compte à l'acceptation, et qui peut ré-afficher les identifiants plus tard
+-- (ex: depuis "Élèves Admis"). Les élèves eux-mêmes ne passent PAS par cette policy :
+-- ils obtiennent leurs identifiants via la fonction get_student_credentials ci-dessous.
+drop policy if exists "student_credentials_insert_authenticated" on public.student_credentials;
+create policy "student_credentials_insert_authenticated" on public.student_credentials
+  for insert with check (auth.role() = 'authenticated');
+
+drop policy if exists "student_credentials_select_authenticated" on public.student_credentials;
+create policy "student_credentials_select_authenticated" on public.student_credentials
+  for select using (auth.role() = 'authenticated');
+
+drop policy if exists "student_credentials_update_authenticated" on public.student_credentials;
+create policy "student_credentials_update_authenticated" on public.student_credentials
+  for update using (auth.role() = 'authenticated');
+
+-- Fonction utilisée par la page publique "Suivi de ma Demande" (visiteur non connecté,
+-- sans session) pour révéler l'email/mot de passe d'un élève. Volontairement PAS une
+-- policy select publique sur la table (ce qui exposerait tous les mots de passe via un
+-- simple .select('*')) : cette fonction ne renvoie les identifiants QUE si le prénom, le
+-- nom ET le matricule fournis correspondent exactement à un dossier au statut "Accepté".
+create or replace function public.get_student_credentials(p_matricule text, p_prenom text, p_nom text)
+returns table(email text, password text)
+language sql
+security definer
+set search_path = public
+as $$
+  select sc.email, sc.password
+  from public.student_credentials sc
+  join public.students s on s.id = sc."studentId"
+  where s.id = p_matricule
+    and s.statut = 'Accepté'
+    and lower(s.prenom) = lower(p_prenom)
+    and lower(s.nom) = lower(p_nom);
+$$;
+
+grant execute on function public.get_student_credentials(text, text, text) to anon, authenticated;
+
+-- ------------------------------------------------------------------------------------
+-- 6) Étapes manuelles restantes (à faire dans le Dashboard Supabase, pas en SQL) :
 --
 --  a) Authentication > Providers > Email : désactiver "Confirm email"
 --     (sinon les comptes enseignants créés depuis l'admin restent bloqués).
