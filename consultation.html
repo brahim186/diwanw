@@ -168,6 +168,26 @@
             <p id="resultLevel" class="text-sm font-bold text-purple">—</p>
           </div>
         </div>
+
+        <!-- Bloc identifiants de connexion, visible uniquement si le dossier est accepté -->
+        <div id="loginCredsWrap" class="hidden w-full mt-6 text-left">
+          <button id="showLoginCredsBtn" type="button" class="w-full inline-flex items-center justify-center gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-extrabold text-xs px-5 py-3 rounded-2xl transition-colors border border-emerald-200">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="4" y="10" width="16" height="10" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M8 10V7a4 4 0 118 0v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <span id="showLoginCredsBtnText">Afficher mes identifiants de connexion</span>
+          </button>
+          <div id="loginCredsBox" class="hidden mt-3 space-y-3">
+            <div class="bg-mist rounded-2xl px-4 py-3">
+              <p class="text-[10px] font-extrabold uppercase tracking-wide text-ink/40 mb-1">Email de connexion</p>
+              <p id="loginCredsEmail" class="font-mono font-bold text-navy text-sm break-all">—</p>
+            </div>
+            <div class="bg-mist rounded-2xl px-4 py-3">
+              <p class="text-[10px] font-extrabold uppercase tracking-wide text-ink/40 mb-1">Mot de passe</p>
+              <p id="loginCredsPassword" class="font-mono font-bold text-navy text-sm break-all">—</p>
+            </div>
+            <p class="text-[11px] text-ink/40 leading-relaxed">Conservez ces informations : elles vous serviront à vous connecter à votre espace élève.</p>
+          </div>
+          <p id="loginCredsError" class="hidden text-xs font-semibold text-red-500 mt-2"></p>
+        </div>
       </div>
     </div>
 
@@ -183,7 +203,7 @@
 </div>
 
 <script type="module">
-import { supabase } from './supabase-config.js';
+import { supabase, fetchStudentCredentialsPublic } from './supabase-config.js';
 
 const searchCard = document.getElementById('searchCard');
 const notFoundCard = document.getElementById('notFoundCard');
@@ -317,6 +337,26 @@ function renderResult(r) {
   document.getElementById('resultGender').textContent = r.genre || '—';
   document.getElementById('resultLevel').textContent = r.niveau || '—';
 
+  // Bloc "identifiants de connexion" : uniquement visible si le dossier est accepté.
+  const loginCredsWrap = document.getElementById('loginCredsWrap');
+  const loginCredsBox = document.getElementById('loginCredsBox');
+  const loginCredsError = document.getElementById('loginCredsError');
+  const showLoginCredsBtn = document.getElementById('showLoginCredsBtn');
+  const showLoginCredsBtnText = document.getElementById('showLoginCredsBtnText');
+
+  loginCredsBox.classList.add('hidden');
+  loginCredsError.classList.add('hidden');
+  showLoginCredsBtn.classList.remove('hidden');
+  showLoginCredsBtnText.textContent = 'Afficher mes identifiants de connexion';
+
+  if (statut === 'Accepté') {
+    loginCredsWrap.classList.remove('hidden');
+    showLoginCredsBtn.onclick = () => revealLoginCredentials(r);
+  } else {
+    loginCredsWrap.classList.add('hidden');
+    showLoginCredsBtn.onclick = null;
+  }
+
   const photoImg = document.getElementById('resultPhoto');
   if (r.photoURL) {
     photoImg.src = r.photoURL;
@@ -334,6 +374,36 @@ function renderResult(r) {
   }
 
   showOnly(resultCard);
+}
+
+async function revealLoginCredentials(r) {
+  const showBtn = document.getElementById('showLoginCredsBtn');
+  const showBtnText = document.getElementById('showLoginCredsBtnText');
+  const box = document.getElementById('loginCredsBox');
+  const errorEl = document.getElementById('loginCredsError');
+
+  errorEl.classList.add('hidden');
+  showBtn.disabled = true;
+  showBtnText.textContent = 'Chargement...';
+
+  try {
+    const creds = await fetchStudentCredentialsPublic(r.id, r.prenom, r.nom);
+    if (!creds) {
+      errorEl.textContent = "Identifiants indisponibles pour le moment. Contactez l'administration.";
+      errorEl.classList.remove('hidden');
+      return;
+    }
+    document.getElementById('loginCredsEmail').textContent = creds.email;
+    document.getElementById('loginCredsPassword').textContent = creds.password;
+    box.classList.remove('hidden');
+    showBtn.classList.add('hidden');
+  } catch (err) {
+    errorEl.textContent = "Une erreur est survenue lors de la récupération des identifiants.";
+    errorEl.classList.remove('hidden');
+  } finally {
+    showBtn.disabled = false;
+    showBtnText.textContent = 'Afficher mes identifiants de connexion';
+  }
 }
 
 function buildAndDownloadPdf(r) {
