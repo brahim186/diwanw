@@ -234,6 +234,23 @@ export async function generateMatricule() {
 }
 
 // --- Gardes d'accès pour les pages -----------------------------------------------------
+// Petit utilitaire utilisé par requireAdmin / requireTeacher / requireStudent : va chercher
+// la ligne "propriétaire" (id = uid) d'une table, avec UNE nouvelle tentative après 700ms en
+// cas d'erreur réseau/temporaire. Sert à distinguer :
+//  - error === null, data === null  -> la ligne n'existe vraiment pas (compte non autorisé)
+//  - error !== null                 -> problème passager (réseau, session pas encore propagée...)
+// C'est cette distinction qui manquait avant et qui causait des déconnexions intempestives :
+// le code traitait auparavant toute erreur de requête comme "compte invalide" et forçait un
+// signOut(), y compris pour un simple hoquet réseau juste après la connexion.
+async function selectOwnRow(table, uid, retries = 1) {
+  for (let attempt = 0; ; attempt++) {
+    const { data, error } = await supabase.from(table).select('*').eq('id', uid).maybeSingle();
+    if (!error) return { data, error: null };
+    if (attempt >= retries) return { data: null, error };
+    await new Promise((resolve) => setTimeout(resolve, 700));
+  }
+}
+
 // requireAdmin : pour les pages avec #dashboard / #noSessionGate (espace-administration,
 // admin-dashboard, gestion-enseignants, liste-eleves-admis...).
 export function requireAdmin(onAuthenticated) {
@@ -249,7 +266,7 @@ export function requireAdmin(onAuthenticated) {
     const dashboard = document.getElementById('dashboard');
 
     if (user) {
-      const { data: adminRow } = await supabase.from('admins').select('*').eq('id', user.uid).maybeSingle();
+      const { data: adminRow, error } = await selectOwnRow('admins', user.uid);
       if (adminRow) {
         if (gate) gate.classList.add('hidden');
         if (dashboard) dashboard.classList.remove('hidden');
@@ -257,6 +274,12 @@ export function requireAdmin(onAuthenticated) {
           lastHandledUid = user.uid;
           onAuthenticated(user, adminRow);
         }
+        return;
+      }
+      if (error) {
+        // Erreur passagère : on ne touche PAS à l'état affiché (pas de gate, pas de
+        // signOut) pour éviter une "déconnexion" visuelle causée par un simple hoquet réseau.
+        console.warn('requireAdmin: requête admins en échec, nouvelle tentative au prochain événement.', error);
         return;
       }
     }
@@ -289,11 +312,12 @@ export function requireStudent(onAuthenticated) {
       if (!handled) { handled = true; window.location.href = 'connexion-eleve.html'; }
       return;
     }
-    const { data: credRow } = await supabase
-      .from('student_credentials')
-      .select('*')
-      .eq('id', user.uid)
-      .maybeSingle();
+    const { data: credRow, error: credError } = await selectOwnRow('student_credentials', user.uid);
+
+    if (credError) {
+      console.warn('requireStudent: requête student_credentials en échec, nouvelle tentative au prochain événement.', credError);
+      return;
+    }
 
     if (!credRow) {
       lastHandledUid = null;
@@ -342,7 +366,11 @@ export function requireTeacher(onAuthenticated) {
       if (!handled) { handled = true; window.location.href = 'connexion-enseignant.html'; }
       return;
     }
-    const { data: teacherRow } = await supabase.from('teachers').select('*').eq('id', user.uid).maybeSingle();
+    const { data: teacherRow, error } = await selectOwnRow('teachers', user.uid);
+    if (error) {
+      console.warn('requireTeacher: requête teachers en échec, nouvelle tentative au prochain événement.', error);
+      return;
+    }
     if (!teacherRow) {
       lastHandledUid = null;
       if (!handled) {
