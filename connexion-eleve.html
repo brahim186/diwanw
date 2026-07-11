@@ -50,11 +50,11 @@
 
     <img src="logo.png" alt="Logo Diwan Al Maaref" class="h-20 w-20 object-contain mb-5">
     <h1 class="font-display font-semibold text-navy text-2xl">Espace Élève</h1>
-    <p class="text-ink/50 text-sm mt-2 leading-relaxed">Connectez-vous avec votre matricule et votre mot de passe</p>
+    <p class="text-ink/50 text-sm mt-2 leading-relaxed">Connectez-vous avec votre email et votre mot de passe</p>
 
     <div class="w-full mt-7 text-left">
-      <label for="matricule" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Matricule</label>
-      <input id="matricule" name="matricule" type="text" autocomplete="username" placeholder="Ex : DA-2026-0001"
+      <label for="email" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Email</label>
+      <input id="email" name="email" type="email" autocomplete="username" placeholder="prenom.nom@diwan-almaaref.ma"
         class="field w-full rounded-2xl border border-line bg-mist px-4 py-3.5 text-sm text-navy placeholder:text-ink/30 outline-none transition-colors">
     </div>
 
@@ -70,7 +70,7 @@
     </div>
 
     <p id="errorMsg" class="hidden w-full text-left text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3 mt-4">
-      Matricule ou mot de passe incorrect.
+      Email ou mot de passe incorrect.
     </p>
 
     <button type="submit" class="btn-login w-full mt-7 bg-navy text-white font-extrabold text-sm rounded-full py-3.5 inline-flex items-center justify-center gap-2">
@@ -82,7 +82,7 @@
   </form>
 
 <script type="module">
-  import { auth, db, doc, getDoc, matriculeToEmail, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+  import { auth, db, doc, getDoc, signInWithEmailAndPassword, signOut, onAuthStateChanged }
     from './supabase-config.js';
 
   const form      = document.getElementById('loginForm');
@@ -103,16 +103,16 @@
   // Si déjà connecté ET compte élève valide → direct vers mes-notes.html
   onAuthStateChanged(auth, async (user) => {
     if (!user) return;
-    const accountDoc = await getDoc(doc(db, 'student_accounts', user.uid));
+    const accountDoc = await getDoc(doc(db, 'student_credentials', user.uid));
     if (accountDoc.exists()) window.location.replace('mes-notes.html');
   });
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const matricule = document.getElementById('matricule').value.trim();
+    const email = document.getElementById('email').value.trim();
     const password = pwdInput.value;
 
-    if (!matricule || !password) {
+    if (!email || !password) {
       errorMsg.textContent = "Veuillez remplir tous les champs.";
       errorMsg.classList.remove('hidden');
       return;
@@ -124,9 +124,8 @@
     submitBtn.innerHTML = 'Connexion en cours...';
 
     try {
-      const email = matriculeToEmail(matricule);
       const cred = await signInWithEmailAndPassword(auth, email, password);
-      const accountDoc = await getDoc(doc(db, 'student_accounts', cred.user.uid));
+      const accountDoc = await getDoc(doc(db, 'student_credentials', cred.user.uid));
 
       if (accountDoc.exists()) {
         window.location.href = 'mes-notes.html';
@@ -135,7 +134,7 @@
         throw new Error('NOT_STUDENT');
       }
     } catch (err) {
-      errorMsg.textContent = "Matricule ou mot de passe incorrect.";
+      errorMsg.textContent = "Email ou mot de passe incorrect.";
       errorMsg.classList.remove('hidden');
       form.classList.remove('shake');
       void form.offsetWidth;
