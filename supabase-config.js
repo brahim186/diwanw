@@ -32,6 +32,31 @@ export function usernameToEmail(username) {
   return `${username.toLowerCase()}@${TEACHER_EMAIL_DOMAIN}`;
 }
 
+// --- Domaine utilisé pour générer l'email de connexion d'un élève admis --------------
+const STUDENT_EMAIL_DOMAIN = 'diwan-almaaref.ma';
+
+function stripAccents(str) {
+  return (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+// Transforme "Mohamed" -> "mohamed" (minuscule, sans accents, sans espaces/tirets/apostrophes)
+function slugPart(str) {
+  return stripAccents(str).toLowerCase().replace(/[^a-z]/g, '');
+}
+
+// Construit prenom.nom@diwan-almaaref.ma (avec un suffixe numérique si ce préfixe
+// existe déjà parmi les emails fournis, ex: mohamed.alami2@diwan-almaaref.ma)
+export function generateStudentEmail(prenom, nom, existingEmails = []) {
+  const base = `${slugPart(prenom)}.${slugPart(nom)}`;
+  let local = base;
+  let counter = 1;
+  while (existingEmails.includes(`${local}@${STUDENT_EMAIL_DOMAIN}`)) {
+    counter += 1;
+    local = `${base}${counter}`;
+  }
+  return `${local}@${STUDENT_EMAIL_DOMAIN}`;
+}
+
 export function generatePassword(length = 10) {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
   let out = '';
@@ -73,6 +98,53 @@ export async function createTeacherAuthAccount(email, password) {
   await secondaryAuthClient.auth.signOut();
   if (!data.user) throw new Error("Compte créé mais confirmation d'email requise côté Supabase. Désactivez 'Confirm email' dans les réglages Auth du projet.");
   return data.user.id;
+}
+
+// Crée un compte Auth pour un élève admis, SANS déconnecter l'admin courant.
+// Réutilise exactement le même mécanisme que createTeacherAuthAccount (client
+// secondaire sans session persistée) : la fonction est générique, seul le nom change
+// pour rester clair dans les pages qui l'utilisent.
+export const createStudentAuthAccount = createTeacherAuthAccount;
+
+// --- Identifiants de connexion des élèves (table "student_credentials") --------------
+// Écriture réservée aux comptes connectés (admin) via les policies RLS.
+export async function saveStudentCredentials(uid, studentId, email, password) {
+  const { error } = await supabase
+    .from('student_credentials')
+    .upsert({ id: uid, studentId: studentId, email, password });
+  if (error) throw error;
+}
+
+// Lecture réservée aux comptes connectés (admin) — ex: ré-afficher un identifiant déjà créé.
+export async function getStudentCredentialsByStudentId(studentId) {
+  const { data, error } = await supabase
+    .from('student_credentials')
+    .select('*')
+    .eq('studentId', studentId)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+// Liste tous les emails élèves déjà attribués (pour éviter les doublons à la création).
+export async function listStudentCredentialEmails() {
+  const { data, error } = await supabase.from('student_credentials').select('email');
+  if (error) throw error;
+  return (data || []).map((row) => row.email);
+}
+
+// Lecture PUBLIQUE (visiteur non connecté) via la fonction SQL "get_student_credentials"
+// (security definer) : ne révèle l'email/mot de passe que si le prénom + nom + matricule
+// fournis correspondent exactement à un dossier au statut "Accepté". Utilisé par la page
+// "Suivi de ma Demande" (consultation.html) pour révéler les identifiants d'un élève admis.
+export async function fetchStudentCredentialsPublic(matricule, prenom, nom) {
+  const { data, error } = await supabase.rpc('get_student_credentials', {
+    p_matricule: matricule,
+    p_prenom: prenom,
+    p_nom: nom,
+  });
+  if (error) throw error;
+  return (data && data[0]) || null;
 }
 
 // --- Mini-couche façon Firestore, posée sur des tables Postgres ---------------------
