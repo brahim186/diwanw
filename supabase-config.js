@@ -154,6 +154,13 @@ export async function generateMatricule() {
 // requireAdmin : pour les pages avec #dashboard / #noSessionGate (espace-administration,
 // admin-dashboard, gestion-enseignants, liste-eleves-admis...).
 export function requireAdmin(onAuthenticated) {
+  // Empêche onAuthenticated(...) d'être appelé deux fois pour la même session :
+  // getSession() ET onAuthStateChange() se déclenchent quasi simultanément au
+  // chargement de la page (comportement normal de Supabase v2), et sans ce garde
+  // ça exécutait deux fois la logique de la page (ex: deux fetch + deux rendus du
+  // tableau en parallèle -> lignes dupliquées visibles quelques instants).
+  let lastHandledUid = null;
+
   async function evaluate(user) {
     const gate = document.getElementById('noSessionGate');
     const dashboard = document.getElementById('dashboard');
@@ -163,10 +170,14 @@ export function requireAdmin(onAuthenticated) {
       if (adminRow) {
         if (gate) gate.classList.add('hidden');
         if (dashboard) dashboard.classList.remove('hidden');
-        onAuthenticated(user, adminRow);
+        if (lastHandledUid !== user.uid) {
+          lastHandledUid = user.uid;
+          onAuthenticated(user, adminRow);
+        }
         return;
       }
     }
+    lastHandledUid = null;
     if (dashboard) dashboard.classList.add('hidden');
     if (gate) gate.classList.remove('hidden');
   }
@@ -185,13 +196,21 @@ export function requireAdmin(onAuthenticated) {
 // redirige directement vers connexion-enseignant.html si l'accès n'est pas valide.
 export function requireTeacher(onAuthenticated) {
   let handled = false;
+  // Même garde que requireAdmin : évite le double-appel de onAuthenticated(...)
+  // causé par getSession() + onAuthStateChange() se déclenchant tous les deux au
+  // chargement -> c'est ce qui produisait les lignes d'élèves dupliquées (même
+  // matricule) qui disparaissaient après le second rendu "fantôme".
+  let lastHandledUid = null;
+
   async function evaluate(user) {
     if (!user) {
+      lastHandledUid = null;
       if (!handled) { handled = true; window.location.href = 'connexion-enseignant.html'; }
       return;
     }
     const { data: teacherRow } = await supabase.from('teachers').select('*').eq('id', user.uid).maybeSingle();
     if (!teacherRow) {
+      lastHandledUid = null;
       if (!handled) {
         handled = true;
         await supabase.auth.signOut();
@@ -199,7 +218,10 @@ export function requireTeacher(onAuthenticated) {
       }
       return;
     }
-    onAuthenticated(user, teacherRow);
+    if (lastHandledUid !== user.uid) {
+      lastHandledUid = user.uid;
+      onAuthenticated(user, teacherRow);
+    }
   }
 
   supabase.auth.getSession().then(({ data }) => {
