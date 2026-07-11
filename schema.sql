@@ -43,6 +43,7 @@ create table if not exists public.teachers (
   "adresse"    text,
   "telephone"  text,
   "niveaux"    text[] default '{}',
+  "matiere"    text,
   "groupe"     text,
   "salaire"    numeric,
   "username"   text unique,
@@ -50,10 +51,21 @@ create table if not exists public.teachers (
 );
 
 create table if not exists public.notes (
-  id       text primary key references public.students(id) on delete cascade,
+  id          text primary key,               -- "<studentId>::<matiere>", ex: DA-2026-0001::Mathématiques
+  "studentId" text references public.students(id) on delete cascade,
+  "matiere"   text,
   examen1  numeric,
   examen2  numeric,
   examen3  numeric
+);
+
+create index if not exists notes_student_idx on public.notes ("studentId");
+
+create table if not exists public.subject_coefficients (
+  id          text primary key,   -- "<cycle>::<matiere>", ex: primaire::Mathématiques
+  "cycle"     text not null,
+  "matiere"   text not null,
+  coefficient numeric not null default 1
 );
 
 create table if not exists public.counters (
@@ -95,6 +107,7 @@ alter table public.students enable row level security;
 alter table public.admins   enable row level security;
 alter table public.teachers enable row level security;
 alter table public.notes    enable row level security;
+alter table public.subject_coefficients enable row level security;
 alter table public.counters enable row level security;
 
 -- students -----------------------------------------------------------------
@@ -123,6 +136,18 @@ create policy "students_delete_authenticated" on public.students
 -- notes ----------------------------------------------------------------------
 drop policy if exists "notes_all_authenticated" on public.notes;
 create policy "notes_all_authenticated" on public.notes
+  for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
+
+-- subject_coefficients -----------------------------------------------------
+-- Lecture par tout compte connecté (admin, enseignant, élève — utilisé dans mes-notes.html
+-- pour calculer la moyenne pondérée). Écriture réservée aux comptes connectés (en pratique
+-- seul gestion-coefficients.html, réservé à l'admin côté UI, y écrit).
+drop policy if exists "subject_coefficients_select_authenticated" on public.subject_coefficients;
+create policy "subject_coefficients_select_authenticated" on public.subject_coefficients
+  for select using (auth.role() = 'authenticated');
+
+drop policy if exists "subject_coefficients_write_authenticated" on public.subject_coefficients;
+create policy "subject_coefficients_write_authenticated" on public.subject_coefficients
   for all using (auth.role() = 'authenticated') with check (auth.role() = 'authenticated');
 
 -- teachers ---------------------------------------------------------------------
@@ -194,9 +219,18 @@ drop policy if exists "student_credentials_insert_authenticated" on public.stude
 create policy "student_credentials_insert_authenticated" on public.student_credentials
   for insert with check (auth.role() = 'authenticated');
 
+-- IMPORTANT : lecture restreinte à l'admin ou à l'élève propriétaire de la ligne (et non
+-- "tout compte authentifié" comme avant) — sinon n'importe quel élève connecté pourrait
+-- lister les emails/mots de passe en clair de TOUS les autres élèves via un simple
+-- .select('*'). requireStudent() (supabase-config.js) dépend de cette policy pour que
+-- l'élève puisse lire sa propre ligne au chargement de mes-notes.html.
 drop policy if exists "student_credentials_select_authenticated" on public.student_credentials;
-create policy "student_credentials_select_authenticated" on public.student_credentials
-  for select using (auth.role() = 'authenticated');
+drop policy if exists "student_credentials_select_admin_or_self" on public.student_credentials;
+create policy "student_credentials_select_admin_or_self" on public.student_credentials
+  for select using (
+    auth.uid() = id
+    or exists (select 1 from public.admins a where a.id = auth.uid())
+  );
 
 drop policy if exists "student_credentials_update_authenticated" on public.student_credentials;
 create policy "student_credentials_update_authenticated" on public.student_credentials
@@ -224,8 +258,46 @@ $$;
 
 grant execute on function public.get_student_credentials(text, text, text) to anon, authenticated;
 
+-- Fonction utilisée par la page de connexion élève (connexion-eleve.html, visiteur non
+-- connecté) pour traduire un matricule en email de connexion, avant d'appeler
+-- signInWithEmailAndPassword. Ne renvoie QUE l'email (jamais le mot de passe) : le mot de
+-- passe reste vérifié uniquement par Supabase Auth lors du signInWithPassword. Volontairement
+-- pas de policy select publique sur student_credentials pour cette lecture.
+create or replace function public.get_student_login_email(p_matricule text)
+returns text
+language sql
+security definer
+set search_path = public
+as $$
+  select sc.email
+  from public.student_credentials sc
+  where sc."studentId" = p_matricule
+  limit 1;
+$$;
+
+grant execute on function public.get_student_login_email(text) to anon, authenticated;
+
 -- ------------------------------------------------------------------------------------
--- 6) Étapes manuelles restantes (à faire dans le Dashboard Supabase, pas en SQL) :
+-- 7) MIGRATION — Matière enseignée + notes liées à une matière (si votre base existe déjà
+--    et que les sections 1 à 6 sont déjà en place, exécutez seulement ce bloc une fois).
+-- ------------------------------------------------------------------------------------
+
+-- Nouveau champ sur la fiche enseignant : matière qu'il enseigne (dépend des niveaux
+-- choisis dans gestion-enseignants.html).
+alter table public.teachers add column if not exists "matiere" text;
+
+-- La table "notes" passait d'un id = matricule élève (une seule série de 3 notes par élève,
+-- toutes matières confondues) à un id = "<matricule>::<matière>" (une série de 3 notes par
+-- élève ET par matière, alignée sur ce que chaque enseignant saisit dans saisie-notes.html
+-- et sur ce que l'élève consulte, matière par matière, dans mes-notes.html).
+alter table public.notes add column if not exists "studentId" text references public.students(id) on delete cascade;
+alter table public.notes add column if not exists "matiere" text;
+create index if not exists notes_student_idx on public.notes ("studentId");
+-- Remarque : les anciennes lignes de "notes" (sans matière) restent en base mais ne seront
+-- plus lues par saisie-notes.html / mes-notes.html tant qu'elles n'ont pas de "matiere".
+
+-- ------------------------------------------------------------------------------------
+-- 8) Étapes manuelles restantes (à faire dans le Dashboard Supabase, pas en SQL) :
 --
 --  a) Authentication > Providers > Email : désactiver "Confirm email"
 --     (sinon les comptes enseignants créés depuis l'admin restent bloqués).
