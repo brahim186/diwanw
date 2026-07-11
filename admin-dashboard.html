@@ -224,6 +224,10 @@
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4M7 10l5 5 5-5M12 15V3"/></svg>
             Télécharger PDF
           </button>
+          <button type="button" data-action="credentials" class="hidden inline-flex items-center gap-2 bg-navy hover:bg-navy-700 text-white font-extrabold text-xs px-4 py-2 rounded-full transition-colors shadow-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+            Identifiants élève
+          </button>
         </div>
         
         <div class="flex items-center gap-3">
@@ -250,8 +254,43 @@
   </div>
 </template>
 
+<div id="studentCredsModal" class="hidden fixed inset-0 z-50 bg-navy-900/60 backdrop-blur-sm flex items-center justify-center px-5">
+  <div class="w-full max-w-sm bg-white rounded-3xl shadow-2xl p-8 text-center">
+    <div class="w-14 h-14 mx-auto rounded-2xl bg-emerald-500/10 grid place-items-center mb-4">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <h3 id="studentCredsTitle" class="font-display font-semibold text-navy text-lg mb-1">Compte élève créé</h3>
+    <p id="studentCredsDesc" class="text-ink/50 text-xs mb-2">Pour : <span id="studentCredsName" class="font-bold text-navy"></span></p>
+    <p class="text-ink/50 text-xs mb-6">Notez ces identifiants maintenant.</p>
+
+    <div class="text-left space-y-3 mb-6">
+      <div class="bg-mist rounded-2xl px-4 py-3">
+        <p class="text-[10px] font-extrabold uppercase tracking-wide text-ink/40 mb-1">Email de connexion</p>
+        <p id="studentCredsEmail" class="font-mono font-bold text-navy text-sm break-all">—</p>
+      </div>
+      <div class="bg-mist rounded-2xl px-4 py-3">
+        <p class="text-[10px] font-extrabold uppercase tracking-wide text-ink/40 mb-1">Mot de passe</p>
+        <p id="studentCredsPassword" class="font-mono font-bold text-navy text-sm break-all">—</p>
+      </div>
+    </div>
+
+    <div class="flex flex-col gap-2">
+      <button id="studentCredsCopyBtn" type="button" class="w-full inline-flex items-center justify-center gap-2 bg-mist hover:bg-line text-navy font-bold text-xs px-5 py-3 rounded-full transition-colors">
+        Copier email + mot de passe
+      </button>
+      <button id="studentCredsCloseBtn" type="button" class="w-full bg-navy hover:bg-navy-700 text-white font-extrabold text-sm px-5 py-3 rounded-full transition-colors">
+        Fermer
+      </button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
-import { auth, db, signOut, collection, getDocs, doc, updateDoc, deleteDoc, requireAdmin } from './supabase-config.js';
+import {
+  auth, db, signOut, collection, getDocs, doc, updateDoc, deleteDoc, requireAdmin,
+  generateStudentEmail, generatePassword, createStudentAuthAccount,
+  saveStudentCredentials, getStudentCredentialsByStudentId, listStudentCredentialEmails
+} from './supabase-config.js';
 
 let allRecords = []; // toutes les demandes d'inscription (table "students")
 
@@ -349,14 +388,38 @@ function renderRecords(records) {
 
     applyStatusInterface(rowRoot, r.statut || '');
 
-    rowRoot.querySelector('[data-action="accepte"]').addEventListener('click', (e) => {
+    rowRoot.querySelector('[data-action="accepte"]').addEventListener('click', async (e) => {
       e.stopPropagation();
-      updateStatusOnServer(r.id, 'Accepté', rowRoot);
+      const acceptBtn = e.currentTarget;
+      acceptBtn.disabled = true;
+      await updateStatusOnServer(r.id, 'Accepté', rowRoot);
+      try {
+        const creds = await ensureStudentAccount(r);
+        if (creds.isNew) showStudentCredsModal(r, creds.email, creds.password, true);
+      } catch (err) {
+        alert("Le statut a bien été mis à jour, mais la création du compte élève a échoué : " + err.message);
+      } finally {
+        acceptBtn.disabled = false;
+      }
     });
 
     rowRoot.querySelector('[data-action="refuse"]').addEventListener('click', (e) => {
       e.stopPropagation();
       updateStatusOnServer(r.id, 'Refusé', rowRoot);
+    });
+
+    rowRoot.querySelector('[data-action="credentials"]').addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      try {
+        const creds = await ensureStudentAccount(r);
+        showStudentCredsModal(r, creds.email, creds.password, false);
+      } catch (err) {
+        alert("Impossible de récupérer les identifiants : " + err.message);
+      } finally {
+        btn.disabled = false;
+      }
     });
 
     rowRoot.querySelector('[data-action="reset"]').addEventListener('click', (e) => {
@@ -393,6 +456,7 @@ function applyStatusInterface(rowElement, status) {
   const resetBtn = rowElement.querySelector('[data-action="reset"]');
   const deleteBtn = rowElement.querySelector('[data-action="delete"]');
   const pdfBtn = rowElement.querySelector('[data-action="downloadPdf"]');
+  const credsBtn = rowElement.querySelector('[data-action="credentials"]');
 
   badge.className = 'text-xs font-extrabold px-3 py-1.5 rounded-full';
 
@@ -401,6 +465,7 @@ function applyStatusInterface(rowElement, status) {
   resetBtn.classList.add('hidden');
   deleteBtn.classList.add('hidden');
   pdfBtn.classList.add('hidden');
+  credsBtn.classList.add('hidden');
 
   if (status === 'Accepté') {
     badge.textContent = 'Accepté';
@@ -408,6 +473,7 @@ function applyStatusInterface(rowElement, status) {
     resetBtn.classList.remove('hidden');
     deleteBtn.classList.remove('hidden');
     pdfBtn.classList.remove('hidden');
+    credsBtn.classList.remove('hidden');
   } else if (status === 'Refusé') {
     badge.textContent = 'Refusé';
     badge.classList.add('bg-red-100', 'text-red-700');
@@ -421,6 +487,57 @@ function applyStatusInterface(rowElement, status) {
     refuseBtn.classList.remove('hidden');
   }
 }
+
+// Crée le compte de connexion de l'élève s'il n'existe pas encore (idempotent : si un
+// clic répété sur "Accepté"/"Identifiants élève" survient, on renvoie l'identifiant déjà
+// créé au lieu d'en générer un nouveau).
+async function ensureStudentAccount(record) {
+  const existing = await getStudentCredentialsByStudentId(record.id);
+  if (existing) {
+    return { email: existing.email, password: existing.password, isNew: false };
+  }
+
+  const existingEmails = await listStudentCredentialEmails();
+  const email = generateStudentEmail(record.prenom, record.nom, existingEmails);
+  const password = generatePassword();
+
+  const uid = await createStudentAuthAccount(email, password);
+  await saveStudentCredentials(uid, record.id, email, password);
+
+  return { email, password, isNew: true };
+}
+
+const studentCredsModal = document.getElementById('studentCredsModal');
+const studentCredsTitle = document.getElementById('studentCredsTitle');
+const studentCredsDesc = document.getElementById('studentCredsDesc');
+const studentCredsName = document.getElementById('studentCredsName');
+const studentCredsEmail = document.getElementById('studentCredsEmail');
+const studentCredsPassword = document.getElementById('studentCredsPassword');
+const studentCredsCopyBtn = document.getElementById('studentCredsCopyBtn');
+const studentCredsCloseBtn = document.getElementById('studentCredsCloseBtn');
+
+function showStudentCredsModal(record, email, password, isNew) {
+  studentCredsTitle.textContent = isNew ? 'Compte élève créé' : 'Identifiants de l\'élève';
+  studentCredsDesc.classList.remove('hidden');
+  studentCredsName.textContent = `${record.prenom || ''} ${record.nom || ''}`.trim();
+  studentCredsEmail.textContent = email;
+  studentCredsPassword.textContent = password;
+  studentCredsCopyBtn.textContent = 'Copier email + mot de passe';
+  studentCredsModal.classList.remove('hidden');
+}
+
+studentCredsCloseBtn.addEventListener('click', () => studentCredsModal.classList.add('hidden'));
+
+studentCredsCopyBtn.addEventListener('click', async () => {
+  const text = `Email : ${studentCredsEmail.textContent}\nMot de passe : ${studentCredsPassword.textContent}`;
+  try {
+    await navigator.clipboard.writeText(text);
+    studentCredsCopyBtn.textContent = 'Copié ✓';
+    setTimeout(() => { studentCredsCopyBtn.textContent = 'Copier email + mot de passe'; }, 1500);
+  } catch (e) {
+    alert(text);
+  }
+});
 
 async function updateStatusOnServer(id, status, rowElement) {
   try {
