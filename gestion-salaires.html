@@ -227,7 +227,10 @@ yearSelect.value = currentYear;
 let allTeachers = [];
 
 function fmtDH(n) {
-  return (Number(n) || 0).toLocaleString('fr-FR') + ' DH';
+  const num = Number(n) || 0;
+  const parts = num.toFixed(2).split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  return parts.join('.') + ' DH';
 }
 
 function slugify(str) {
