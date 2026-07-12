@@ -96,8 +96,7 @@
   .marquee-track { animation: marquee 28s linear infinite; }
   @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
-  /* Actualités slider */
-  .splide-actualites .splide__slide { height: auto; }
+  /* Actualités strip (drag/momentum personnalisé) */
   .actu-card { transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease; cursor: pointer; }
   .actu-card:hover { transform: translateY(-6px); box-shadow: 0 24px 48px -20px rgba(27,20,100,0.25); }
   .actu-line-clamp { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
@@ -278,9 +277,24 @@
       <p class="text-ink/40 text-sm">Aucune actualité publiée pour le moment. Revenez bientôt !</p>
     </div>
 
-    <div id="actualitesSplide" class="splide-actualites hidden" aria-label="Actualités et annonces">
-      <div class="splide__track">
-        <ul id="actualitesList" class="splide__list"></ul>
+    <div id="actualitesStrip" class="hidden">
+      <div class="flex items-center justify-end gap-2 mb-4">
+        <button type="button" id="actuArrowPrev" aria-label="Actualités plus anciennes" class="w-10 h-10 grid place-items-center rounded-full bg-white border border-line text-navy hover:border-gold-dark transition-colors shadow-sm">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button type="button" id="actuArrowNext" aria-label="Actualités plus récentes" class="w-10 h-10 grid place-items-center rounded-full bg-white border border-line text-navy hover:border-gold-dark transition-colors shadow-sm">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+
+      <!-- Viewport: overflow-hidden car le défilement est 100% géré en JS (scrollLeft),
+           pas de scrollbar native, pas de conflit avec le drag/momentum personnalisé. -->
+      <div id="actualitesViewport" class="overflow-hidden">
+        <div id="actualitesList" class="flex gap-6 cursor-grab select-none"></div>
+      </div>
+
+      <div class="mt-5 h-1 rounded-full bg-line overflow-hidden">
+        <div id="actualitesProgress" class="h-full w-1/3 rounded-full bg-gradient-to-r from-purple to-gold"></div>
       </div>
     </div>
   </div>
@@ -835,9 +849,13 @@
   import { db, collection, getDocs } from './supabase-config.js';
 
   const listEl        = document.getElementById('actualitesList');
-  const splideWrap     = document.getElementById('actualitesSplide');
-  const loadingEl       = document.getElementById('actualitesLoading');
-  const emptyEl         = document.getElementById('actualitesEmpty');
+  const viewportEl     = document.getElementById('actualitesViewport');
+  const stripWrap        = document.getElementById('actualitesStrip');
+  const loadingEl          = document.getElementById('actualitesLoading');
+  const emptyEl             = document.getElementById('actualitesEmpty');
+  const progressFill         = document.getElementById('actualitesProgress');
+  const arrowPrevBtn           = document.getElementById('actuArrowPrev');
+  const arrowNextBtn            = document.getElementById('actuArrowNext');
 
   const modal          = document.getElementById('actualiteModal');
   const modalImage      = document.getElementById('modalActuImage');
@@ -879,29 +897,27 @@
   function cardHtml(item, index) {
     if (item.imageURL) {
       return `
-        <li class="splide__slide">
-          <button type="button" data-index="${index}" class="actu-card w-full h-full text-left bg-white border border-line rounded-3xl overflow-hidden shadow-sm flex flex-col">
-            <div class="h-44 overflow-hidden bg-mist flex items-center justify-center">
-              <img src="${item.imageURL}" alt="${item.titre || ''}" class="w-full h-full object-contain">
-            </div>
-            <div class="p-6 flex flex-col gap-2 flex-1">
-              <span class="text-[11px] font-extrabold uppercase tracking-wide text-gold-dark">${formatDate(item.datePublication) || 'Annonce'}</span>
-              <h3 class="font-display font-semibold text-navy text-lg leading-snug">${item.titre || ''}</h3>
-              <p class="actu-line-clamp text-ink/55 text-sm leading-relaxed">${item.contenu || ''}</p>
-              <span class="mt-auto pt-2 inline-flex items-center gap-1.5 text-xs font-extrabold text-purple">
-                Lire plus
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </span>
-            </div>
-          </button>
-        </li>
+        <button type="button" data-index="${index}" class="actu-card shrink-0 w-[80vw] xs:w-72 sm:w-80 text-left bg-white border border-line rounded-3xl overflow-hidden shadow-sm flex flex-col">
+          <div class="h-44 overflow-hidden bg-mist flex items-center justify-center pointer-events-none">
+            <img src="${item.imageURL}" alt="${item.titre || ''}" class="w-full h-full object-contain" draggable="false">
+          </div>
+          <div class="p-6 flex flex-col gap-2 flex-1 pointer-events-none">
+            <span class="text-[11px] font-extrabold uppercase tracking-wide text-gold-dark">${formatDate(item.datePublication) || 'Annonce'}</span>
+            <h3 class="font-display font-semibold text-navy text-lg leading-snug">${item.titre || ''}</h3>
+            <p class="actu-line-clamp text-ink/55 text-sm leading-relaxed">${item.contenu || ''}</p>
+            <span class="mt-auto pt-2 inline-flex items-center gap-1.5 text-xs font-extrabold text-purple">
+              Lire plus
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+          </div>
+        </button>
       `;
     }
     // Annonce texte seul (sans image) : carte compacte, fond dégradé navy/purple
     return `
-      <li class="splide__slide">
-        <button type="button" data-index="${index}" class="actu-card w-full h-full text-left bg-gradient-to-br from-navy to-purple rounded-3xl overflow-hidden shadow-sm flex flex-col p-6 gap-3">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 4h16v12H7l-3 3V4z" stroke="#F0A93C" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      <button type="button" data-index="${index}" class="actu-card shrink-0 w-[80vw] xs:w-72 sm:w-80 text-left bg-gradient-to-br from-navy to-purple rounded-3xl overflow-hidden shadow-sm flex flex-col p-6 gap-3">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" class="pointer-events-none"><path d="M4 4h16v12H7l-3 3V4z" stroke="#F0A93C" stroke-width="1.8" stroke-linejoin="round"/></svg>
+        <div class="flex flex-col gap-2 pointer-events-none">
           <span class="text-[11px] font-extrabold uppercase tracking-wide text-gold-light">${formatDate(item.datePublication) || 'Annonce'}</span>
           <h3 class="font-display font-semibold text-white text-lg leading-snug">${item.titre || ''}</h3>
           <p class="actu-line-clamp text-white/70 text-sm leading-relaxed">${item.contenu || ''}</p>
@@ -909,10 +925,166 @@
             Lire plus
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </span>
-        </button>
-      </li>
+        </div>
+      </button>
     `;
   }
+
+  /* =====================================================================
+     Drag-to-scroll + momentum (souris + tactile via Pointer Events).
+     Règle exacte :
+     - Au chargement : défilement automatique jusqu'à l'extrême droite,
+       donc la DERNIÈRE carte du DOM (= l'annonce la plus récente, car les
+       items sont triés par ordre croissant de date) est visible en premier.
+     - Glisser vers la DROITE  -> scrollLeft diminue -> révèle les
+       annonces plus anciennes, une à une, vers la gauche.
+     - Glisser vers la GAUCHE  -> scrollLeft augmente -> revient vers
+       l'annonce la plus récente (déjà la position de départ).
+     - Arrêt strict à scrollLeft = 0 (plus ancienne annonce) : aucun
+       rebond, aucune boucle infinie.
+     ===================================================================== */
+  function initDragStrip() {
+    function maxScroll() {
+      return Math.max(0, listEl.scrollWidth - viewportEl.clientWidth);
+    }
+    function clamp(v, min, max) { return Math.min(Math.max(v, min), max); }
+    function updateProgress() {
+      const max = maxScroll();
+      const pct = max === 0 ? 100 : (1 - (viewportEl.scrollLeft / max)) * 100;
+      progressFill.style.width = clamp(pct, 0, 100) + '%';
+    }
+
+    // Position initiale : tout à droite, pour afficher l'annonce la plus récente
+    requestAnimationFrame(() => {
+      viewportEl.scrollLeft = maxScroll();
+      updateProgress();
+    });
+    window.addEventListener('resize', () => {
+      viewportEl.scrollLeft = clamp(viewportEl.scrollLeft, 0, maxScroll());
+      updateProgress();
+    });
+
+    let isDragging       = false;
+    let dragStartX        = 0;
+    let scrollAtDragStart  = 0;
+    let lastMoveX           = 0;
+    let lastMoveTime         = 0;
+    let velocity              = 0;
+    let momentumFrame          = null;
+    let dragMoved                = false; // distingue un clic d'un glissement
+
+    const FRICTION = 0.94;
+    const MIN_VELOCITY = 0.02;
+    const CLICK_THRESHOLD = 6; // px
+
+    function stopMomentum() {
+      if (momentumFrame) { cancelAnimationFrame(momentumFrame); momentumFrame = null; }
+    }
+
+    function onPointerDown(e) {
+      if (e.button !== undefined && e.button !== 0) return;
+      stopMomentum();
+      isDragging = true;
+      dragMoved = false;
+      listEl.classList.add('cursor-grabbing');
+      listEl.classList.remove('cursor-grab');
+
+      dragStartX        = e.clientX;
+      scrollAtDragStart  = viewportEl.scrollLeft;
+      lastMoveX          = e.clientX;
+      lastMoveTime        = performance.now();
+      velocity             = 0;
+      listEl.setPointerCapture(e.pointerId);
+    }
+
+    function onPointerMove(e) {
+      if (!isDragging) return;
+      const now = performance.now();
+      const dx  = e.clientX - dragStartX;
+
+      if (Math.abs(dx) > CLICK_THRESHOLD) dragMoved = true;
+
+      // Glisser vers la droite (dx > 0) -> scrollLeft diminue -> annonces plus anciennes
+      const proposed = scrollAtDragStart - dx;
+      viewportEl.scrollLeft = clamp(proposed, 0, maxScroll());
+
+      const dt = now - lastMoveTime;
+      if (dt > 0) {
+        const segmentVelocity = -(e.clientX - lastMoveX) / dt;
+        velocity = velocity * 0.7 + segmentVelocity * 0.3;
+      }
+      lastMoveX   = e.clientX;
+      lastMoveTime = now;
+      updateProgress();
+    }
+
+    function onPointerUp(e) {
+      if (!isDragging) return;
+      isDragging = false;
+      listEl.classList.remove('cursor-grabbing');
+      listEl.classList.add('cursor-grab');
+      try { listEl.releasePointerCapture(e.pointerId); } catch (err) {}
+      startMomentum();
+    }
+
+    function startMomentum() {
+      if (Math.abs(velocity) < MIN_VELOCITY) return;
+      let lastTime = performance.now();
+      function step(now) {
+        const dt = now - lastTime;
+        lastTime = now;
+        viewportEl.scrollLeft = clamp(viewportEl.scrollLeft + velocity * dt, 0, maxScroll());
+        velocity *= FRICTION;
+        updateProgress();
+        const atLeftEdge  = viewportEl.scrollLeft <= 0;
+        const atRightEdge = viewportEl.scrollLeft >= maxScroll();
+        if ((atLeftEdge && velocity < 0) || (atRightEdge && velocity > 0) || Math.abs(velocity) < MIN_VELOCITY) {
+          momentumFrame = null;
+          return;
+        }
+        momentumFrame = requestAnimationFrame(step);
+      }
+      momentumFrame = requestAnimationFrame(step);
+    }
+
+    listEl.addEventListener('pointerdown', onPointerDown);
+    listEl.addEventListener('pointermove', onPointerMove);
+    listEl.addEventListener('pointerup', onPointerUp);
+    listEl.addEventListener('pointercancel', onPointerUp);
+    listEl.addEventListener('pointerleave', (e) => { if (isDragging) onPointerUp(e); });
+    listEl.addEventListener('dragstart', (e) => e.preventDefault());
+
+    viewportEl.addEventListener('wheel', (e) => {
+      if (Math.abs(e.deltaX) < Math.abs(e.deltaY) && e.deltaY === 0) return;
+      e.preventDefault();
+      stopMomentum();
+      const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+      viewportEl.scrollLeft = clamp(viewportEl.scrollLeft + delta, 0, maxScroll());
+      updateProgress();
+    }, { passive: false });
+
+    arrowPrevBtn.addEventListener('click', () => {
+      stopMomentum();
+      viewportEl.scrollTo({ left: clamp(viewportEl.scrollLeft - 320, 0, maxScroll()), behavior: 'smooth' });
+      setTimeout(updateProgress, 350);
+    });
+    arrowNextBtn.addEventListener('click', () => {
+      stopMomentum();
+      viewportEl.scrollTo({ left: clamp(viewportEl.scrollLeft + 320, 0, maxScroll()), behavior: 'smooth' });
+      setTimeout(updateProgress, 350);
+    });
+
+    // Un clic n'ouvre le modal que si la carte n'a pas été glissée
+    listEl.querySelectorAll('.actu-card').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        if (dragMoved) { dragMoved = false; return; }
+        const idx = Number(btn.getAttribute('data-index'));
+        openActuModal(currentItems[idx]);
+      });
+    });
+  }
+
+  let currentItems = [];
 
   (async () => {
     let items = [];
@@ -921,7 +1093,9 @@
       items = snap.docs
         .map((d) => ({ id: d.id, ...d.data() }))
         .filter((a) => a.publie !== false)
-        .sort((a, b) => new Date(b.datePublication || b.createdAt || 0) - new Date(a.datePublication || a.createdAt || 0));
+        // Ordre croissant (plus ancienne -> plus récente) : la plus récente
+        // se retrouve en dernier dans le DOM, à l'extrême droite du strip.
+        .sort((a, b) => new Date(a.datePublication || a.createdAt || 0) - new Date(b.datePublication || b.createdAt || 0));
     } catch (e) {
       items = [];
     }
@@ -933,34 +1107,11 @@
       return;
     }
 
+    currentItems = items;
     listEl.innerHTML = items.map((item, i) => cardHtml(item, i)).join('');
-    splideWrap.classList.remove('hidden');
+    stripWrap.classList.remove('hidden');
 
-    listEl.querySelectorAll('.actu-card').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const idx = Number(btn.getAttribute('data-index'));
-        openActuModal(items[idx]);
-      });
-    });
-
-    new Splide('.splide-actualites', {
-      type: 'loop',
-      perPage: 3,
-      gap: '1.5rem',
-      arrows: true,
-      pagination: false,
-      drag: true,
-      autoplay: true,
-      interval: 3200,
-      speed: 800,
-      pauseOnHover: true,
-      pauseOnFocus: true,
-      resetProgress: false,
-      breakpoints: {
-        1024: { perPage: 2 },
-        640:  { perPage: 1 },
-      }
-    }).mount();
+    initDragStrip();
   })();
 </script>
 </body>
