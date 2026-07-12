@@ -255,7 +255,11 @@
           setTimeout(() => input.classList.remove('saved'), 1000);
           showToast('Note enregistrée');
         } catch (e) {
-          alert("Erreur lors de l'enregistrement de la note.");
+          // Log complet dans la console (F12) pour voir la VRAIE cause Supabase
+          // (RLS, contrainte de clé étrangère, colonne manquante, session expirée...)
+          // au lieu d'une simple alerte générique.
+          console.error('Erreur enregistrement note :', e);
+          alert("Erreur lors de l'enregistrement de la note.\n\nDétail : " + (e?.message || e?.error_description || JSON.stringify(e)));
         }
       });
     });
