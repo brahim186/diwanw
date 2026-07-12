@@ -12,6 +12,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Fraunces:wght@500;600&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
 <script>
   tailwind.config = {
@@ -180,6 +183,16 @@
         </div>
       </div>
       <button type="button" id="clearFiltersBtn" class="text-xs font-bold text-ink/40 hover:text-rose-600 transition-colors pb-2">Réinitialiser</button>
+      <div class="flex items-center gap-2 pb-0.5 sm:ml-auto">
+        <button type="button" id="exportExcelBtn" class="inline-flex items-center gap-2 text-xs font-extrabold text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white border border-emerald-200 rounded-full px-4 py-2.5 transition-colors">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 19V6a2 2 0 012-2h9l5 5v10a2 2 0 01-2 2H6a2 2 0 01-2-2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          Excel
+        </button>
+        <button type="button" id="exportPdfBtn" class="inline-flex items-center gap-2 text-xs font-extrabold text-rose-700 bg-rose-50 hover:bg-rose-600 hover:text-white border border-rose-200 rounded-full px-4 py-2.5 transition-colors">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 19V6a2 2 0 012-2h9l5 5v10a2 2 0 01-2 2H6a2 2 0 01-2-2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          PDF
+        </button>
+      </div>
     </div>
 
     <section class="bg-white border border-line rounded-3xl shadow-sm overflow-hidden">
@@ -371,6 +384,83 @@ document.getElementById('clearFiltersBtn').addEventListener('click', () => {
   justifFilter.value = '';
   searchInput.value = '';
   renderTable();
+});
+
+// --- Export Excel / PDF (données actuellement filtrées) ------------------------------
+function buildExportRows() {
+  return getFilteredAbsences().map((a) => {
+    const st = studentsById[a.studentId] || {};
+    const t = teachersById[a.teacherId] || {};
+    return {
+      'Date': a.date || '',
+      'De': a.heureDebut || '',
+      'À': a.heureFin || '',
+      'Élève': `${st.prenom || ''} ${st.nom || ''}`.trim(),
+      'Matricule': a.studentId || '',
+      'Niveau': a.niveau || '',
+      'Groupe': a.groupe || '',
+      'Matière': a.matiere || '',
+      'Enseignant': t.prenom ? `${t.prenom} ${t.nom}` : '',
+      'Statut': a.statut || '',
+      'Justification': a.justifie ? 'Justifié' : 'Non justifié',
+    };
+  });
+}
+
+function exportFileName(ext) {
+  const parts = ['absences'];
+  if (dateFilter.value) parts.push(dateFilter.value);
+  if (levelFilter.value) parts.push(levelFilter.value.replace(/\s+/g, '-'));
+  if (groupFilter.value) parts.push(groupFilter.value.replace(/\s+/g, '-'));
+  return parts.join('_') + '.' + ext;
+}
+
+document.getElementById('exportExcelBtn').addEventListener('click', () => {
+  const rows = buildExportRows();
+  if (rows.length === 0) { alert('Aucune donnée à exporter avec ces filtres.'); return; }
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [
+    { wch: 11 }, { wch: 7 }, { wch: 7 }, { wch: 22 }, { wch: 14 },
+    { wch: 14 }, { wch: 12 }, { wch: 18 }, { wch: 20 }, { wch: 10 }, { wch: 14 },
+  ];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Absences');
+  XLSX.writeFile(wb, exportFileName('xlsx'));
+});
+
+document.getElementById('exportPdfBtn').addEventListener('click', () => {
+  const rows = buildExportRows();
+  if (rows.length === 0) { alert('Aucune donnée à exporter avec ces filtres.'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+  pdf.setFontSize(14);
+  pdf.setTextColor(27, 20, 100);
+  pdf.text('Diwan Al Maaref — Registre des Absences', 14, 15);
+
+  pdf.setFontSize(9);
+  pdf.setTextColor(120, 120, 120);
+  const filterBits = [];
+  if (dateFilter.value) filterBits.push(`Date : ${dateFilter.value}`);
+  if (levelFilter.value) filterBits.push(`Niveau : ${levelFilter.value}`);
+  if (groupFilter.value) filterBits.push(`Groupe : ${groupFilter.value}`);
+  filterBits.push(`Généré le ${new Date().toLocaleDateString('fr-FR')}`);
+  pdf.text(filterBits.join('   •   '), 14, 21);
+
+  const head = [['Date', 'De', 'À', 'Élève', 'Matricule', 'Niveau', 'Groupe', 'Matière', 'Enseignant', 'Statut', 'Justification']];
+  const body = rows.map((r) => Object.values(r));
+
+  pdf.autoTable({
+    head,
+    body,
+    startY: 26,
+    styles: { fontSize: 8, cellPadding: 2 },
+    headStyles: { fillColor: [27, 20, 100], textColor: 255, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [246, 244, 252] },
+  });
+
+  pdf.save(exportFileName('pdf'));
 });
 
 // --- Modal Justifier ------------------------------------------------------------------
