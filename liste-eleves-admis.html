@@ -152,6 +152,27 @@
     </div>
     <p id="importSummary" class="hidden mb-6 text-xs font-bold text-navy bg-white border border-line rounded-xl px-4 py-3"></p>
 
+    <div class="bg-white border border-line rounded-3xl shadow-sm p-5 sm:p-6 mb-8">
+      <div class="flex flex-wrap items-end gap-4">
+        <div>
+          <p class="font-display font-semibold text-navy text-base mb-1">Répartition automatique des groupes</p>
+          <p class="text-ink/50 text-xs max-w-md">
+            Répartit les élèves admis par <span class="font-bold text-navy">niveau</span>, dans l'ordre du matricule,
+            avec un ratio garçons/filles d'environ 30–45% / 55–70% par groupe (Groupe A, B, C…).
+          </p>
+        </div>
+        <div class="flex flex-col gap-1">
+          <label for="groupSizeInput" class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40">Taille max. / groupe</label>
+          <input id="groupSizeInput" type="number" min="2" value="30" class="w-32 rounded-full border border-line bg-white px-4 py-2 text-sm focus:border-gold outline-none num">
+        </div>
+        <button id="distributeGroupsBtn" type="button" class="inline-flex items-center gap-2 bg-purple hover:bg-purple/90 text-white font-extrabold text-xs px-5 py-3 rounded-full transition-colors shadow-sm">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/><path d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Répartir automatiquement
+        </button>
+      </div>
+      <div id="groupDistributionSummary" class="hidden mt-4 pt-4 border-t border-line text-xs text-ink/70 space-y-1"></div>
+    </div>
+
     <div id="loadingState" class="flex flex-col items-center justify-center py-24 gap-4">
       <span class="spinner" style="width:32px;height:32px;border-width:4px;"></span>
       <p class="text-ink/50 text-sm">Chargement des données en cours...</p>
@@ -367,6 +388,152 @@ function populateGroupFilter() {
     AVAILABLE_GROUPS.map(g => `<option value="${g}">${g}</option>`).join('');
   select.value = current || '';
 }
+
+// --- Répartition automatique en groupes -------------------------------------------
+// Règle : par niveau, dans l'ordre du matricule, on remplit des groupes (Groupe A, B, C…)
+// de taille max = groupSizeInput, en visant ~30–45% de garçons et ~55–70% de filles par
+// groupe. S'il reste des élèves une fois un groupe complet, ils passent au groupe suivant.
+
+function ensureGroupNamesUpTo(count) {
+  // Étend AVAILABLE_GROUPS (Groupe A, B, C, ...) si plus de groupes sont nécessaires.
+  while (AVAILABLE_GROUPS.length < count) {
+    const letter = String.fromCharCode(65 + AVAILABLE_GROUPS.length);
+    AVAILABLE_GROUPS.push(`Groupe ${letter}`);
+  }
+}
+
+function matriculeCompare(a, b) {
+  const na = parseFloat(String(a.id).replace(/[^\d.]/g, ''));
+  const nb = parseFloat(String(b.id).replace(/[^\d.]/g, ''));
+  if (!isNaN(na) && !isNaN(nb) && na !== nb) return na - nb;
+  return String(a.id || '').localeCompare(String(b.id || ''));
+}
+
+function genderOf(r) {
+  const v = (r.genre || '').toString().trim().toLowerCase();
+  const feminine = ['f', 'fille', 'féminin', 'feminin', 'بنت', 'أنثى', 'انثى', 'girl', 'female'];
+  const masculine = ['m', 'garçon', 'garcon', 'masculin', 'ولد', 'ذكر', 'boy', 'male'];
+  if (feminine.some(k => v === k || v.includes(k))) return 'fille';
+  if (masculine.some(k => v === k || v.includes(k))) return 'garçon';
+  return 'inconnu';
+}
+
+// Répartit deux files (garçons/filles), déjà triées par matricule, en groupes de taille
+// maxSize en visant ~37.5% garçons / ~62.5% filles (milieu de la fourchette 30–45% / 70–55%).
+function splitIntoGroups(boys, girls, unknown, maxSize) {
+  const groups = [];
+  let bi = 0, gi = 0, ui = 0;
+  const idealBoys = Math.max(1, Math.round(maxSize * 0.375));
+
+  while (bi < boys.length || gi < girls.length || ui < unknown.length) {
+    let takeB = Math.min(idealBoys, boys.length - bi);
+    let takeG = Math.min(maxSize - takeB, girls.length - gi);
+    let total = takeB + takeG;
+
+    // Complète le groupe avec ce qu'il reste si une des files est épuisée.
+    if (total < maxSize && boys.length - bi - takeB > 0) {
+      const extra = Math.min(maxSize - total, boys.length - bi - takeB);
+      takeB += extra; total += extra;
+    }
+    if (total < maxSize && girls.length - gi - takeG > 0) {
+      const extra = Math.min(maxSize - total, girls.length - gi - takeG);
+      takeG += extra; total += extra;
+    }
+    let takeU = 0;
+    if (total < maxSize && unknown.length - ui > 0) {
+      takeU = Math.min(maxSize - total, unknown.length - ui);
+      total += takeU;
+    }
+
+    if (takeB === 0 && takeG === 0 && takeU === 0) break; // sécurité anti-boucle infinie
+
+    const groupStudents = [
+      ...boys.slice(bi, bi + takeB),
+      ...girls.slice(gi, gi + takeG),
+      ...unknown.slice(ui, ui + takeU),
+    ];
+    bi += takeB; gi += takeG; ui += takeU;
+    groups.push({ students: groupStudents, boys: takeB, girls: takeG, unknown: takeU });
+  }
+  return groups;
+}
+
+async function distributeGroupsAutomatically() {
+  const btn = document.getElementById('distributeGroupsBtn');
+  const summaryEl = document.getElementById('groupDistributionSummary');
+  const maxSize = parseInt(document.getElementById('groupSizeInput').value, 10);
+
+  if (!maxSize || maxSize < 2) {
+    alert('Merci de saisir une taille de groupe valide (2 ou plus).');
+    return;
+  }
+  if (!confirm(`Cette action va (ré)affecter le groupe de tous les élèves admis, par niveau, avec un maximum de ${maxSize} élèves par groupe. Continuer ?`)) {
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Répartition en cours...';
+  summaryEl.classList.add('hidden');
+  summaryEl.innerHTML = '';
+
+  try {
+    const levels = [...new Set(allRecords.map(r => r.niveau).filter(Boolean))].sort();
+    const summaryLines = [];
+    let maxGroupsInAnyLevel = 0;
+
+    const plan = []; // { niveau, groups: [...] }
+    for (const niveau of levels) {
+      const studentsOfLevel = allRecords.filter(r => r.niveau === niveau).sort(matriculeCompare);
+      const boys = studentsOfLevel.filter(r => genderOf(r) === 'garçon');
+      const girls = studentsOfLevel.filter(r => genderOf(r) === 'fille');
+      const unknown = studentsOfLevel.filter(r => genderOf(r) === 'inconnu');
+
+      const groups = splitIntoGroups(boys, girls, unknown, maxSize);
+      maxGroupsInAnyLevel = Math.max(maxGroupsInAnyLevel, groups.length);
+      plan.push({ niveau, groups });
+    }
+
+    ensureGroupNamesUpTo(maxGroupsInAnyLevel);
+
+    let success = 0, failed = 0;
+    for (const { niveau, groups } of plan) {
+      groups.forEach((g, idx) => {
+        const groupName = AVAILABLE_GROUPS[idx];
+        summaryLines.push(
+          `${niveau} — ${groupName} : ${g.students.length} élève(s) (${g.boys} garçon(s), ${g.girls} fille(s)${g.unknown ? `, ${g.unknown} genre non précisé` : ''})`
+        );
+        g.groupName = groupName;
+      });
+    }
+
+    for (const { groups } of plan) {
+      for (const g of groups) {
+        for (const student of g.students) {
+          try {
+            await updateDoc(doc(db, 'students', student.id), { groupe: g.groupName });
+            student.groupe = g.groupName;
+            success += 1;
+          } catch (e) {
+            failed += 1;
+          }
+        }
+      }
+    }
+
+    populateGroupFilter();
+    applyFilters();
+
+    summaryEl.innerHTML =
+      `<p class="font-bold text-navy mb-2">${success} élève(s) affecté(s)${failed ? `, ${failed} échec(s)` : ''} :</p>` +
+      summaryLines.map(l => `<p>${l}</p>`).join('');
+    summaryEl.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/><path d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Répartir automatiquement`;
+  }
+}
+
+document.getElementById('distributeGroupsBtn').addEventListener('click', distributeGroupsAutomatically);
 
 function getFilteredRecords() {
   const q = document.getElementById('searchInput').value.trim().toLowerCase();
