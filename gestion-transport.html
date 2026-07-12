@@ -12,6 +12,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Fraunces:wght@500;600&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
 <script>
   tailwind.config = {
@@ -204,10 +207,28 @@
 
   <!-- Liste des bus -->
   <section class="bg-white border border-line rounded-3xl shadow-sm overflow-hidden">
-    <div class="px-6 sm:px-8 py-6 flex items-center justify-between border-b border-line">
-      <h3 class="font-display font-semibold text-navy text-lg">Flotte de bus</h3>
-      <span id="countBadge" class="text-xs font-extrabold text-navy/60 bg-mist rounded-full px-3 py-1.5">0 bus</span>
+    <div class="px-6 sm:px-8 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-line">
+      <div class="flex items-center gap-3">
+        <h3 class="font-display font-semibold text-navy text-lg">Flotte de bus</h3>
+        <span id="countBadge" class="text-xs font-extrabold text-navy/60 bg-mist rounded-full px-3 py-1.5">0 bus</span>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <input type="file" id="importFileInput" accept=".xlsx,.xls,.csv" class="hidden">
+        <button type="button" id="importBtn" class="inline-flex items-center gap-1.5 text-xs font-extrabold text-purple bg-purple/10 hover:bg-purple hover:text-white border border-purple/20 rounded-full px-4 py-2.5 transition-colors">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0-12l4 4m-4-4L8 7M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(180 12 12)"/></svg>
+          Importer
+        </button>
+        <button type="button" id="exportExcelBtn" class="inline-flex items-center gap-1.5 text-xs font-extrabold text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white border border-emerald-200 rounded-full px-4 py-2.5 transition-colors">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 19V6a2 2 0 012-2h9l5 5v10a2 2 0 01-2 2H6a2 2 0 01-2-2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          Excel
+        </button>
+        <button type="button" id="exportPdfBtn" class="inline-flex items-center gap-1.5 text-xs font-extrabold text-rose-700 bg-rose-50 hover:bg-rose-600 hover:text-white border border-rose-200 rounded-full px-4 py-2.5 transition-colors">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 19V6a2 2 0 012-2h9l5 5v10a2 2 0 01-2 2H6a2 2 0 01-2-2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          PDF
+        </button>
+      </div>
     </div>
+    <p id="importSummary" class="hidden mx-6 sm:mx-8 mt-4 text-xs font-bold text-navy bg-mist border border-line rounded-xl px-4 py-3"></p>
 
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
@@ -633,6 +654,149 @@
   }
 
   modalSearchInput.addEventListener('input', renderModalStudents);
+
+  // ---------- Export Excel / PDF ----------
+  function exportFileName(ext) {
+    return `flotte_bus_${new Date().toISOString().slice(0, 10)}.${ext}`;
+  }
+
+  function busExportRows() {
+    return loadedBuses.map((b) => ({
+      'N° Bus': b.numBus || '',
+      'Immatriculation': b.immatriculation || '',
+      'Modèle': b.modele || '',
+      'Chauffeur': staffName(b.chauffeurId) || '',
+      'Accompagnatrice': staffName(b.accompagnatriceId) || '',
+      'Ligne': b.ligne || '',
+      'Places occupées': occupiedSeats(b.id),
+      'Capacité': Number(b.capacite) || 0,
+      'Statut': b.statut || '',
+    }));
+  }
+
+  document.getElementById('exportExcelBtn').addEventListener('click', () => {
+    const rows = busExportRows();
+    if (rows.length === 0) { alert('Aucun bus à exporter.'); return; }
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [{ wch: 12 }, { wch: 16 }, { wch: 20 }, { wch: 22 }, { wch: 22 }, { wch: 26 }, { wch: 14 }, { wch: 10 }, { wch: 14 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Flotte de bus');
+    XLSX.writeFile(wb, exportFileName('xlsx'));
+  });
+
+  document.getElementById('exportPdfBtn').addEventListener('click', () => {
+    const rows = loadedBuses;
+    if (rows.length === 0) { alert('Aucun bus à exporter.'); return; }
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    pdf.setFontSize(14);
+    pdf.setTextColor(27, 20, 100);
+    pdf.text('Diwan Al Maaref — Transport Scolaire', 14, 15);
+    pdf.setFontSize(9);
+    pdf.setTextColor(120, 120, 120);
+    pdf.text(`Flotte de bus   •   Généré le ${new Date().toLocaleDateString('fr-FR')}`, 14, 21);
+
+    pdf.autoTable({
+      head: [['N° Bus', 'Immatriculation', 'Modèle', 'Chauffeur', 'Accompagnatrice', 'Ligne', 'Places', 'Statut']],
+      body: rows.map((b) => [
+        b.numBus || '', b.immatriculation || '', b.modele || '',
+        staffName(b.chauffeurId) || '—', staffName(b.accompagnatriceId) || '—',
+        b.ligne || '', `${occupiedSeats(b.id)}/${Number(b.capacite) || 0}`, b.statut || '',
+      ]),
+      startY: 26,
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [27, 20, 100], textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [246, 244, 252] },
+    });
+
+    pdf.save(exportFileName('pdf'));
+  });
+
+  // ---------- Import Excel / CSV ----------
+  // Colonnes attendues (en-têtes, insensibles à la casse) : Immatriculation, N° Bus,
+  // Capacité, Modèle (optionnel), Chauffeur (nom complet, optionnel), Accompagnatrice
+  // (nom complet, optionnel), Ligne, Statut (optionnel, "Active" par défaut).
+  const importBtn = document.getElementById('importBtn');
+  const importFileInput = document.getElementById('importFileInput');
+  const importSummary = document.getElementById('importSummary');
+
+  importBtn.addEventListener('click', () => importFileInput.click());
+
+  function normalizeHeader(h) {
+    return (h || '').toString().trim().toLowerCase();
+  }
+
+  function findStaffIdByName(name) {
+    if (!name) return null;
+    const norm = String(name).trim().toLowerCase();
+    const found = loadedStaff.find((s) => (s.nomComplet || '').trim().toLowerCase() === norm);
+    return found ? found.id : null;
+  }
+
+  importFileInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    importSummary.classList.add('hidden');
+
+    try {
+      const buffer = await file.arrayBuffer();
+      const wb = XLSX.read(buffer, { type: 'array', cellDates: false });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+      let success = 0, skipped = 0;
+      for (const raw of rawRows) {
+        const map = {};
+        Object.keys(raw).forEach((k) => { map[normalizeHeader(k)] = raw[k]; });
+
+        const immatriculation = String(map['immatriculation'] || '').trim();
+        const numBus = String(map['n° bus'] || map['numero bus'] || map['numéro bus'] || map['bus'] || '').trim();
+        const capacite = parseInt(map['capacité'] || map['capacite'] || map['places'], 10);
+        const ligne = String(map['ligne'] || map['ligne / trajet'] || map['trajet'] || '').trim();
+
+        if (!immatriculation || !numBus || !ligne || isNaN(capacite) || capacite <= 0) {
+          skipped += 1;
+          continue;
+        }
+
+        const duplicate = findDuplicateImmatriculation(immatriculation, null);
+        if (duplicate) {
+          skipped += 1;
+          continue;
+        }
+
+        const modele = String(map['modèle'] || map['modele'] || map['modèle / marque'] || '').trim();
+        const chauffeurId = findStaffIdByName(map['chauffeur']);
+        const accompagnatriceId = findStaffIdByName(map['accompagnatrice']);
+        let statut = String(map['statut'] || '').trim();
+        if (!['Active', 'En maintenance', "À l'arrêt"].includes(statut)) statut = 'Active';
+
+        const id = genBusId();
+        try {
+          await setDoc(doc(db, 'buses', id), {
+            immatriculation, numBus, capacite, modele,
+            chauffeurId, accompagnatriceId, ligne, statut,
+            createdAt: new Date().toISOString(),
+          });
+          loadedBuses.push({ id, immatriculation, numBus, capacite, modele, chauffeurId, accompagnatriceId, ligne, statut });
+          success += 1;
+        } catch (err) {
+          skipped += 1;
+        }
+      }
+
+      importSummary.textContent = `${success} bus importé(s) avec succès` + (skipped > 0 ? `, ${skipped} ligne(s) ignorée(s) (colonnes manquantes ou immatriculation en doublon).` : '.');
+      importSummary.classList.remove('hidden');
+      render();
+      if (success > 0) showToast('Import terminé');
+    } catch (err) {
+      importSummary.textContent = "Erreur lors de la lecture du fichier. Vérifiez qu'il s'agit bien d'un fichier Excel (.xlsx) ou CSV valide.";
+      importSummary.classList.remove('hidden');
+    } finally {
+      importFileInput.value = '';
+    }
+  });
 
   document.getElementById('logoutBtn').addEventListener('click', async () => {
     await signOut(auth);
