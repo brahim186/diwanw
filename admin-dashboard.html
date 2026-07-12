@@ -68,7 +68,6 @@
 
 <body class="antialiased min-h-screen">
 
-<!-- Écran affiché si aucune session admin active -->
 <div id="noSessionGate" class="hidden min-h-screen flex items-center justify-center px-5">
   <div class="w-full max-w-sm bg-white border border-line rounded-3xl shadow-xl p-8 sm:p-10 text-center">
     <img src="logo.png" alt="Logo Diwan Al Maaref" class="h-16 w-16 object-contain mb-5 mx-auto">
@@ -121,7 +120,6 @@
       </div>
     </div>
 
-    <!-- تم إخفاء حالة التحميل الافتراضية لعرض الطالب الوهمي فورا -->
     <div id="loadingState" class="hidden flex flex-col items-center justify-center py-24 gap-4">
       <span class="spinner" style="width:32px;height:32px;border-width:4px;"></span>
       <p class="text-ink/50 text-sm">Chargement des données en cours...</p>
@@ -292,12 +290,12 @@ import {
   saveStudentCredentials, getStudentCredentialsByStudentId, listStudentCredentialEmails
 } from './supabase-config.js';
 
-let allRecords = []; // toutes les demandes d'inscription (table "students")
+let allRecords = []; 
 
 const dashboard = document.getElementById('dashboard');
 const noSessionGate = document.getElementById('noSessionGate');
 
-function driveIdFromUrl() { return null; } // conservé pour compat, non utilisé (Supabase Storage sert des URL directes)
+function driveIdFromUrl() { return null; } 
 
 requireAdmin(() => fetchRecords());
 
@@ -488,19 +486,14 @@ function applyStatusInterface(rowElement, status) {
   }
 }
 
-// Crée le compte de connexion de l'élève s'il n'existe pas encore (idempotent : si un
-// clic répété sur "Accepté"/"Identifiants élève" survient, on renvoie l'identifiant déjà
-// créé au lieu d'en générer un nouveau).
+
 async function ensureStudentAccount(record) {
   const existing = await getStudentCredentialsByStudentId(record.id);
   if (existing) {
     return { email: existing.email, password: existing.password, isNew: false };
   }
 
-  // On génère l'email et on tente de créer le compte Auth. Si l'email est déjà pris côté
-  // Auth (ex: reliquat d'une tentative précédente qui avait échoué avant l'enregistrement
-  // en base — l'utilisateur Auth existe mais pas la ligne student_credentials associée),
-  // on réessaie avec un email suivant (suffixe +1, +2...) plutôt que d'échouer.
+
   const excludedEmails = await listStudentCredentialEmails();
   let email, password, uid;
   let lastError = null;
@@ -517,7 +510,7 @@ async function ensureStudentAccount(record) {
       const msg = (err.message || '').toLowerCase();
       const isEmailTaken = msg.includes('already registered') || msg.includes('already exists') || msg.includes('user_already_exists');
       if (!isEmailTaken) throw err;
-      excludedEmails.push(email); // on exclut cet email et on réessaie avec le suivant
+      excludedEmails.push(email); 
     }
   }
 
