@@ -113,7 +113,7 @@
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
       <div>
         <h2 class="font-display font-semibold text-navy text-2xl">Vue d'ensemble financière</h2>
-        <p class="text-ink/50 text-sm mt-1">Recettes (frais de scolarité), dépenses (salaires) et solde, sur l'année sélectionnée.</p>
+        <p class="text-ink/50 text-sm mt-1">Recettes (frais de scolarité), dépenses (salaires + dépenses diverses) et solde, sur l'année sélectionnée.</p>
       </div>
       <select id="yearSelect" class="month-select rounded-full border border-line bg-white pl-4 pr-9 py-2.5 text-xs font-extrabold text-navy focus:border-gold outline-none cursor-pointer"></select>
     </div>
@@ -205,15 +205,16 @@ function fmtDH(n) {
 }
 
 async function loadYearData(annee) {
-  const [studentPaySnap, teacherPaySnap] = await Promise.all([
+  const [studentPaySnap, teacherPaySnap, miscExpSnap] = await Promise.all([
     getDocs(collection(db, 'student_payments')).catch(() => ({ docs: [] })),
     getDocs(collection(db, 'teacher_payments')).catch(() => ({ docs: [] })),
+    getDocs(collection(db, 'misc_expenses')).catch(() => ({ docs: [] })),
   ]);
 
   const revenues = Array(12).fill(0);   // encaissé (statut Payé) par mois
   const expensesDue = Array(12).fill(0);
   const revenuesDue = Array(12).fill(0);
-  const expenses = Array(12).fill(0);   // payé par mois
+  const expenses = Array(12).fill(0);   // payé par mois (salaires + dépenses diverses)
 
   studentPaySnap.docs.forEach((d) => {
     const row = d.data();
@@ -231,6 +232,17 @@ async function loadYearData(annee) {
     if (idx < 0 || idx > 11) return;
     expensesDue[idx] += Number(row.montant) || 0;
     if (row.statut === 'Payé') expenses[idx] += Number(row.montant) || 0;
+  });
+
+  // Dépenses diverses (Administration, Entretien, Pédagogie, Communication, Transport...) :
+  // toujours considérées comme déjà engagées/payées dès leur saisie (pas de statut Payé/Non payé).
+  miscExpSnap.docs.forEach((d) => {
+    const row = d.data();
+    if (row.annee !== annee) return;
+    const idx = (row.mois || 1) - 1;
+    if (idx < 0 || idx > 11) return;
+    expensesDue[idx] += Number(row.montant) || 0;
+    expenses[idx] += Number(row.montant) || 0;
   });
 
   return { revenues, expenses, revenuesDue, expensesDue };
