@@ -289,8 +289,8 @@
 <!-- Modal détails actualité -->
 <div id="actualiteModal" class="hidden fixed inset-0 z-[70] bg-navy-900/70 backdrop-blur-sm flex items-center justify-center px-5 py-8">
   <div class="w-full max-w-xl max-h-[88vh] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden">
-    <div class="relative shrink-0">
-      <img id="modalActuImage" src="" alt="" class="hidden w-full h-56 sm:h-64 object-cover">
+    <div class="relative shrink-0 bg-mist">
+      <img id="modalActuImage" src="" alt="" class="hidden w-full max-h-[60vh] object-contain mx-auto">
       <button type="button" id="closeActuModalBtn" aria-label="Fermer" class="absolute top-4 right-4 w-9 h-9 grid place-items-center rounded-full bg-white/90 hover:bg-white text-navy shadow-lg transition-colors">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       </button>
@@ -881,8 +881,8 @@
       return `
         <li class="splide__slide">
           <button type="button" data-index="${index}" class="actu-card w-full h-full text-left bg-white border border-line rounded-3xl overflow-hidden shadow-sm flex flex-col">
-            <div class="h-44 overflow-hidden">
-              <img src="${item.imageURL}" alt="${item.titre || ''}" class="w-full h-full object-cover">
+            <div class="h-44 overflow-hidden bg-mist flex items-center justify-center">
+              <img src="${item.imageURL}" alt="${item.titre || ''}" class="w-full h-full object-contain">
             </div>
             <div class="p-6 flex flex-col gap-2 flex-1">
               <span class="text-[11px] font-extrabold uppercase tracking-wide text-gold-dark">${formatDate(item.datePublication) || 'Annonce'}</span>
@@ -944,13 +944,18 @@
     });
 
     new Splide('.splide-actualites', {
-      type: 'slide',
-      rewind: true,
+      type: 'loop',
       perPage: 3,
       gap: '1.5rem',
       arrows: true,
       pagination: false,
       drag: true,
+      autoplay: true,
+      interval: 3200,
+      speed: 800,
+      pauseOnHover: true,
+      pauseOnFocus: true,
+      resetProgress: false,
       breakpoints: {
         1024: { perPage: 2 },
         640:  { perPage: 1 },
