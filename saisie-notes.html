@@ -12,6 +12,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Fraunces:wght@500;600&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
 <script>
   tailwind.config = {
@@ -100,19 +103,37 @@
   </div>
 
   <section class="bg-white border border-line rounded-3xl shadow-sm overflow-hidden">
-    <div class="px-6 sm:px-8 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-line">
-      <div class="flex items-center gap-3">
-        <h3 class="font-display font-semibold text-navy text-lg">Liste des élèves</h3>
-        <span id="countBadge" class="text-xs font-extrabold text-navy/60 bg-mist rounded-full px-3 py-1.5">0 élève</span>
+    <div class="px-6 sm:px-8 py-6 flex flex-col gap-4 border-b border-line">
+      <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <h3 class="font-display font-semibold text-navy text-lg">Liste des élèves</h3>
+          <span id="countBadge" class="text-xs font-extrabold text-navy/60 bg-mist rounded-full px-3 py-1.5">0 élève</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <select id="levelFilter" class="rounded-full border border-line bg-white px-4 py-2 text-xs font-bold text-navy focus:border-gold outline-none">
+            <option value="">Tous les niveaux</option>
+          </select>
+          <select id="groupFilter" class="rounded-full border border-line bg-white px-4 py-2 text-xs font-bold text-navy focus:border-gold outline-none">
+            <option value="">Tous les groupes</option>
+          </select>
+        </div>
       </div>
-      <div class="flex flex-wrap items-center gap-2">
-        <select id="levelFilter" class="rounded-full border border-line bg-white px-4 py-2 text-xs font-bold text-navy focus:border-gold outline-none">
-          <option value="">Tous les niveaux</option>
-        </select>
-        <select id="groupFilter" class="rounded-full border border-line bg-white px-4 py-2 text-xs font-bold text-navy focus:border-gold outline-none">
-          <option value="">Tous les groupes</option>
-        </select>
+      <div class="flex flex-wrap items-center justify-end gap-2">
+        <input type="file" id="importFileInput" accept=".xlsx,.xls,.csv" class="hidden">
+        <button type="button" id="importBtn" class="inline-flex items-center gap-1.5 text-xs font-extrabold text-purple bg-purple/10 hover:bg-purple hover:text-white border border-purple/20 rounded-full px-4 py-2.5 transition-colors">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0-12l4 4m-4-4L8 7M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(180 12 12)"/></svg>
+          Importer
+        </button>
+        <button type="button" id="exportExcelBtn" class="inline-flex items-center gap-1.5 text-xs font-extrabold text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white border border-emerald-200 rounded-full px-4 py-2.5 transition-colors">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 19V6a2 2 0 012-2h9l5 5v10a2 2 0 01-2 2H6a2 2 0 01-2-2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          Excel
+        </button>
+        <button type="button" id="exportPdfBtn" class="inline-flex items-center gap-1.5 text-xs font-extrabold text-rose-700 bg-rose-50 hover:bg-rose-600 hover:text-white border border-rose-200 rounded-full px-4 py-2.5 transition-colors">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 19V6a2 2 0 012-2h9l5 5v10a2 2 0 01-2 2H6a2 2 0 01-2-2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          PDF
+        </button>
       </div>
+      <p id="importSummary" class="hidden text-xs font-bold text-navy bg-mist border border-line rounded-xl px-4 py-3"></p>
     </div>
 
     <div class="overflow-x-auto">
@@ -323,6 +344,137 @@
 
     populateFilters(myStudents);
     renderRows();
+
+    // ---------- Export Excel / PDF (liste filtrée actuellement affichée) ----------
+    function exportFileName(ext) {
+      const matiereSlug = (teacher.matiere || 'notes').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]+/g, '_');
+      return `notes_${matiereSlug}_${new Date().toISOString().slice(0, 10)}.${ext}`;
+    }
+
+    document.getElementById('exportExcelBtn').addEventListener('click', () => {
+      const rows = getFilteredStudents().map((s) => {
+        const n = s._notes || {};
+        return {
+          'Nom': s.nom || '',
+          'Prénom': s.prenom || '',
+          'Matricule': s.id || '',
+          'Niveau': s.niveau || '',
+          'Groupe': s.groupe || '',
+          'Examen 1': n.examen1 ?? '',
+          'Examen 2': n.examen2 ?? '',
+          'Examen 3': n.examen3 ?? '',
+        };
+      });
+      if (rows.length === 0) { alert('Aucune donnée à exporter avec ces filtres.'); return; }
+      const ws = XLSX.utils.json_to_sheet(rows);
+      ws['!cols'] = [{ wch: 18 }, { wch: 16 }, { wch: 12 }, { wch: 22 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 10 }];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Notes');
+      XLSX.writeFile(wb, exportFileName('xlsx'));
+    });
+
+    document.getElementById('exportPdfBtn').addEventListener('click', () => {
+      const rows = getFilteredStudents();
+      if (rows.length === 0) { alert('Aucune donnée à exporter avec ces filtres.'); return; }
+
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      pdf.setFontSize(14);
+      pdf.setTextColor(27, 20, 100);
+      pdf.text('Diwan Al Maaref — Saisie des Notes', 14, 15);
+      pdf.setFontSize(9);
+      pdf.setTextColor(120, 120, 120);
+      pdf.text(`Matière : ${teacher.matiere || '—'}   •   Généré le ${new Date().toLocaleDateString('fr-FR')}`, 14, 21);
+
+      pdf.autoTable({
+        head: [['Nom', 'Prénom', 'Matricule', 'Niveau', 'Groupe', 'Examen 1', 'Examen 2', 'Examen 3']],
+        body: rows.map((s) => {
+          const n = s._notes || {};
+          return [s.nom || '', s.prenom || '', s.id || '', s.niveau || '', s.groupe || '', n.examen1 ?? '—', n.examen2 ?? '—', n.examen3 ?? '—'];
+        }),
+        startY: 26,
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: [27, 20, 100], textColor: 255, fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [246, 244, 252] },
+      });
+
+      pdf.save(exportFileName('pdf'));
+    });
+
+    // ---------- Import Excel / CSV ----------
+    // Colonnes attendues (en-têtes, insensibles à la casse) : Matricule, et une ou
+    // plusieurs colonnes parmi Examen 1, Examen 2, Examen 3 (notes sur 20). Seules les
+    // colonnes présentes et non vides sont mises à jour ; le matricule doit correspondre
+    // à un élève de vos classes (matière en cours).
+    const importBtn = document.getElementById('importBtn');
+    const importFileInput = document.getElementById('importFileInput');
+    const importSummary = document.getElementById('importSummary');
+
+    importBtn.addEventListener('click', () => importFileInput.click());
+
+    function normalizeHeader(h) {
+      return (h || '').toString().trim().toLowerCase();
+    }
+
+    function parseNoteValue(raw) {
+      if (raw === '' || raw === undefined || raw === null) return undefined; // colonne absente/vide -> ne pas toucher
+      const val = parseFloat(raw);
+      if (isNaN(val)) return null;
+      return Math.max(0, Math.min(20, val));
+    }
+
+    importFileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      importSummary.classList.add('hidden');
+
+      try {
+        const buffer = await file.arrayBuffer();
+        const wb = XLSX.read(buffer, { type: 'array', cellDates: false });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+        let success = 0, skipped = 0;
+        for (const raw of rawRows) {
+          const map = {};
+          Object.keys(raw).forEach((k) => { map[normalizeHeader(k)] = raw[k]; });
+
+          const matricule = String(map['matricule'] || '').trim();
+          const student = myStudents.find((s) => (s.id || '').trim() === matricule);
+
+          const updates = {};
+          const e1 = parseNoteValue(map['examen 1'] ?? map['examen1']);
+          const e2 = parseNoteValue(map['examen 2'] ?? map['examen2']);
+          const e3 = parseNoteValue(map['examen 3'] ?? map['examen3']);
+          if (e1 !== undefined) updates.examen1 = e1;
+          if (e2 !== undefined) updates.examen2 = e2;
+          if (e3 !== undefined) updates.examen3 = e3;
+
+          if (!matricule || !student || Object.keys(updates).length === 0) {
+            skipped += 1;
+            continue;
+          }
+
+          try {
+            await saveNoteFor(student.id, teacher.matiere, updates);
+            student._notes = { ...(student._notes || {}), ...updates };
+            success += 1;
+          } catch (err) {
+            skipped += 1;
+          }
+        }
+
+        importSummary.textContent = `${success} élève(s) mis à jour avec succès` + (skipped > 0 ? `, ${skipped} ligne(s) ignorée(s) (matricule inconnu ou aucune note valide).` : '.');
+        importSummary.classList.remove('hidden');
+        renderRows();
+        if (success > 0) showToast('Import terminé');
+      } catch (err) {
+        importSummary.textContent = "Erreur lors de la lecture du fichier. Vérifiez qu'il s'agit bien d'un fichier Excel (.xlsx) ou CSV valide.";
+        importSummary.classList.remove('hidden');
+      } finally {
+        importFileInput.value = '';
+      }
+    });
   });
 
   document.getElementById('logoutBtn').addEventListener('click', async () => {
