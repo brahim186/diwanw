@@ -210,8 +210,10 @@
   // Charge toutes les notes déjà saisies par les enseignants pour cet élève (une ligne par
   // matière dans la table "notes", id = "<matricule>::<matière>"), et les regroupe par matière.
   async function loadStudentNotes(matricule) {
+    console.log('[mes-notes] recherche des notes pour studentId =', JSON.stringify(matricule));
     const q = query(collection(db, 'notes'), where('studentId', '==', matricule));
     const snap = await getDocs(q);
+    console.log('[mes-notes] lignes "notes" trouvées :', snap.docs.length, snap.docs.map(d => d.data()));
     const map = {};
     snap.docs.forEach((d) => {
       const row = d.data();
@@ -348,6 +350,7 @@
     try {
       notesMap = await loadStudentNotes(student.matricule);
     } catch (e) {
+      console.error('[mes-notes] erreur chargement des notes :', e);
       notesMap = {};
     }
 
