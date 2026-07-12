@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dépenses Diverses | Diwan Al Maaref</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="logo.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Fraunces:wght@500;600&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          navy:  { DEFAULT:'#1B1464', 700:'#170F52', 900:'#100B3B' },
+          purple:{ DEFAULT:'#5B3AA6' },
+          gold:  { DEFAULT:'#F0A93C', light:'#FBC873', dark:'#D98F1F' },
+          ink:   '#221D3D',
+          mist:  '#F6F4FC',
+          line:  '#E7E2F3',
+        },
+        fontFamily: { sans: ['Inter','sans-serif'], display: ['Fraunces','serif'] }
+      }
+    }
+  }
+</script>
+
+<style>
+  body { font-family:'Inter', sans-serif; color:#221D3D; background:#F6F4FC; }
+  .font-display { font-family:'Fraunces', serif; }
+  .num { font-family:'Manrope', sans-serif; }
+  ::selection { background:#F0A93C; color:#1B1464; }
+
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+    outline: 2px solid #F0A93C; outline-offset: 2px; border-radius: 6px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration:.01ms !important; transition-duration:.01ms !important; }
+  }
+
+  .spinner {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 3px solid rgba(27,20,100,.15); border-top-color:#1B1464;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .row-enter { animation: rowEnter .3s cubic-bezier(.2,.8,.25,1) both; }
+  @keyframes rowEnter { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+
+  .field { transition: border-color .2s ease, box-shadow .2s ease; }
+  .field:focus { border-color:#5B3AA6; box-shadow:0 0 0 4px rgba(91,58,166,.12); }
+
+  .saved-flash { animation: flash 1s ease; }
+  @keyframes flash { 0%{background-color:#D1FAE5} 100%{background-color:transparent} }
+
+  .toast { animation: toastIn .3s ease both, toastOut .3s ease 1.7s both; }
+  @keyframes toastIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes toastOut { from{opacity:1} to{opacity:0;transform:translateY(-6px)} }
+
+  .month-select {
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none'><path d='M6 9l6 6 6-6' stroke='%235B3AA6' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat: no-repeat; background-position: right .8rem center;
+  }
+
+  /* --- Combobox catégorie / sous-catégorie --- */
+  #categoryPanel { max-height: 320px; }
+  #categoryList { max-height: 240px; }
+  .cat-group-label {
+    position: sticky; top: 0;
+    background: #F6F4FC;
+  }
+  .subcat-btn { transition: background-color .15s ease; }
+  .subcat-btn:hover, .subcat-btn.active { background:#EFE9FA; }
+  .combobox-chevron { transition: transform .2s ease; }
+  .combobox-open .combobox-chevron { transform: rotate(180deg); }
+</style>
+</head>
+
+<body class="antialiased min-h-screen">
+
+<!-- Écran affiché si aucune session admin active -->
+<div id="noSessionGate" class="hidden min-h-screen flex items-center justify-center px-5">
+  <div class="w-full max-w-sm bg-white border border-line rounded-3xl shadow-xl p-8 sm:p-10 text-center">
+    <img src="logo.png" alt="Logo Diwan Al Maaref" class="h-16 w-16 object-contain mb-5 mx-auto">
+    <h1 class="font-display font-semibold text-navy text-lg mb-2">Session requise</h1>
+    <p class="text-ink/50 text-sm mb-6">Veuillez vous connecter depuis le tableau de bord administratif principal pour accéder à cette page.</p>
+    <a href="admin-dashboard.html" class="inline-flex items-center justify-center gap-2 bg-navy hover:bg-navy-700 text-white font-extrabold px-6 py-3 rounded-full transition-colors text-sm">
+      Aller au Tableau de Bord
+    </a>
+  </div>
+</div>
+
+<div id="dashboard" class="hidden">
+
+  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-line">
+    <div class="max-w-6xl mx-auto px-5 sm:px-8 h-20 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <img src="logo.png" alt="Logo Diwan Al Maaref" class="h-11 w-11 object-contain">
+        <div class="hidden sm:flex flex-col leading-tight">
+          <span class="font-display font-semibold text-navy text-base">Dépenses Diverses</span>
+          <span class="text-[11px] text-gold-dark font-bold">Diwan Al Maaref — Administration</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="espace-administration.html" class="inline-flex items-center gap-2 text-xs font-bold text-navy/70 hover:text-gold-dark border border-line rounded-full px-4 py-2.5 transition-colors bg-white">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="hidden sm:inline">Espace Administration</span>
+        </a>
+        <button id="logoutBtn" class="text-sm font-bold text-navy/60 hover:text-red-500 transition-colors">Déconnexion</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-5 sm:px-8 py-10 flex flex-col gap-6">
+
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+      <div>
+        <h2 class="font-display font-semibold text-navy text-2xl">Dépenses Diverses</h2>
+        <p class="text-ink/50 text-sm mt-1">Enregistrez et suivez les dépenses de fonctionnement de l'établissement.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <select id="monthSelect" class="month-select rounded-full border border-line bg-white pl-4 pr-9 py-2.5 text-xs font-extrabold text-navy focus:border-gold outline-none cursor-pointer"></select>
+        <select id="yearSelect" class="month-select rounded-full border border-line bg-white pl-4 pr-9 py-2.5 text-xs font-extrabold text-navy focus:border-gold outline-none cursor-pointer"></select>
+      </div>
+    </div>
+
+    <!-- KPI -->
+    <section class="grid sm:grid-cols-3 gap-4">
+      <div class="bg-white border border-line rounded-2xl p-5">
+        <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Total du mois</p>
+        <p id="kpiTotal" class="font-display font-semibold text-rose-600 text-2xl num">0 DH</p>
+      </div>
+      <div class="bg-white border border-line rounded-2xl p-5">
+        <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Nombre de dépenses</p>
+        <p id="kpiCount" class="font-display font-semibold text-navy text-2xl num">0</p>
+      </div>
+      <div class="bg-white border border-line rounded-2xl p-5">
+        <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Catégorie principale</p>
+        <p id="kpiTopCategory" class="font-display font-semibold text-purple text-lg">—</p>
+      </div>
+    </section>
+
+    <!-- Formulaire d'ajout -->
+    <section class="bg-white border border-line rounded-3xl shadow-sm p-6 sm:p-8">
+      <h3 class="font-display font-semibold text-navy text-lg mb-5">Ajouter une dépense</h3>
+      <form id="expenseForm" class="grid sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+
+        <!-- Combobox catégorie / sous-catégorie -->
+        <div class="lg:col-span-2 relative">
+          <label class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Sous-catégorie</label>
+          <button type="button" id="categoryToggle"
+            class="field w-full flex items-center justify-between gap-2 rounded-2xl border border-line bg-mist px-4 py-3.5 text-sm text-left outline-none">
+            <span id="categoryToggleLabel" class="text-ink/40 truncate">Choisir une sous-catégorie...</span>
+            <svg class="combobox-chevron flex-shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="#5B3AA6" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+
+          <div id="categoryPanel" class="hidden absolute z-20 mt-2 w-full sm:w-[420px] bg-white border border-line rounded-2xl shadow-xl overflow-hidden flex flex-col">
+            <div class="p-3 border-b border-line">
+              <div class="relative">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink/30"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <input id="categorySearch" type="text" placeholder="Rechercher une sous-catégorie..."
+                  class="w-full rounded-xl border border-line bg-mist pl-9 pr-3 py-2.5 text-sm outline-none focus:border-gold">
+              </div>
+            </div>
+            <div id="categoryList" class="overflow-y-auto py-1"></div>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Montant (DH)</label>
+          <input id="expenseAmount" type="number" min="0" step="10" placeholder="0"
+            class="field w-full rounded-2xl border border-line bg-mist px-4 py-3.5 text-sm text-navy outline-none num">
+        </div>
+
+        <div>
+          <label class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Date</label>
+          <input id="expenseDate" type="date"
+            class="field w-full rounded-2xl border border-line bg-mist px-4 py-3.5 text-sm text-navy outline-none">
+        </div>
+
+        <div class="lg:col-span-5">
+          <label class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Description <span class="text-ink/30 normal-case font-medium">(optionnel)</span></label>
+          <input id="expenseDescription" type="text" placeholder="ex: Achat de cartouches d'imprimante"
+            class="field w-full rounded-2xl border border-line bg-mist px-4 py-3.5 text-sm text-navy outline-none">
+        </div>
+
+        <div class="lg:col-span-5 flex justify-end">
+          <button type="submit" id="submitBtn" class="inline-flex items-center gap-2 bg-navy hover:bg-navy-700 text-white font-extrabold text-sm rounded-full px-7 py-3.5 transition-colors">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Ajouter la dépense
+          </button>
+        </div>
+      </form>
+      <p id="formError" class="hidden mt-4 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3"></p>
+    </section>
+
+    <!-- Liste des dépenses -->
+    <section class="bg-white border border-line rounded-3xl shadow-sm overflow-hidden">
+      <div class="px-6 sm:px-8 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-line">
+        <h3 class="font-display font-semibold text-navy text-lg">Historique des dépenses</h3>
+        <div class="relative w-full sm:w-72">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="absolute left-4 top-1/2 -translate-y-1/2 text-ink/30"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <input id="listSearchInput" type="text" placeholder="Rechercher une dépense..." class="w-full rounded-full border border-line bg-white pl-11 pr-4 py-2.5 text-sm focus:border-gold outline-none">
+        </div>
+      </div>
+
+      <div id="loadingState" class="flex flex-col items-center justify-center py-16 gap-4">
+        <span class="spinner" style="width:28px;height:28px;border-width:4px;"></span>
+        <p class="text-ink/50 text-sm">Chargement des données...</p>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table id="dataTable" class="hidden w-full text-sm">
+          <thead>
+            <tr class="text-left text-[11px] font-extrabold uppercase tracking-wide text-ink/40 bg-mist/60">
+              <th class="px-6 sm:px-8 py-3.5 whitespace-nowrap">Date</th>
+              <th class="px-4 py-3.5 whitespace-nowrap">Catégorie</th>
+              <th class="px-4 py-3.5 whitespace-nowrap">Sous-catégorie</th>
+              <th class="px-4 py-3.5 whitespace-nowrap">Description</th>
+              <th class="px-4 py-3.5 whitespace-nowrap text-right">Montant</th>
+              <th class="px-4 sm:px-8 py-3.5 whitespace-nowrap text-center">Action</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody" class="divide-y divide-line"></tbody>
+        </table>
+      </div>
+
+      <div id="emptyState" class="hidden px-8 py-14 text-center">
+        <p class="text-ink/40 text-sm">Aucune dépense enregistrée pour cette période.</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div id="toastWrap" class="fixed bottom-6 inset-x-0 flex justify-center pointer-events-none z-50"></div>
+
+<script type="module">
+import { auth, db, signOut, collection, getDocs, doc, setDoc, deleteDoc, requireAdmin } from './supabase-config.js';
+
+const MONTHS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
+// Liste des catégories et sous-catégories (fixe, non modifiable côté UI).
+const CATEGORIES = {
+  'Administration et Gestion Courante': [
+    "Fournitures de bureau et d'impression",
+    'Frais postaux et de télécommunication',
+    'Logiciels et abonnements',
+    'Frais bancaires et assurances',
+  ],
+  'Entretien, Locaux et Logistique': [
+    'Fluides',
+    'Produits et services de nettoyage',
+    'Maintenance et réparations',
+    'Sécurité',
+  ],
+  'Pédagogie et Activités': [
+    'Matériel didactique',
+    'Événements et sorties',
+    "Fournitures d'ateliers",
+  ],
+  'Communication et Marketing': [
+    'Publicité',
+    'Signalétique et habillage',
+  ],
+  'Transport': [
+    'Carburant',
+    'Entretien, vidanges et assurances des véhicules',
+    'Vignettes et taxes de transport',
+  ],
+};
+
+function findCategoryOf(sousCategorie) {
+  for (const [cat, subs] of Object.entries(CATEGORIES)) {
+    if (subs.includes(sousCategorie)) return cat;
+  }
+  return null;
+}
+
+// --- Combobox catégorie / sous-catégorie ------------------------------------------
+const categoryToggle = document.getElementById('categoryToggle');
+const categoryToggleLabel = document.getElementById('categoryToggleLabel');
+const categoryPanel = document.getElementById('categoryPanel');
+const categoryList = document.getElementById('categoryList');
+const categorySearch = document.getElementById('categorySearch');
+
+let selectedSousCategorie = null;
+
+function renderCategoryList(filter = '') {
+  const q = filter.trim().toLowerCase();
+  categoryList.innerHTML = '';
+  let anyVisible = false;
+
+  Object.entries(CATEGORIES).forEach(([cat, subs]) => {
+    const matchingSubs = subs.filter((s) =>
+      !q || s.toLowerCase().includes(q) || cat.toLowerCase().includes(q));
+    if (matchingSubs.length === 0) return;
+    anyVisible = true;
+
+    const groupLabel = document.createElement('div');
+    groupLabel.className = 'cat-group-label px-4 pt-3 pb-1.5 text-[10px] font-extrabold uppercase tracking-wide text-purple';
+    groupLabel.textContent = cat;
+    categoryList.appendChild(groupLabel);
+
+    matchingSubs.forEach((sub) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'subcat-btn w-full text-left px-4 py-2.5 text-sm text-ink flex items-center justify-between gap-2';
+      btn.textContent = sub;
+      if (sub === selectedSousCategorie) btn.classList.add('active');
+      btn.addEventListener('click', () => {
+        selectedSousCategorie = sub;
+        categoryToggleLabel.textContent = sub;
+        categoryToggleLabel.classList.remove('text-ink/40');
+        closeCategoryPanel();
+      });
+      categoryList.appendChild(btn);
+    });
+  });
+
+  if (!anyVisible) {
+    categoryList.innerHTML = '<p class="px-4 py-6 text-center text-ink/40 text-sm">Aucun résultat.</p>';
+  }
+}
+
+function openCategoryPanel() {
+  categoryPanel.classList.remove('hidden');
+  categoryToggle.classList.add('combobox-open');
+  categorySearch.value = '';
+  renderCategoryList('');
+  setTimeout(() => categorySearch.focus(), 0);
+}
+function closeCategoryPanel() {
+  categoryPanel.classList.add('hidden');
+  categoryToggle.classList.remove('combobox-open');
+}
+
+categoryToggle.addEventListener('click', () => {
+  categoryPanel.classList.contains('hidden') ? openCategoryPanel() : closeCategoryPanel();
+});
+categorySearch.addEventListener('input', () => renderCategoryList(categorySearch.value));
+document.addEventListener('click', (e) => {
+  if (!categoryPanel.contains(e.target) && !categoryToggle.contains(e.target)) closeCategoryPanel();
+});
+
+// --- Filtres période (liste) -------------------------------------------------------
+const monthSelect = document.getElementById('monthSelect');
+const yearSelect = document.getElementById('yearSelect');
+const now = new Date();
+
+MONTHS.forEach((m, i) => {
+  const opt = document.createElement('option');
+  opt.value = i + 1;
+  opt.textContent = m;
+  monthSelect.appendChild(opt);
+});
+monthSelect.value = now.getMonth() + 1;
+
+const currentYear = now.getFullYear();
+for (let y = currentYear - 1; y <= currentYear + 1; y++) {
+  const opt = document.createElement('option');
+  opt.value = y;
+  opt.textContent = y;
+  yearSelect.appendChild(opt);
+}
+yearSelect.value = currentYear;
+
+document.getElementById('expenseDate').value = now.toISOString().slice(0, 10);
+
+let allExpenses = [];
+
+function fmtDH(n) {
+  return (Number(n) || 0).toLocaleString('fr-FR') + ' DH';
+}
+
+function showToast(message) {
+  const toastWrap = document.getElementById('toastWrap');
+  const toast = document.createElement('div');
+  toast.className = 'toast pointer-events-auto bg-navy text-white text-sm font-bold rounded-full px-6 py-3 shadow-lg flex items-center gap-2';
+  toast.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#F0A93C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>${message}`;
+  toastWrap.appendChild(toast);
+  setTimeout(() => toast.remove(), 2000);
+}
+
+async function loadExpenses() {
+  const loadingState = document.getElementById('loadingState');
+  const table = document.getElementById('dataTable');
+  loadingState.classList.remove('hidden');
+  table.classList.add('hidden');
+
+  try {
+    const snap = await getDocs(collection(db, 'misc_expenses'));
+    allExpenses = snap.docs.map((d) => d.data());
+  } catch (e) {
+    allExpenses = [];
+  }
+
+  loadingState.classList.add('hidden');
+  renderList();
+}
+
+function getFilteredExpenses() {
+  const annee = parseInt(yearSelect.value, 10);
+  const mois = parseInt(monthSelect.value, 10);
+  const q = document.getElementById('listSearchInput').value.trim().toLowerCase();
+
+  return allExpenses
+    .filter((e) => e.annee === annee && e.mois === mois)
+    .filter((e) => {
+      if (!q) return true;
+      return (e.sousCategorie || '').toLowerCase().includes(q) ||
+        (e.categorie || '').toLowerCase().includes(q) ||
+        (e.description || '').toLowerCase().includes(q);
+    })
+    .sort((a, b) => (b.datePaiement || '').localeCompare(a.datePaiement || ''));
+}
+
+function renderList() {
+  const tbody = document.getElementById('tableBody');
+  const table = document.getElementById('dataTable');
+  const emptyState = document.getElementById('emptyState');
+  tbody.innerHTML = '';
+
+  const rows = getFilteredExpenses();
+
+  if (rows.length === 0) {
+    table.classList.add('hidden');
+    emptyState.classList.remove('hidden');
+  } else {
+    emptyState.classList.add('hidden');
+    table.classList.remove('hidden');
+
+    rows.forEach((r) => {
+      const tr = document.createElement('tr');
+      tr.className = 'row-enter hover:bg-mist/40 transition-colors';
+      tr.innerHTML = `
+        <td class="px-6 sm:px-8 py-3.5 whitespace-nowrap text-ink/60 num">${r.datePaiement || '—'}</td>
+        <td class="px-4 py-3.5 whitespace-nowrap"><span class="inline-block text-[11px] font-extrabold rounded-full px-3 py-1 bg-purple/10 text-purple">${r.categorie || '—'}</span></td>
+        <td class="px-4 py-3.5 whitespace-nowrap font-bold text-navy">${r.sousCategorie || '—'}</td>
+        <td class="px-4 py-3.5 text-ink/60 max-w-[220px] truncate">${r.description || '—'}</td>
+        <td class="px-4 py-3.5 text-right num font-extrabold text-rose-600">${fmtDH(r.montant)}</td>
+        <td class="px-4 sm:px-8 py-3.5 text-center">
+          <button type="button" data-id="${r.id}" class="deleteBtn text-rose-500 hover:text-white hover:bg-rose-600 border border-rose-200 rounded-full w-8 h-8 grid place-items-center transition-colors" aria-label="Supprimer">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0-1 14a2 2 0 01-2 2H7a2 2 0 01-2-2L4 6h16z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    tbody.querySelectorAll('.deleteBtn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Supprimer cette dépense ?')) return;
+        const id = btn.dataset.id;
+        try {
+          await deleteDoc(doc(db, 'misc_expenses', id));
+          allExpenses = allExpenses.filter((e) => e.id !== id);
+          renderList();
+          showToast('Dépense supprimée');
+        } catch (e) {
+          alert('Erreur lors de la suppression.');
+        }
+      });
+    });
+  }
+
+  // KPI (sur la période sélectionnée, avant filtre de recherche)
+  const annee = parseInt(yearSelect.value, 10);
+  const mois = parseInt(monthSelect.value, 10);
+  const periodRows = allExpenses.filter((e) => e.annee === annee && e.mois === mois);
+  const total = periodRows.reduce((sum, e) => sum + (Number(e.montant) || 0), 0);
+  document.getElementById('kpiTotal').textContent = fmtDH(total);
+  document.getElementById('kpiCount').textContent = periodRows.length;
+
+  const byCategory = {};
+  periodRows.forEach((e) => {
+    byCategory[e.categorie] = (byCategory[e.categorie] || 0) + (Number(e.montant) || 0);
+  });
+  const top = Object.entries(byCategory).sort((a, b) => b[1] - a[1])[0];
+  document.getElementById('kpiTopCategory').textContent = top ? top[0] : '—';
+}
+
+monthSelect.addEventListener('change', renderList);
+yearSelect.addEventListener('change', renderList);
+document.getElementById('listSearchInput').addEventListener('input', renderList);
+
+// --- Ajout d'une dépense -----------------------------------------------------------
+const form = document.getElementById('expenseForm');
+const formError = document.getElementById('formError');
+const submitBtn = document.getElementById('submitBtn');
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  formError.classList.add('hidden');
+
+  const montant = parseFloat(document.getElementById('expenseAmount').value);
+  const datePaiement = document.getElementById('expenseDate').value;
+  const description = document.getElementById('expenseDescription').value.trim();
+
+  if (!selectedSousCategorie) {
+    formError.textContent = 'Veuillez choisir une sous-catégorie.';
+    formError.classList.remove('hidden');
+    return;
+  }
+  if (isNaN(montant) || montant <= 0) {
+    formError.textContent = 'Veuillez saisir un montant valide.';
+    formError.classList.remove('hidden');
+    return;
+  }
+  if (!datePaiement) {
+    formError.textContent = 'Veuillez choisir une date.';
+    formError.classList.remove('hidden');
+    return;
+  }
+
+  const d = new Date(datePaiement);
+  const categorie = findCategoryOf(selectedSousCategorie);
+  const id = (crypto.randomUUID && crypto.randomUUID()) || `exp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+  const dataObj = {
+    categorie,
+    sousCategorie: selectedSousCategorie,
+    description: description || null,
+    montant,
+    datePaiement,
+    mois: d.getMonth() + 1,
+    annee: d.getFullYear(),
+  };
+
+  submitBtn.disabled = true;
+  try {
+    await setDoc(doc(db, 'misc_expenses', id), dataObj);
+    allExpenses.push({ id, ...dataObj });
+
+    // Réinitialiser le formulaire
+    selectedSousCategorie = null;
+    categoryToggleLabel.textContent = 'Choisir une sous-catégorie...';
+    categoryToggleLabel.classList.add('text-ink/40');
+    document.getElementById('expenseAmount').value = '';
+    document.getElementById('expenseDescription').value = '';
+    document.getElementById('expenseDate').value = now.toISOString().slice(0, 10);
+
+    // Aligner les filtres sur la période de la dépense ajoutée pour la voir apparaître
+    monthSelect.value = dataObj.mois;
+    yearSelect.value = dataObj.annee;
+    renderList();
+
+    showToast('Dépense enregistrée');
+  } catch (err) {
+    formError.textContent = "Erreur lors de l'enregistrement de la dépense.";
+    formError.classList.remove('hidden');
+  } finally {
+    submitBtn.disabled = false;
+  }
+});
+
+requireAdmin(() => loadExpenses());
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await signOut(auth);
+  location.href = 'connexion.html';
+});
+</script>
+
+</body>
+</html>
