@@ -12,6 +12,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Fraunces:wght@500;600&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
 <script>
   tailwind.config = {
@@ -244,10 +247,28 @@
   </section>
 
   <section class="bg-white border border-line rounded-3xl shadow-sm overflow-hidden">
-    <div class="px-6 sm:px-8 py-6 flex items-center justify-between border-b border-line">
-      <h3 class="font-display font-semibold text-navy text-lg">Liste des enseignants</h3>
-      <span id="countBadge" class="text-xs font-extrabold text-navy/60 bg-mist rounded-full px-3 py-1.5">0 enseignant</span>
+    <div class="px-6 sm:px-8 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-line">
+      <div class="flex items-center gap-3">
+        <h3 class="font-display font-semibold text-navy text-lg">Liste des enseignants</h3>
+        <span id="countBadge" class="text-xs font-extrabold text-navy/60 bg-mist rounded-full px-3 py-1.5">0 enseignant</span>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <input type="file" id="importFileInput" accept=".xlsx,.xls,.csv" class="hidden">
+        <button type="button" id="importBtn" class="inline-flex items-center gap-1.5 text-xs font-extrabold text-purple bg-purple/10 hover:bg-purple hover:text-white border border-purple/20 rounded-full px-4 py-2.5 transition-colors">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0-12l4 4m-4-4L8 7M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(180 12 12)"/></svg>
+          Importer
+        </button>
+        <button type="button" id="exportExcelBtn" class="inline-flex items-center gap-1.5 text-xs font-extrabold text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white border border-emerald-200 rounded-full px-4 py-2.5 transition-colors">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 19V6a2 2 0 012-2h9l5 5v10a2 2 0 01-2 2H6a2 2 0 01-2-2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          Excel
+        </button>
+        <button type="button" id="exportPdfBtn" class="inline-flex items-center gap-1.5 text-xs font-extrabold text-rose-700 bg-rose-50 hover:bg-rose-600 hover:text-white border border-rose-200 rounded-full px-4 py-2.5 transition-colors">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 19V6a2 2 0 012-2h9l5 5v10a2 2 0 01-2 2H6a2 2 0 01-2-2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          PDF
+        </button>
+      </div>
     </div>
+    <p id="importSummary" class="hidden mx-6 sm:mx-8 mt-4 text-xs font-bold text-navy bg-mist border border-line rounded-xl px-4 py-3"></p>
 
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
@@ -792,6 +813,161 @@
   document.getElementById('logoutBtn').addEventListener('click', async () => {
     await signOut(auth);
     window.location.href = 'connexion.html';
+  });
+
+  // ---------- Export Excel / PDF ----------
+  function exportFileName(ext) {
+    return `enseignants_${new Date().toISOString().slice(0, 10)}.${ext}`;
+  }
+
+  function teacherExportRows() {
+    return loadedTeachersCache.map((t) => ({
+      'Nom': t.nom || '',
+      'Prénom': t.prenom || '',
+      'Genre': t.genre || '',
+      'Adresse': t.adresse || '',
+      'Téléphone': t.telephone || '',
+      'Niveaux': (t.niveaux || []).join(', '),
+      'Matière': t.matiere || '',
+      'Groupe': t.groupe || '',
+      'Salaire (DH)': Number(t.salaire) || 0,
+      'Identifiant': t.username || '',
+      'Mot de passe': t.password || '',
+    }));
+  }
+
+  document.getElementById('exportExcelBtn').addEventListener('click', () => {
+    const rows = teacherExportRows();
+    if (rows.length === 0) { alert('Aucun enseignant à exporter.'); return; }
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [
+      { wch: 16 }, { wch: 14 }, { wch: 8 }, { wch: 26 }, { wch: 14 },
+      { wch: 34 }, { wch: 22 }, { wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 14 },
+    ];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Enseignants');
+    XLSX.writeFile(wb, exportFileName('xlsx'));
+  });
+
+  document.getElementById('exportPdfBtn').addEventListener('click', () => {
+    const rows = loadedTeachersCache;
+    if (rows.length === 0) { alert('Aucun enseignant à exporter.'); return; }
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    pdf.setFontSize(14);
+    pdf.setTextColor(27, 20, 100);
+    pdf.text('Diwan Al Maaref — Gestion des Enseignants', 14, 15);
+    pdf.setFontSize(9);
+    pdf.setTextColor(120, 120, 120);
+    pdf.text(`Généré le ${new Date().toLocaleDateString('fr-FR')}`, 14, 21);
+
+    pdf.autoTable({
+      head: [['Nom', 'Prénom', 'Genre', 'Téléphone', 'Niveaux', 'Matière', 'Groupe', 'Salaire', 'Identifiant', 'Mot de passe']],
+      body: rows.map((t) => [
+        t.nom || '', t.prenom || '', t.genre || '', t.telephone || '',
+        (t.niveaux || []).join(', '), t.matiere || '', t.groupe || '',
+        formatSalaire(t.salaire), t.username || '', t.password || '—',
+      ]),
+      startY: 26,
+      styles: { fontSize: 7.5, cellPadding: 2 },
+      headStyles: { fillColor: [27, 20, 100], textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [246, 244, 252] },
+      columnStyles: { 4: { cellWidth: 55 } },
+    });
+
+    pdf.save(exportFileName('pdf'));
+  });
+
+  // ---------- Import Excel / CSV ----------
+  // Colonnes attendues (en-têtes, insensibles à la casse) : Nom, Prénom, Genre
+  // (Homme/Femme), Adresse, Téléphone, Niveaux (séparés par des virgules, 3 max),
+  // Matière, Groupe (Groupe A à F), Salaire. Un identifiant et un mot de passe sont
+  // générés automatiquement, comme lors d'un ajout manuel. Les enseignants dont le
+  // nom + prénom correspond déjà à un enseignant existant sont ignorés.
+  const importBtn = document.getElementById('importBtn');
+  const importFileInput = document.getElementById('importFileInput');
+  const importSummary = document.getElementById('importSummary');
+  const NIVEAUX_VALIDES = niveauOptions.map((cb) => cb.value);
+  const GROUPES_VALIDES = ['Groupe A', 'Groupe B', 'Groupe C', 'Groupe D', 'Groupe E', 'Groupe F'];
+
+  importBtn.addEventListener('click', () => importFileInput.click());
+
+  function normalizeHeader(h) {
+    return (h || '').toString().trim().toLowerCase();
+  }
+
+  function matchNiveauValue(raw) {
+    const norm = normalizeName(raw);
+    return NIVEAUX_VALIDES.find((v) => normalizeName(v) === norm) || null;
+  }
+
+  importFileInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    importSummary.classList.add('hidden');
+
+    try {
+      const buffer = await file.arrayBuffer();
+      const wb = XLSX.read(buffer, { type: 'array', cellDates: false });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+      let success = 0, skipped = 0;
+      for (const raw of rawRows) {
+        const map = {};
+        Object.keys(raw).forEach((k) => { map[normalizeHeader(k)] = raw[k]; });
+
+        const nom = String(map['nom'] || '').trim();
+        const prenom = String(map['prénom'] || map['prenom'] || '').trim();
+        const genre = String(map['genre'] || '').trim();
+        const adresse = String(map['adresse'] || '').trim();
+        const telephone = String(map['téléphone'] || map['telephone'] || '').trim();
+        const niveauxRaw = String(map['niveaux'] || map['niveau'] || '').split(/[,/]/).map((s) => s.trim()).filter(Boolean);
+        const matiere = String(map['matière'] || map['matiere'] || '').trim();
+        const groupe = String(map['groupe'] || '').trim();
+        const salaire = parseFloat(map['salaire'] || map['salaire (dh)']);
+
+        const niveaux = niveauxRaw.map(matchNiveauValue).filter(Boolean).slice(0, MAX_NIVEAUX);
+        const cycles = [...new Set(niveaux.map(mapNiveauToCycle))];
+        const validSubjects = [...new Set(cycles.flatMap((c) => SUBJECTS[c] || []))];
+
+        const isValid = nom && prenom && ['Homme', 'Femme'].includes(genre) && adresse && telephone &&
+          niveaux.length > 0 && validSubjects.includes(matiere) && GROUPES_VALIDES.includes(groupe) &&
+          !isNaN(salaire) && salaire >= 0;
+
+        if (!isValid) { skipped += 1; continue; }
+        if (findDuplicateTeacher(nom, prenom, null)) { skipped += 1; continue; }
+
+        try {
+          const existingUsernames = loadedTeachersCache.map((t) => t.username);
+          const username = generateUsername(prenom, nom, existingUsernames);
+          const password = generatePassword();
+          const email = usernameToEmail(username);
+          const uid = await createTeacherAuthAccount(email, password);
+
+          const dataObj = {
+            nom, prenom, genre, adresse, telephone, niveaux, matiere, groupe,
+            salaire, username, password, createdAt: new Date().toISOString(),
+          };
+          await setDoc(doc(db, 'teachers', uid), dataObj);
+          loadedTeachersCache.push({ id: uid, ...dataObj });
+          success += 1;
+        } catch (err) {
+          skipped += 1;
+        }
+      }
+
+      importSummary.textContent = `${success} enseignant(s) importé(s) avec succès` + (skipped > 0 ? `, ${skipped} ligne(s) ignorée(s) (champs invalides ou doublon).` : '.');
+      importSummary.classList.remove('hidden');
+      render();
+      if (success > 0) showToast('Import terminé');
+    } catch (err) {
+      importSummary.textContent = "Erreur lors de la lecture du fichier. Vérifiez qu'il s'agit bien d'un fichier Excel (.xlsx) ou CSV valide.";
+      importSummary.classList.remove('hidden');
+    } finally {
+      importFileInput.value = '';
+    }
   });
 
   render();
