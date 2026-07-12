@@ -12,6 +12,9 @@
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Fraunces:wght@500;600&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
 <script>
   tailwind.config = {
@@ -159,8 +162,24 @@
     <section class="bg-white border border-line rounded-3xl shadow-sm overflow-hidden">
       <div class="px-6 sm:px-8 py-6 flex items-center justify-between border-b border-line">
         <h3 class="font-display font-semibold text-navy text-lg">Liste des élèves</h3>
-        <span id="countBadge" class="text-xs font-extrabold text-navy/60 bg-mist rounded-full px-3 py-1.5">0 élève</span>
+        <div class="flex flex-wrap items-center gap-2">
+          <span id="countBadge" class="text-xs font-extrabold text-navy/60 bg-mist rounded-full px-3 py-1.5">0 élève</span>
+          <input type="file" id="importFileInput" accept=".xlsx,.xls,.csv" class="hidden">
+          <button type="button" id="importBtn" class="inline-flex items-center gap-1.5 text-xs font-extrabold text-purple bg-purple/10 hover:bg-purple hover:text-white border border-purple/20 rounded-full px-4 py-2.5 transition-colors">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0-12l4 4m-4-4L8 7M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(180 12 12)"/></svg>
+            Importer
+          </button>
+          <button type="button" id="exportExcelBtn" class="inline-flex items-center gap-1.5 text-xs font-extrabold text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white border border-emerald-200 rounded-full px-4 py-2.5 transition-colors">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 19V6a2 2 0 012-2h9l5 5v10a2 2 0 01-2 2H6a2 2 0 01-2-2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            Excel
+          </button>
+          <button type="button" id="exportPdfBtn" class="inline-flex items-center gap-1.5 text-xs font-extrabold text-rose-700 bg-rose-50 hover:bg-rose-600 hover:text-white border border-rose-200 rounded-full px-4 py-2.5 transition-colors">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 19V6a2 2 0 012-2h9l5 5v10a2 2 0 01-2 2H6a2 2 0 01-2-2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            PDF
+          </button>
+        </div>
       </div>
+      <p id="importSummary" class="hidden mx-6 sm:mx-8 mt-4 text-xs font-bold text-navy bg-mist border border-line rounded-xl px-4 py-3"></p>
 
       <div id="loadingState" class="flex flex-col items-center justify-center py-16 gap-4">
         <span class="spinner" style="width:28px;height:28px;border-width:4px;"></span>
@@ -419,6 +438,129 @@ yearSelect.addEventListener('change', reload);
 document.getElementById('searchInput').addEventListener('input', () => renderRows(parseInt(yearSelect.value, 10), parseInt(monthSelect.value, 10)));
 document.getElementById('levelFilter').addEventListener('change', () => renderRows(parseInt(yearSelect.value, 10), parseInt(monthSelect.value, 10)));
 document.getElementById('statusFilter').addEventListener('change', () => renderRows(parseInt(yearSelect.value, 10), parseInt(monthSelect.value, 10)));
+
+// --- Export Excel / PDF (mois/année + filtres actuels) --------------------------------
+function exportFileName(ext) {
+  const mois = MONTHS[parseInt(monthSelect.value, 10) - 1];
+  return `paiements_${mois}_${yearSelect.value}.${ext}`;
+}
+
+document.getElementById('exportExcelBtn').addEventListener('click', () => {
+  const rows = getFilteredStudents().map((s) => {
+    const p = paymentsByStudent[s.id] || {};
+    return {
+      'Matricule': s.id, 'Nom': `${s.prenom || ''} ${s.nom || ''}`.trim(), 'Niveau': s.niveau || '',
+      'Montant (DH)': Number(p.montant) || 0, 'Méthode': p.methode || 'Espèces',
+      'Statut': p.statut || 'Non payé', 'Date de paiement': p.datePaiement || '',
+    };
+  });
+  if (rows.length === 0) { alert('Aucune donnée à exporter avec ces filtres.'); return; }
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [{ wch: 14 }, { wch: 22 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 14 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Paiements');
+  XLSX.writeFile(wb, exportFileName('xlsx'));
+});
+
+document.getElementById('exportPdfBtn').addEventListener('click', () => {
+  const rows = getFilteredStudents().map((s) => {
+    const p = paymentsByStudent[s.id] || {};
+    return [s.id, `${s.prenom || ''} ${s.nom || ''}`.trim(), s.niveau || '', fmtDH(p.montant), p.methode || 'Espèces', p.statut || 'Non payé', p.datePaiement || '—'];
+  });
+  if (rows.length === 0) { alert('Aucune donnée à exporter avec ces filtres.'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  pdf.setFontSize(14);
+  pdf.setTextColor(27, 20, 100);
+  pdf.text('Diwan Al Maaref — Frais de Scolarité', 14, 15);
+  pdf.setFontSize(9);
+  pdf.setTextColor(120, 120, 120);
+  pdf.text(`${MONTHS[parseInt(monthSelect.value, 10) - 1]} ${yearSelect.value}   •   Généré le ${new Date().toLocaleDateString('fr-FR')}`, 14, 21);
+
+  pdf.autoTable({
+    head: [['Matricule', 'Nom', 'Niveau', 'Montant', 'Méthode', 'Statut', 'Date de paiement']],
+    body: rows,
+    startY: 26,
+    styles: { fontSize: 8, cellPadding: 2 },
+    headStyles: { fillColor: [27, 20, 100], textColor: 255, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [246, 244, 252] },
+  });
+
+  pdf.save(exportFileName('pdf'));
+});
+
+// --- Import Excel / CSV --------------------------------------------------------------
+// Colonnes attendues : Matricule, Montant, Méthode (optionnel), Statut (optionnel),
+// Date de paiement (optionnel). Chaque ligne est appliquée à l'élève dont le matricule
+// correspond exactement ; les lignes sans correspondance sont ignorées.
+const importBtn = document.getElementById('importBtn');
+const importFileInput = document.getElementById('importFileInput');
+const importSummary = document.getElementById('importSummary');
+
+importBtn.addEventListener('click', () => importFileInput.click());
+function normalizeHeader(h) { return (h || '').toString().trim().toLowerCase(); }
+
+importFileInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  importSummary.classList.add('hidden');
+
+  try {
+    const buffer = await file.arrayBuffer();
+    const wb = XLSX.read(buffer, { type: 'array' });
+    const sheet = wb.Sheets[wb.SheetNames[0]];
+    const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+    const annee = parseInt(yearSelect.value, 10);
+    const mois = parseInt(monthSelect.value, 10);
+
+    let success = 0, notFound = 0, invalid = 0;
+    for (const raw of rawRows) {
+      const map = {};
+      Object.keys(raw).forEach((k) => { map[normalizeHeader(k)] = raw[k]; });
+
+      const matricule = String(map['matricule'] || '').trim();
+      const montant = parseFloat(map['montant'] || map['montant (dh)']);
+      if (!matricule || isNaN(montant) || montant < 0) { invalid += 1; continue; }
+
+      const student = allStudents.find((s) => s.id === matricule);
+      if (!student) { notFound += 1; continue; }
+
+      const methode = ['Espèces', 'Chèque', 'Virement'].includes(String(map['méthode'] || map['methode'] || '').trim())
+        ? String(map['méthode'] || map['methode']).trim() : 'Espèces';
+      const statutRaw = String(map['statut'] || '').trim().toLowerCase();
+      const statut = statutRaw.startsWith('pay') && !statutRaw.includes('non') ? 'Payé' : 'Non payé';
+      const dateValue = map['date de paiement'] || map['date'];
+      let datePaiement = null;
+      if (dateValue) {
+        const parsed = new Date(dateValue);
+        if (!isNaN(parsed)) datePaiement = parsed.toISOString().slice(0, 10);
+      }
+
+      const pid = paymentId(student.id, annee, mois);
+      const dataObj = { studentId: student.id, annee, mois, montant, methode, statut, datePaiement };
+      try {
+        await setDoc(doc(db, 'student_payments', pid), dataObj);
+        paymentsByStudent[student.id] = dataObj;
+        success += 1;
+      } catch (err) {
+        invalid += 1;
+      }
+    }
+
+    importSummary.textContent = `${success} paiement(s) importé(s) avec succès` +
+      (notFound > 0 ? `, ${notFound} matricule(s) non trouvé(s)` : '') +
+      (invalid > 0 ? `, ${invalid} ligne(s) invalide(s)` : '') + '.';
+    importSummary.classList.remove('hidden');
+    if (success > 0) { showToast('Import terminé'); renderRows(annee, mois); }
+  } catch (err) {
+    importSummary.textContent = "Erreur lors de la lecture du fichier. Vérifiez qu'il s'agit bien d'un fichier Excel (.xlsx) ou CSV valide.";
+    importSummary.classList.remove('hidden');
+  } finally {
+    importFileInput.value = '';
+  }
+});
 
 requireAdmin(async () => {
   try {
