@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Actualités & Annonces | Diwan Al Maaref</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="logo.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Fraunces:wght@500;600&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          navy:  { DEFAULT:'#1B1464', 700:'#170F52', 900:'#100B3B' },
+          purple:{ DEFAULT:'#5B3AA6' },
+          gold:  { DEFAULT:'#F0A93C', light:'#FBC873', dark:'#D98F1F' },
+          ink:   '#221D3D',
+          mist:  '#F6F4FC',
+          line:  '#E7E2F3',
+        },
+        fontFamily: { sans: ['Inter','sans-serif'], display: ['Fraunces','serif'] }
+      }
+    }
+  }
+</script>
+
+<style>
+  body { font-family:'Inter', sans-serif; color:#221D3D; background:#F6F4FC; }
+  .font-display { font-family:'Fraunces', serif; }
+  ::selection { background:#F0A93C; color:#1B1464; }
+
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 2px solid #F0A93C; outline-offset: 2px; border-radius: 6px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration:.01ms !important; transition-duration:.01ms !important; }
+  }
+
+  .field { transition: border-color .2s ease, box-shadow .2s ease; }
+  .field:focus { border-color: #5B3AA6; box-shadow: 0 0 0 4px rgba(91,58,166,.12); }
+
+  .btn-primary { transition: transform .2s cubic-bezier(.2,.8,.25,1), box-shadow .2s ease, background-color .2s ease; }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 14px 28px -12px rgba(27,20,100,.45); background-color:#170F52; }
+  .btn-primary:active { transform: translateY(0); }
+
+  .row-enter { animation: rowEnter .35s cubic-bezier(.2,.8,.25,1) both; }
+  @keyframes rowEnter { from { opacity:0; transform: translateY(-6px); } to { opacity:1; transform: translateY(0); } }
+
+  .toast { animation: toastIn .3s ease both, toastOut .3s ease 2.7s both; }
+  @keyframes toastIn { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
+  @keyframes toastOut { from { opacity:1; } to { opacity:0; transform: translateY(-6px); } }
+
+  .badge-published { background:#D1FAE5; color:#047857; }
+  .badge-draft      { background:#F1F0F4; color:#6B7280; }
+
+  .file-drop { transition: border-color .2s ease, background-color .2s ease; }
+  .file-drop:hover { border-color:#5B3AA6; background:#FBF9FE; }
+</style>
+</head>
+
+<body class="antialiased min-h-screen">
+
+<script type="module">
+  import { requireAdmin } from './supabase-config.js';
+  requireAdmin(() => { /* accès autorisé */ });
+</script>
+
+<header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-line">
+  <div class="max-w-6xl mx-auto px-5 sm:px-8 h-20 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <img src="logo.png" alt="Logo Diwan Al Maaref" class="h-11 w-11 object-contain">
+      <div class="hidden sm:flex flex-col leading-tight">
+        <span class="font-display font-semibold text-navy text-base">Actualités & Annonces</span>
+        <span class="text-[11px] text-gold-dark font-bold">Diwan Al Maaref</span>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="index.html#actualites" target="_blank" class="hidden sm:inline-flex items-center gap-2 text-xs font-bold text-navy/70 hover:text-gold-dark border border-line rounded-full px-4 py-2.5 transition-colors bg-white">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M14 3h7v7M21 3l-9 9M12 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Voir sur le site
+      </a>
+      <a href="espace-administration.html" class="inline-flex items-center gap-2 text-xs font-bold text-navy/70 hover:text-gold-dark border border-line rounded-full px-4 py-2.5 transition-colors bg-white">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="hidden sm:inline">Espace Administration</span>
+      </a>
+      <button id="logoutBtn" type="button" class="inline-flex items-center gap-2 text-xs font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 rounded-full px-4 py-2.5 transition-colors bg-rose-50">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="hidden sm:inline">Déconnexion</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-5 sm:px-8 py-12 flex flex-col gap-8">
+
+  <div>
+    <h2 class="font-display font-semibold text-navy text-3xl">Gestion des Actualités & Annonces</h2>
+    <p class="text-ink/50 text-sm mt-2">Publiez des annonces avec image, ou du texte seul — elles apparaissent automatiquement dans le slider « Actualités » de la page d'accueil.</p>
+  </div>
+
+  <!-- Formulaire d'ajout / édition, replié par défaut -->
+  <div id="addToggleWrap">
+    <button id="toggleFormBtn" type="button" class="btn-primary inline-flex items-center gap-2 bg-navy text-white font-extrabold text-sm rounded-full px-7 py-3.5">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+      Ajouter une actualité
+    </button>
+  </div>
+
+  <section id="formSection" class="hidden bg-white border border-line rounded-3xl p-6 sm:p-8 shadow-sm">
+    <div class="flex items-center justify-between mb-6">
+      <h3 id="formTitle" class="font-display font-semibold text-navy text-lg">Ajouter une actualité</h3>
+      <button type="button" id="closeFormBtn" aria-label="Fermer le formulaire" class="w-9 h-9 grid place-items-center rounded-full border border-line text-navy/50 hover:text-rose-600 hover:border-rose-200 transition-colors">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <form id="actuForm" novalidate class="flex flex-col gap-5">
+      <input type="hidden" id="editActuId" value="">
+      <input type="hidden" id="existingImageURL" value="">
+
+      <div>
+        <label for="titre" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Titre</label>
+        <input id="titre" name="titre" type="text" placeholder="Ex : Inscriptions ouvertes pour la rentrée 2026" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy placeholder:text-ink/30 outline-none">
+      </div>
+
+      <div>
+        <label for="contenu" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Contenu / Détails</label>
+        <textarea id="contenu" name="contenu" rows="5" placeholder="Détails complets de l'annonce (affichés dans la fenêtre qui s'ouvre au clic)..." class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy placeholder:text-ink/30 outline-none resize-y"></textarea>
+      </div>
+
+      <div class="grid sm:grid-cols-2 gap-5">
+        <div>
+          <label for="datePublication" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Date</label>
+          <input id="datePublication" name="datePublication" type="date" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy outline-none">
+        </div>
+        <div class="flex items-end">
+          <label class="inline-flex items-center gap-3 bg-mist rounded-2xl px-4 py-3.5 w-full cursor-pointer border border-line">
+            <input id="publie" name="publie" type="checkbox" checked class="w-4 h-4 accent-navy shrink-0">
+            <span class="text-sm font-bold text-navy">Publier immédiatement sur le site</span>
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Image (facultatif — laissez vide pour une annonce texte seul)</label>
+        <label id="fileDropZone" for="imageFile" class="file-drop cursor-pointer flex flex-col items-center justify-center gap-2 border-2 border-dashed border-line rounded-2xl px-4 py-8 text-center bg-mist/50">
+          <img id="imagePreview" src="" alt="" class="hidden max-h-32 rounded-xl object-cover">
+          <svg id="fileIcon" width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M4 16l4.6-4.6a2 2 0 012.8 0L16 16m-3-3l1.6-1.6a2 2 0 012.8 0L20 14M4 8V6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2v-2" stroke="#5B3AA6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span id="fileLabel" class="text-xs font-bold text-ink/50">Cliquez pour choisir une image (JPG, PNG — 5 Mo max)</span>
+          <input id="imageFile" name="imageFile" type="file" accept="image/*" class="hidden">
+        </label>
+        <button type="button" id="removeImageBtn" class="hidden mt-2 text-xs font-bold text-rose-500 hover:text-rose-700">Retirer l'image</button>
+      </div>
+
+      <p id="formError" class="hidden text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3"></p>
+
+      <div class="flex justify-end gap-3">
+        <button type="submit" id="submitBtn" class="btn-primary inline-flex items-center gap-2 bg-navy text-white font-extrabold text-sm rounded-full px-7 py-3.5">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+          <span id="submitBtnText">Publier l'actualité</span>
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <!-- Liste des actualités -->
+  <section class="bg-white border border-line rounded-3xl shadow-sm overflow-hidden">
+    <div class="px-6 sm:px-8 py-6 flex items-center justify-between border-b border-line">
+      <h3 class="font-display font-semibold text-navy text-lg">Toutes les actualités</h3>
+      <span id="countBadge" class="text-xs font-extrabold text-navy/60 bg-mist rounded-full px-3 py-1.5">0 actualité</span>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-[11px] font-extrabold uppercase tracking-wide text-ink/40 bg-mist/60">
+            <th class="px-6 sm:px-8 py-3.5 whitespace-nowrap">Aperçu</th>
+            <th class="px-4 py-3.5 whitespace-nowrap">Titre</th>
+            <th class="px-4 py-3.5 whitespace-nowrap">Date</th>
+            <th class="px-4 py-3.5 whitespace-nowrap text-center">Statut</th>
+            <th class="px-4 sm:px-8 py-3.5 whitespace-nowrap text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="actuTableBody" class="divide-y divide-line"></tbody>
+      </table>
+    </div>
+
+    <div id="emptyState" class="px-8 py-14 text-center">
+      <p class="text-ink/40 text-sm">Aucune actualité créée pour le moment.</p>
+    </div>
+  </section>
+
+</main>
+
+<div id="toastWrap" class="fixed bottom-6 inset-x-0 flex justify-center pointer-events-none z-50"></div>
+
+<script type="module">
+  import {
+    db, auth, signOut, doc, setDoc, deleteDoc, collection, getDocs, uploadToStorage
+  } from './supabase-config.js';
+
+  const ACTU_COL = collection(db, 'announcements');
+  let loadedActus = [];
+
+  function showToast(message) {
+    const toastWrap = document.getElementById('toastWrap');
+    const toast = document.createElement('div');
+    toast.className = 'toast pointer-events-auto bg-navy text-white text-sm font-bold rounded-full px-6 py-3 shadow-lg flex items-center gap-2';
+    toast.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#F0A93C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>${message}`;
+    toastWrap.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  }
+
+  function genActuId() {
+    if (window.crypto && crypto.randomUUID) return 'actu_' + crypto.randomUUID();
+    return 'actu_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
+  }
+
+  function formatDate(dateStr) {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+
+  // ---------- Formulaire repliable ----------
+  const form           = document.getElementById('actuForm');
+  const formError      = document.getElementById('formError');
+  const editActuId     = document.getElementById('editActuId');
+  const existingImageURL = document.getElementById('existingImageURL');
+  const formTitle      = document.getElementById('formTitle');
+  const submitBtnText  = document.getElementById('submitBtnText');
+
+  const addToggleWrap  = document.getElementById('addToggleWrap');
+  const toggleFormBtn  = document.getElementById('toggleFormBtn');
+  const formSection    = document.getElementById('formSection');
+  const closeFormBtn   = document.getElementById('closeFormBtn');
+
+  const imageFileInput = document.getElementById('imageFile');
+  const imagePreview   = document.getElementById('imagePreview');
+  const fileIcon        = document.getElementById('fileIcon');
+  const fileLabel        = document.getElementById('fileLabel');
+  const removeImageBtn   = document.getElementById('removeImageBtn');
+
+  function resetImagePicker() {
+    imageFileInput.value = '';
+    existingImageURL.value = '';
+    imagePreview.classList.add('hidden');
+    imagePreview.src = '';
+    fileIcon.classList.remove('hidden');
+    fileLabel.textContent = 'Cliquez pour choisir une image (JPG, PNG — 5 Mo max)';
+    removeImageBtn.classList.add('hidden');
+  }
+
+  imageFileInput.addEventListener('change', () => {
+    const file = imageFileInput.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      imagePreview.src = e.target.result;
+      imagePreview.classList.remove('hidden');
+      fileIcon.classList.add('hidden');
+      fileLabel.textContent = file.name;
+      removeImageBtn.classList.remove('hidden');
+    };
+    reader.readAsDataURL(file);
+  });
+
+  removeImageBtn.addEventListener('click', resetImagePicker);
+
+  function openForm() {
+    formSection.classList.remove('hidden');
+    addToggleWrap.classList.add('hidden');
+    formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  function closeForm() {
+    form.reset();
+    editActuId.value = "";
+    resetImagePicker();
+    document.getElementById('publie').checked = true;
+    formTitle.textContent = "Ajouter une actualité";
+    submitBtnText.textContent = "Publier l'actualité";
+    formError.classList.add('hidden');
+    formSection.classList.add('hidden');
+    addToggleWrap.classList.remove('hidden');
+  }
+  toggleFormBtn.addEventListener('click', openForm);
+  closeFormBtn.addEventListener('click', closeForm);
+
+  // ---------- Chargement / rendu ----------
+  async function loadActus() {
+    const snap = await getDocs(ACTU_COL);
+    loadedActus = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    return loadedActus;
+  }
+
+  function statusBadgeHtml(publie) {
+    return publie === false
+      ? '<span class="inline-block text-[11px] font-extrabold rounded-full px-3 py-1 badge-draft">Brouillon</span>'
+      : '<span class="inline-block text-[11px] font-extrabold rounded-full px-3 py-1 badge-published">Publié</span>';
+  }
+
+  async function render() {
+    const tableBody = document.getElementById('actuTableBody');
+    const emptyState = document.getElementById('emptyState');
+    const countBadge = document.getElementById('countBadge');
+
+    tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-navy/50">Chargement des actualités...</td></tr>`;
+
+    try {
+      await loadActus();
+    } catch (e) {
+      tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-rose-600 font-bold">Erreur de connexion à la base de données.</td></tr>`;
+      return;
+    }
+
+    loadedActus.sort((a, b) => new Date(b.datePublication || b.createdAt || 0) - new Date(a.datePublication || a.createdAt || 0));
+    tableBody.innerHTML = '';
+
+    emptyState.classList.toggle('hidden', loadedActus.length > 0);
+
+    loadedActus.forEach((a) => {
+      const tr = document.createElement('tr');
+      tr.className = 'row-enter hover:bg-mist/50 transition-colors';
+      tr.innerHTML = `
+        <td class="px-6 sm:px-8 py-3.5">
+          ${a.imageURL
+            ? `<img src="${a.imageURL}" alt="" class="w-16 h-12 rounded-lg object-cover border border-line">`
+            : `<span class="w-16 h-12 rounded-lg bg-gradient-to-br from-navy to-purple grid place-items-center text-white text-[10px] font-extrabold">TEXTE</span>`}
+        </td>
+        <td class="px-4 py-3.5 font-bold text-navy max-w-[260px] truncate" title="${a.titre || ''}">${a.titre || '—'}</td>
+        <td class="px-4 py-3.5 whitespace-nowrap text-ink/60 num">${formatDate(a.datePublication)}</td>
+        <td class="px-4 py-3.5 whitespace-nowrap text-center">${statusBadgeHtml(a.publie)}</td>
+        <td class="px-4 sm:px-8 py-3.5 whitespace-nowrap text-right">
+          <div class="flex items-center justify-end gap-3.5">
+            <button data-id="${a.id}" class="editBtn text-gold-dark hover:text-gold flex items-center gap-1 text-xs font-bold" title="Modifier">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Modifier
+            </button>
+            <button data-id="${a.id}" class="deleteBtn inline-flex items-center gap-1.5 text-xs font-bold text-rose-500 hover:text-rose-700 transition-colors">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Supprimer
+            </button>
+          </div>
+        </td>
+      `;
+      tableBody.appendChild(tr);
+    });
+
+    countBadge.textContent = loadedActus.length + (loadedActus.length > 1 ? ' actualités' : ' actualité');
+
+    document.querySelectorAll('.editBtn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        const a = loadedActus.find((x) => x.id === id);
+        if (!a) return;
+
+        document.getElementById('titre').value = a.titre || '';
+        document.getElementById('contenu').value = a.contenu || '';
+        document.getElementById('datePublication').value = a.datePublication || '';
+        document.getElementById('publie').checked = a.publie !== false;
+
+        resetImagePicker();
+        if (a.imageURL) {
+          existingImageURL.value = a.imageURL;
+          imagePreview.src = a.imageURL;
+          imagePreview.classList.remove('hidden');
+          fileIcon.classList.add('hidden');
+          fileLabel.textContent = "Image actuelle — choisissez un fichier pour la remplacer";
+          removeImageBtn.classList.remove('hidden');
+        }
+
+        editActuId.value = a.id;
+        formTitle.textContent = "Modifier : " + (a.titre || '');
+        submitBtnText.textContent = "Enregistrer les modifications";
+        formError.classList.add('hidden');
+        openForm();
+      });
+    });
+
+    document.querySelectorAll('.deleteBtn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Voulez-vous vraiment supprimer cette actualité ?')) return;
+        const id = btn.getAttribute('data-id');
+        btn.disabled = true;
+        btn.textContent = 'Suppression...';
+        try {
+          await deleteDoc(doc(db, 'announcements', id));
+          showToast('Actualité supprimée avec succès');
+          render();
+        } catch (e) {
+          alert('Erreur lors de la suppression : ' + e.message);
+          render();
+        }
+      });
+    });
+  }
+
+  // ---------- Soumission ----------
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const titre           = document.getElementById('titre').value.trim();
+    const contenu           = document.getElementById('contenu').value.trim();
+    const datePublication     = document.getElementById('datePublication').value;
+    const publie               = document.getElementById('publie').checked;
+    const isEditMode           = editActuId.value !== "";
+    const newFile              = imageFileInput.files[0];
+
+    if (!titre) {
+      formError.textContent = "Veuillez saisir au moins un titre pour l'actualité.";
+      formError.classList.remove('hidden');
+      return;
+    }
+    formError.classList.add('hidden');
+
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    const originalBtnHtml = submitBtn.innerHTML;
+    submitBtn.innerHTML = isEditMode ? 'Enregistrement...' : 'Publication en cours...';
+
+    try {
+      const id = isEditMode ? editActuId.value : genActuId();
+
+      let imageURL = existingImageURL.value || '';
+      if (newFile) {
+        imageURL = await uploadToStorage(`announcements/${id}/${Date.now()}_${newFile.name}`, newFile);
+      } else if (!existingImageURL.value) {
+        imageURL = ''; // image retirée ou jamais définie
+      }
+
+      await setDoc(doc(db, 'announcements', id), {
+        titre, contenu, imageURL, datePublication, publie,
+        createdAt: isEditMode ? undefined : new Date().toISOString()
+      });
+
+      showToast(isEditMode ? 'Actualité modifiée avec succès' : 'Actualité publiée avec succès');
+      closeForm();
+      render();
+    } catch (err) {
+      alert("Erreur lors de l'opération : " + err.message);
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnHtml;
+    }
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await signOut(auth);
+    window.location.href = 'connexion.html';
+  });
+
+  render();
+</script>
+
+</body>
+</html>
