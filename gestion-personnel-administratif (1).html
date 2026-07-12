@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Personnel Administratif & Soutien | Diwan Al Maaref</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="logo.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Fraunces:wght@500;600&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          navy:  { DEFAULT:'#1B1464', 700:'#170F52', 900:'#100B3B' },
+          purple:{ DEFAULT:'#5B3AA6' },
+          gold:  { DEFAULT:'#F0A93C', light:'#FBC873', dark:'#D98F1F' },
+          ink:   '#221D3D',
+          mist:  '#F6F4FC',
+          line:  '#E7E2F3',
+        },
+        fontFamily: { sans: ['Inter','sans-serif'], display: ['Fraunces','serif'] }
+      }
+    }
+  }
+</script>
+
+<style>
+  body { font-family:'Inter', sans-serif; color:#221D3D; background:#F6F4FC; }
+  .font-display { font-family:'Fraunces', serif; }
+  .num { font-family:'Manrope', sans-serif; }
+  ::selection { background:#F0A93C; color:#1B1464; }
+
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+    outline: 2px solid #F0A93C; outline-offset: 2px; border-radius: 6px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration:.01ms !important; transition-duration:.01ms !important; }
+  }
+
+  .field { transition: border-color .2s ease, box-shadow .2s ease; }
+  .field:focus {
+    border-color: #5B3AA6;
+    box-shadow: 0 0 0 4px rgba(91,58,166,.12);
+  }
+
+  .btn-primary { transition: transform .2s cubic-bezier(.2,.8,.25,1), box-shadow .2s ease, background-color .2s ease; }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 14px 28px -12px rgba(27,20,100,.45); background-color:#170F52; }
+  .btn-primary:active { transform: translateY(0); }
+
+  .row-enter { animation: rowEnter .35s cubic-bezier(.2,.8,.25,1) both; }
+  @keyframes rowEnter { from { opacity:0; transform: translateY(-6px); } to { opacity:1; transform: translateY(0); } }
+
+  .toast { animation: toastIn .3s ease both, toastOut .3s ease 2.7s both; }
+  @keyframes toastIn { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
+  @keyframes toastOut { from { opacity:1; } to { opacity:0; transform: translateY(-6px); } }
+
+  .badge-poste { background:#EEF2FF; color:#4338CA; }
+</style>
+</head>
+
+<body class="antialiased min-h-screen">
+
+<script type="module">
+  import { requireAdmin } from './supabase-config.js';
+  requireAdmin(() => { /* accès autorisé */ });
+</script>
+
+<header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-line">
+  <div class="max-w-6xl mx-auto px-5 sm:px-8 h-20 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <img src="logo.png" alt="Logo Diwan Al Maaref" class="h-11 w-11 object-contain">
+      <div class="hidden sm:flex flex-col leading-tight">
+        <span class="font-display font-semibold text-navy text-base">Personnel Administratif & Soutien</span>
+        <span class="text-[11px] text-gold-dark font-bold">Diwan Al Maaref</span>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="espace-administration.html" class="inline-flex items-center gap-2 text-xs font-bold text-navy/70 hover:text-gold-dark border border-line rounded-full px-4 py-2.5 transition-colors bg-white">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="hidden sm:inline">Espace Administration</span>
+      </a>
+      <button id="logoutBtn" type="button" class="inline-flex items-center gap-2 text-xs font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 rounded-full px-4 py-2.5 transition-colors bg-rose-50">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="hidden sm:inline">Déconnexion</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-5 sm:px-8 py-12 flex flex-col gap-10">
+
+  <div>
+    <h2 class="font-display font-semibold text-navy text-3xl">Gestion du Personnel Administratif & Soutien</h2>
+    <p class="text-ink/50 text-sm mt-2">Ajoutez un membre du personnel (chauffeur, agent de sécurité, agent de propreté, etc.) et gérez ses informations professionnelles et financières.</p>
+  </div>
+
+  <div id="addToggleWrap">
+    <button id="toggleFormBtn" type="button" class="btn-primary inline-flex items-center gap-2 bg-navy text-white font-extrabold text-sm rounded-full px-7 py-3.5">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+      Ajouter le membre du personnel
+    </button>
+  </div>
+
+  <section id="formSection" class="hidden bg-white border border-line rounded-3xl p-6 sm:p-8 shadow-sm">
+    <div class="flex items-center justify-between mb-6">
+      <h3 id="formTitle" class="font-display font-semibold text-navy text-lg">Ajouter un membre du personnel</h3>
+      <button type="button" id="closeFormBtn" aria-label="Fermer le formulaire" class="w-9 h-9 grid place-items-center rounded-full border border-line text-navy/50 hover:text-rose-600 hover:border-rose-200 transition-colors">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <form id="staffForm" novalidate class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      <input type="hidden" id="editStaffId" value="">
+
+      <!-- Informations personnelles et professionnelles -->
+      <div class="sm:col-span-2 lg:col-span-3">
+        <p class="text-[11px] font-extrabold uppercase tracking-wide text-purple mb-1">Informations personnelles et professionnelles</p>
+      </div>
+
+      <div>
+        <label for="nomComplet" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Nom & Prénom</label>
+        <input id="nomComplet" name="nomComplet" type="text" placeholder="Ex : Karim Benali" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy placeholder:text-ink/30 outline-none">
+      </div>
+
+      <div>
+        <label for="cnie" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Numéro CNIE</label>
+        <input id="cnie" name="cnie" type="text" placeholder="Ex : AB123456" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy placeholder:text-ink/30 outline-none">
+      </div>
+
+      <div>
+        <label for="telephone" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Téléphone</label>
+        <input id="telephone" name="telephone" type="tel" placeholder="Ex : 06 12 34 56 78" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy placeholder:text-ink/30 outline-none">
+      </div>
+
+      <div>
+        <label for="dateEmbauche" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Date d'Embauche</label>
+        <input id="dateEmbauche" name="dateEmbauche" type="date" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy outline-none">
+      </div>
+
+      <div>
+        <label for="poste" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Sélection du Poste</label>
+        <select id="poste" name="poste" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy outline-none">
+          <option value="" disabled selected>Sélectionner un poste</option>
+          <option value="Chauffeur de Transport Scolaire">Chauffeur de Transport Scolaire</option>
+          <option value="Surveillant(e) Général(e) de l'Externat">Surveillant(e) Général(e) de l'Externat</option>
+          <option value="Accompagnatrice de Transport">Accompagnatrice de Transport</option>
+          <option value="Agent de Propreté / Femme de Ménage">Agent de Propreté / Femme de Ménage</option>
+          <option value="Agent de Sécurité / Gardien">Agent de Sécurité / Gardien</option>
+          <option value="Chargé(e) d'Accueil / Réceptionniste">Chargé(e) d'Accueil / Réceptionniste</option>
+          <option value="Assistant(e) Administratif(ve)">Assistant(e) Administratif(ve)</option>
+          <option value="Technicien de Maintenance / Agent Technique">Technicien de Maintenance / Agent Technique</option>
+          <option value="Cuisinier / Agent de Cantine">Cuisinier / Agent de Cantine</option>
+        </select>
+      </div>
+
+      <!-- Volet financier -->
+      <div class="sm:col-span-2 lg:col-span-3 mt-2">
+        <p class="text-[11px] font-extrabold uppercase tracking-wide text-emerald-600 mb-1">Volet financier</p>
+      </div>
+
+      <div>
+        <label for="salaire" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Salaire Mensuel de Base (DH)</label>
+        <input id="salaire" name="salaire" type="number" min="0" step="0.01" placeholder="Ex : 3500" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy placeholder:text-ink/30 outline-none">
+      </div>
+
+      <div class="sm:col-span-2">
+        <label for="rib" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Numéro de Compte Bancaire / RIB</label>
+        <input id="rib" name="rib" type="text" placeholder="Ex : 007 780 0001234567890012 34" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy placeholder:text-ink/30 outline-none">
+        <p class="text-[11px] text-ink/40 mt-1.5 px-1">Facultatif — utile pour faciliter le virement bancaire.</p>
+      </div>
+
+      <p id="formError" class="hidden sm:col-span-2 lg:col-span-3 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3">
+        Veuillez remplir tous les champs obligatoires avant d'ajouter le membre du personnel.
+      </p>
+
+      <div class="sm:col-span-2 lg:col-span-3 flex justify-end gap-3">
+        <button type="button" id="cancelEditBtn" class="hidden inline-flex items-center gap-2 bg-line text-navy font-extrabold text-sm rounded-full px-6 py-3.5 transition-all">
+          Annuler
+        </button>
+        <button type="submit" id="submitBtn" class="btn-primary inline-flex items-center gap-2 bg-navy text-white font-extrabold text-sm rounded-full px-7 py-3.5">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+          <span id="submitBtnText">Ajouter le membre du personnel</span>
+        </button>
+      </div>
+
+    </form>
+  </section>
+
+  <section class="bg-white border border-line rounded-3xl shadow-sm overflow-hidden">
+    <div class="px-6 sm:px-8 py-6 flex items-center justify-between border-b border-line">
+      <h3 class="font-display font-semibold text-navy text-lg">Liste du personnel</h3>
+      <span id="countBadge" class="text-xs font-extrabold text-navy/60 bg-mist rounded-full px-3 py-1.5">0 membre</span>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-[11px] font-extrabold uppercase tracking-wide text-ink/40 bg-mist/60">
+            <th class="px-6 sm:px-8 py-3.5 whitespace-nowrap">Nom & Prénom</th>
+            <th class="px-4 py-3.5 whitespace-nowrap">CNIE</th>
+            <th class="px-4 py-3.5 whitespace-nowrap">Téléphone</th>
+            <th class="px-4 py-3.5 whitespace-nowrap">Date d'Embauche</th>
+            <th class="px-4 py-3.5 whitespace-nowrap">Poste</th>
+            <th class="px-4 py-3.5 whitespace-nowrap text-emerald-600">Salaire de Base</th>
+            <th class="px-4 py-3.5 whitespace-nowrap text-purple">RIB</th>
+            <th class="px-4 sm:px-8 py-3.5 whitespace-nowrap text-right">Action</th>
+          </tr>
+        </thead>
+        <tbody id="staffTableBody" class="divide-y divide-line"></tbody>
+      </table>
+    </div>
+
+    <div id="emptyState" class="px-8 py-14 text-center">
+      <p class="text-ink/40 text-sm">Aucun membre du personnel ajouté pour le moment.</p>
+    </div>
+  </section>
+
+</main>
+
+<div id="toastWrap" class="fixed bottom-6 inset-x-0 flex justify-center pointer-events-none z-50"></div>
+
+<script type="module">
+  import {
+    db, auth, signOut, doc, setDoc, deleteDoc, collection, getDocs
+  } from './supabase-config.js';
+
+  // Collection "staff" : regroupe tout le personnel administratif et de soutien
+  // (chauffeurs, surveillants, agents de sécurité, de propreté, de cantine, etc.).
+  // Le champ "salaire" est réutilisable tel quel par la page Gestion des Salaires
+  // (gestion-salaires.html) pour afficher/suivre les paiements de ce personnel,
+  // au même titre que la collection "teachers".
+  const STAFF_COL = collection(db, 'staff');
+  let loadedStaffCache = [];
+
+  const form           = document.getElementById('staffForm');
+  const formError      = document.getElementById('formError');
+  const tableBody      = document.getElementById('staffTableBody');
+  const emptyState     = document.getElementById('emptyState');
+  const countBadge     = document.getElementById('countBadge');
+  const toastWrap      = document.getElementById('toastWrap');
+
+  const editStaffId    = document.getElementById('editStaffId');
+  const formTitle      = document.getElementById('formTitle');
+  const submitBtnText  = document.getElementById('submitBtnText');
+  const cancelEditBtn  = document.getElementById('cancelEditBtn');
+
+  const addToggleWrap  = document.getElementById('addToggleWrap');
+  const toggleFormBtn  = document.getElementById('toggleFormBtn');
+  const formSection    = document.getElementById('formSection');
+  const closeFormBtn   = document.getElementById('closeFormBtn');
+
+  function openForm() {
+    formSection.classList.remove('hidden');
+    addToggleWrap.classList.add('hidden');
+    formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function closeForm() {
+    form.reset();
+    editStaffId.value = "";
+    formTitle.textContent = "Ajouter un membre du personnel";
+    submitBtnText.textContent = "Ajouter le membre du personnel";
+    cancelEditBtn.classList.add('hidden');
+    formError.classList.add('hidden');
+    formSection.classList.add('hidden');
+    addToggleWrap.classList.remove('hidden');
+  }
+
+  toggleFormBtn.addEventListener('click', openForm);
+  closeFormBtn.addEventListener('click', closeForm);
+
+  function showToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'toast pointer-events-auto bg-navy text-white text-sm font-bold rounded-full px-6 py-3 shadow-lg flex items-center gap-2';
+    toast.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#F0A93C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      ${message}
+    `;
+    toastWrap.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  }
+
+  async function loadStaff() {
+    const snap = await getDocs(STAFF_COL);
+    loadedStaffCache = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    return loadedStaffCache;
+  }
+
+  function formatDate(dateStr) {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+
+  function formatSalaire(salaire) {
+    const num = Number(salaire);
+    if (isNaN(num)) return '—';
+    return num.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' DH';
+  }
+
+  function genStaffId() {
+    if (window.crypto && crypto.randomUUID) return 'staff_' + crypto.randomUUID();
+    return 'staff_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
+  }
+
+  async function render() {
+    tableBody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-navy/50">Chargement du personnel...</td></tr>`;
+    let staffList;
+    try {
+      staffList = await loadStaff();
+    } catch (e) {
+      tableBody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-rose-600 font-bold">Erreur de connexion à la base de données.</td></tr>`;
+      return;
+    }
+    tableBody.innerHTML = '';
+
+    staffList.sort((a, b) => (a.nomComplet || '').localeCompare(b.nomComplet || ''));
+
+    if (staffList.length === 0) {
+      emptyState.classList.remove('hidden');
+    } else {
+      emptyState.classList.add('hidden');
+    }
+
+    staffList.forEach((s) => {
+      const tr = document.createElement('tr');
+      tr.className = 'row-enter hover:bg-mist/50 transition-colors';
+      tr.innerHTML = `
+        <td class="px-6 sm:px-8 py-4 font-bold text-navy whitespace-nowrap">${s.nomComplet || '—'}</td>
+        <td class="px-4 py-4 whitespace-nowrap font-mono text-xs text-ink/60">${s.cnie || '—'}</td>
+        <td class="px-4 py-4 whitespace-nowrap text-ink/60">${s.telephone || '—'}</td>
+        <td class="px-4 py-4 whitespace-nowrap text-ink/60 num">${formatDate(s.dateEmbauche)}</td>
+        <td class="px-4 py-4 whitespace-nowrap"><span class="inline-block text-[11px] font-extrabold rounded-full px-3 py-1 badge-poste">${s.poste || '—'}</span></td>
+        <td class="px-4 py-4 whitespace-nowrap font-bold text-emerald-600 num">${formatSalaire(s.salaire)}</td>
+        <td class="px-4 py-4 whitespace-nowrap font-mono text-xs text-purple">${s.rib || '—'}</td>
+        <td class="px-4 sm:px-8 py-4 whitespace-nowrap text-right">
+          <div class="flex items-center justify-end gap-3.5">
+            <button data-id="${s.id}" class="editBtn text-gold-dark hover:text-gold flex items-center gap-1 text-xs font-bold" title="Modifier">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Modifier
+            </button>
+            <button data-id="${s.id}" class="deleteBtn inline-flex items-center gap-1.5 text-xs font-bold text-rose-500 hover:text-rose-700 transition-colors">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Supprimer
+            </button>
+          </div>
+        </td>
+      `;
+      tableBody.appendChild(tr);
+    });
+
+    countBadge.textContent = staffList.length + (staffList.length > 1 ? ' membres' : ' membre');
+
+    document.querySelectorAll('.editBtn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        const s = loadedStaffCache.find(x => x.id === id);
+        if (!s) return;
+
+        document.getElementById('nomComplet').value  = s.nomComplet || '';
+        document.getElementById('cnie').value         = s.cnie || '';
+        document.getElementById('telephone').value    = s.telephone || '';
+        document.getElementById('dateEmbauche').value = s.dateEmbauche || '';
+        document.getElementById('poste').value        = s.poste || '';
+        document.getElementById('salaire').value      = s.salaire ?? '';
+        document.getElementById('rib').value           = s.rib || '';
+
+        editStaffId.value = s.id;
+        formTitle.textContent = "Modifier : " + (s.nomComplet || '');
+        submitBtnText.textContent = "Enregistrer les modifications";
+        cancelEditBtn.classList.remove('hidden');
+        formError.classList.add('hidden');
+        openForm();
+      });
+    });
+
+    document.querySelectorAll('.deleteBtn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Voulez-vous vraiment supprimer ce membre du personnel ?')) return;
+        const id = btn.getAttribute('data-id');
+        btn.disabled = true;
+        btn.textContent = 'Suppression...';
+        try {
+          await deleteDoc(doc(db, 'staff', id));
+          showToast('Membre du personnel supprimé avec succès');
+          render();
+        } catch (e) {
+          alert('Erreur lors de la suppression : ' + e.message);
+          render();
+        }
+      });
+    });
+  }
+
+  cancelEditBtn.addEventListener('click', closeForm);
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const nomComplet   = document.getElementById('nomComplet').value.trim();
+    const cnie         = document.getElementById('cnie').value.trim();
+    const telephone    = document.getElementById('telephone').value.trim();
+    const dateEmbauche = document.getElementById('dateEmbauche').value;
+    const poste        = document.getElementById('poste').value;
+    const salaire      = document.getElementById('salaire').value;
+    const rib          = document.getElementById('rib').value.trim();
+    const isEditMode   = editStaffId.value !== "";
+
+    if (!nomComplet || !cnie || !telephone || !dateEmbauche || !poste || salaire === '') {
+      formError.textContent = "Veuillez remplir tous les champs obligatoires avant d'ajouter le membre du personnel.";
+      formError.classList.remove('hidden');
+      return;
+    }
+    formError.classList.add('hidden');
+
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    const originalBtnHtml = submitBtn.innerHTML;
+    submitBtn.innerHTML = isEditMode ? 'Enregistrement...' : 'Ajout en cours...';
+
+    try {
+      const id = isEditMode ? editStaffId.value : genStaffId();
+      await setDoc(doc(db, 'staff', id), {
+        nomComplet, cnie, telephone, dateEmbauche, poste,
+        salaire: Number(salaire), rib,
+        createdAt: isEditMode ? undefined : new Date().toISOString()
+      });
+
+      showToast(isEditMode ? 'Membre du personnel modifié avec succès' : 'Membre du personnel ajouté avec succès');
+      closeForm();
+      render();
+    } catch (err) {
+      alert("Erreur lors de l'opération : " + err.message);
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnHtml;
+    }
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await signOut(auth);
+    window.location.href = 'connexion.html';
+  });
+
+  render();
+</script>
+
+</body>
+</html>
