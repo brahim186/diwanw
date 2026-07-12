@@ -247,6 +247,85 @@ function fmtDH(n) {
   return (Number(n) || 0).toLocaleString('fr-FR') + ' DH';
 }
 
+function slugify(str) {
+  return (str || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]+/g, '_');
+}
+
+// --- Génération du reçu de paiement (PDF) déclenchée au passage en "Payé" -----------
+function generateReceipt(student, payment, annee, mois) {
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pageWidth = pdf.internal.pageSize.getWidth();
+
+  pdf.setFont(undefined, 'bold');
+  pdf.setFontSize(16);
+  pdf.setTextColor(27, 20, 100);
+  pdf.text('DIWAN AL MAAREF', 14, 18);
+  pdf.setFont(undefined, 'normal');
+  pdf.setFontSize(9);
+  pdf.setTextColor(120, 120, 120);
+  pdf.text('Établissement scolaire privé', 14, 24);
+
+  pdf.setDrawColor(27, 20, 100);
+  pdf.setLineWidth(0.6);
+  pdf.line(14, 28, pageWidth - 14, 28);
+
+  pdf.setFont(undefined, 'bold');
+  pdf.setFontSize(15);
+  pdf.setTextColor(27, 20, 100);
+  pdf.text('REÇU DE PAIEMENT — FRAIS DE SCOLARITÉ', pageWidth / 2, 40, { align: 'center' });
+
+  const numero = `${student.id}-${annee}${String(mois).padStart(2, '0')}`;
+  pdf.setFont(undefined, 'normal');
+  pdf.setFontSize(10);
+  pdf.setTextColor(90, 90, 90);
+  pdf.text(`Reçu N° : ${numero}`, 14, 50);
+  pdf.text(`Date d'émission : ${new Date().toLocaleDateString('fr-FR')}`, pageWidth - 14, 50, { align: 'right' });
+
+  pdf.autoTable({
+    startY: 58,
+    theme: 'plain',
+    styles: { fontSize: 10, cellPadding: 1.5, textColor: [40, 40, 40] },
+    body: [
+      ['Élève', `${student.prenom || ''} ${student.nom || ''}`.trim() || '—'],
+      ['Matricule', student.id || '—'],
+      ['Niveau', student.niveau || '—'],
+      ['Période concernée', `${MONTHS[mois - 1]} ${annee}`],
+    ],
+    columnStyles: { 0: { fontStyle: 'bold', textColor: [27, 20, 100], cellWidth: 55 } },
+  });
+
+  const afterInfoY = pdf.lastAutoTable.finalY + 8;
+
+  pdf.autoTable({
+    startY: afterInfoY,
+    head: [['Description', 'Montant']],
+    body: [[`Frais de scolarité — ${MONTHS[mois - 1]} ${annee}`, fmtDH(payment.montant)]],
+    styles: { fontSize: 10, cellPadding: 3 },
+    headStyles: { fillColor: [27, 20, 100], textColor: 255, fontStyle: 'bold' },
+    columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } },
+  });
+
+  const afterAmountY = pdf.lastAutoTable.finalY + 8;
+  pdf.setFontSize(10);
+  pdf.setTextColor(70, 70, 70);
+  pdf.text(`Méthode de paiement : ${payment.methode || 'Espèces'}`, 14, afterAmountY);
+  pdf.text(`Date de paiement : ${payment.datePaiement ? new Date(payment.datePaiement).toLocaleDateString('fr-FR') : '—'}`, 14, afterAmountY + 6);
+
+  pdf.setFont(undefined, 'bold');
+  pdf.setFontSize(11);
+  pdf.setTextColor(4, 120, 87);
+  pdf.text('STATUT : PAYÉ', 14, afterAmountY + 18);
+
+  pdf.setFont(undefined, 'normal');
+  pdf.setFontSize(8.5);
+  pdf.setTextColor(150, 150, 150);
+  pdf.text("Ce reçu atteste du paiement des frais de scolarité mentionnés ci-dessus.", 14, afterAmountY + 32);
+  pdf.text("Signature et cachet de l'établissement :", pageWidth - 14, afterAmountY + 32, { align: 'right' });
+
+  pdf.save(`recu_${slugify(student.id)}_${MONTHS[mois - 1]}_${annee}.pdf`);
+}
+
 function paymentId(studentId, annee, mois) {
   return `${studentId}::${annee}-${String(mois).padStart(2, '0')}`;
 }
@@ -413,6 +492,11 @@ function renderRows(annee, mois) {
         dateInput.value = new Date().toISOString().slice(0, 10);
       }
       await persist();
+      if (next === 'Payé') {
+        generateReceipt(s, paymentsByStudent[s.id] || {
+          montant: amountInput.value, methode: methodSelect.value, datePaiement: dateInput.value,
+        }, annee, mois);
+      }
     });
   });
 
