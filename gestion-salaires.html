@@ -74,6 +74,9 @@
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none'><path d='M6 9l6 6 6-6' stroke='%235B3AA6' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
     background-repeat: no-repeat; background-position: right .8rem center;
   }
+
+  .badge-teacher { background:#EEF2FF; color:#4338CA; }
+  .badge-staff   { background:#FDF4E3; color:#B7791F; }
 </style>
 </head>
 
@@ -99,6 +102,7 @@
         <img src="logo.png" alt="Logo Diwan Al Maaref" class="h-11 w-11 object-contain">
         <div class="hidden sm:flex flex-col leading-tight">
           <span class="font-display font-semibold text-navy text-base">Gestion des Salaires</span>
+
           <span class="text-[11px] text-gold-dark font-bold">Diwan Al Maaref — Administration</span>
         </div>
       </div>
@@ -116,10 +120,15 @@
 
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
       <div>
-        <h2 class="font-display font-semibold text-navy text-2xl">Salaires des Enseignants</h2>
-        <p class="text-ink/50 text-sm mt-1">Suivez et enregistrez le paiement mensuel de chaque enseignant.</p>
+        <h2 class="font-display font-semibold text-navy text-2xl">Salaires du Personnel</h2>
+        <p class="text-ink/50 text-sm mt-1">Suivez et enregistrez le paiement mensuel des enseignants et du personnel administratif & de soutien.</p>
       </div>
       <div class="flex items-center gap-2">
+        <select id="categoryFilter" class="month-select rounded-full border border-line bg-white pl-4 pr-9 py-2.5 text-xs font-extrabold text-navy focus:border-gold outline-none cursor-pointer">
+          <option value="">Tout le personnel</option>
+          <option value="teacher">Enseignants</option>
+          <option value="staff">Administratif & Soutien</option>
+        </select>
         <select id="monthSelect" class="month-select rounded-full border border-line bg-white pl-4 pr-9 py-2.5 text-xs font-extrabold text-navy focus:border-gold outline-none cursor-pointer"></select>
         <select id="yearSelect" class="month-select rounded-full border border-line bg-white pl-4 pr-9 py-2.5 text-xs font-extrabold text-navy focus:border-gold outline-none cursor-pointer"></select>
       </div>
@@ -143,8 +152,8 @@
 
     <section class="bg-white border border-line rounded-3xl shadow-sm overflow-hidden">
       <div class="px-6 sm:px-8 py-6 flex items-center justify-between border-b border-line">
-        <h3 class="font-display font-semibold text-navy text-lg">Liste des enseignants</h3>
-        <span id="countBadge" class="text-xs font-extrabold text-navy/60 bg-mist rounded-full px-3 py-1.5">0 enseignant</span>
+        <h3 class="font-display font-semibold text-navy text-lg">Liste du personnel</h3>
+        <span id="countBadge" class="text-xs font-extrabold text-navy/60 bg-mist rounded-full px-3 py-1.5">0 personne</span>
       </div>
 
       <div id="loadingState" class="flex flex-col items-center justify-center py-16 gap-4">
@@ -157,7 +166,8 @@
           <thead>
             <tr class="text-left text-[11px] font-extrabold uppercase tracking-wide text-ink/40 bg-mist/60">
               <th class="px-6 sm:px-8 py-3.5 whitespace-nowrap">Nom</th>
-              <th class="px-4 py-3.5 whitespace-nowrap">Matière</th>
+              <th class="px-4 py-3.5 whitespace-nowrap">Catégorie</th>
+              <th class="px-4 py-3.5 whitespace-nowrap">Matière / Poste</th>
               <th class="px-4 py-3.5 whitespace-nowrap">Groupe</th>
               <th class="px-4 py-3.5 whitespace-nowrap text-right">Salaire de base</th>
               <th class="px-4 py-3.5 whitespace-nowrap text-center">Montant du mois</th>
@@ -170,7 +180,7 @@
       </div>
 
       <div id="emptyState" class="hidden px-8 py-14 text-center">
-        <p class="text-ink/40 text-sm">Aucun enseignant enregistré pour le moment.</p>
+        <p class="text-ink/40 text-sm">Aucun membre du personnel enregistré pour le moment.</p>
       </div>
     </section>
 
@@ -181,6 +191,13 @@
 
 <script type="module">
 import { auth, db, signOut, collection, getDocs, doc, getDoc, setDoc, requireAdmin } from './supabase-config.js';
+
+// Collection de paiements utilisée selon la catégorie de la personne : on garde
+// "teacher_payments" pour les enseignants (compatibilité avec les données existantes)
+// et on ajoute "staff_payments" pour le personnel administratif & de soutien (collection "staff").
+function paymentsCollectionFor(type) {
+  return type === 'staff' ? 'staff_payments' : 'teacher_payments';
+}
 
 const MONTHS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 
@@ -205,14 +222,27 @@ for (let y = currentYear - 1; y <= currentYear + 1; y++) {
 }
 yearSelect.value = currentYear;
 
-let allTeachers = [];
+let allPersonnel = [];
+const categoryFilter = document.getElementById('categoryFilter');
+
+function getFilteredPersonnel() {
+  const cat = categoryFilter.value;
+  if (!cat) return allPersonnel;
+  return allPersonnel.filter((p) => p.type === cat);
+}
 
 function fmtDH(n) {
   return (Number(n) || 0).toLocaleString('fr-FR') + ' DH';
 }
 
-function paymentId(teacherId, annee, mois) {
-  return `${teacherId}::${annee}-${String(mois).padStart(2, '0')}`;
+function paymentId(personId, annee, mois) {
+  return `${personId}::${annee}-${String(mois).padStart(2, '0')}`;
+}
+
+function categoryBadgeHtml(type) {
+  return type === 'staff'
+    ? '<span class="inline-block text-[10px] font-extrabold rounded-full px-2.5 py-1 badge-staff">Administratif</span>'
+    : '<span class="inline-block text-[10px] font-extrabold rounded-full px-2.5 py-1 badge-teacher">Enseignant</span>';
 }
 
 function showToast(message) {
@@ -226,7 +256,7 @@ function showToast(message) {
 
 function updateKpis() {
   let total = 0, paid = 0;
-  document.querySelectorAll('#tableBody tr[data-teacher]').forEach((tr) => {
+  document.querySelectorAll('#tableBody tr[data-person]').forEach((tr) => {
     const amount = parseFloat(tr.querySelector('.amount-field').value) || 0;
     total += amount;
     if (tr.dataset.statut === 'Payé') paid += amount;
@@ -252,43 +282,47 @@ async function loadRows(annee, mois) {
   emptyState.classList.add('hidden');
   tbody.innerHTML = '';
 
-  if (allTeachers.length === 0) {
+  const personnel = getFilteredPersonnel();
+
+  if (personnel.length === 0) {
     loadingState.classList.add('hidden');
     emptyState.classList.remove('hidden');
     return;
   }
 
   document.getElementById('countBadge').textContent =
-    allTeachers.length + (allTeachers.length > 1 ? ' enseignants' : ' enseignant');
+    personnel.length + (personnel.length > 1 ? ' personnes' : ' personne');
 
-  for (const t of allTeachers) {
-    const pid = paymentId(t.id, annee, mois);
+  for (const p of personnel) {
+    const pid = paymentId(p.id, annee, mois);
     let payment = {};
     try {
-      const snap = await getDoc(doc(db, 'teacher_payments', pid));
+      const snap = await getDoc(doc(db, paymentsCollectionFor(p.type), pid));
       if (snap.exists()) payment = snap.data();
     } catch (e) { /* ignore, ligne pas encore créée */ }
 
-    const montant = payment.montant ?? t.salaire ?? 0;
+    const montant = payment.montant ?? p.salaire ?? 0;
     const statut = payment.statut || 'Non payé';
     const datePaiement = payment.datePaiement || '';
 
     const tr = document.createElement('tr');
     tr.className = 'row-enter hover:bg-mist/40 transition-colors';
-    tr.dataset.teacher = t.id;
+    tr.dataset.person = p.id;
+    tr.dataset.type = p.type;
     tr.dataset.statut = statut;
     tr.innerHTML = `
-      <td class="px-6 sm:px-8 py-3.5 font-bold text-navy whitespace-nowrap">${t.prenom || ''} ${t.nom || ''}</td>
-      <td class="px-4 py-3.5 whitespace-nowrap text-ink/70">${t.matiere || '—'}</td>
-      <td class="px-4 py-3.5 whitespace-nowrap text-ink/70">${t.groupe || '—'}</td>
-      <td class="px-4 py-3.5 whitespace-nowrap text-right num text-ink/50">${fmtDH(t.salaire || 0)}</td>
+      <td class="px-6 sm:px-8 py-3.5 font-bold text-navy whitespace-nowrap">${p.displayName}</td>
+      <td class="px-4 py-3.5 whitespace-nowrap">${categoryBadgeHtml(p.type)}</td>
+      <td class="px-4 py-3.5 whitespace-nowrap text-ink/70">${p.role || '—'}</td>
+      <td class="px-4 py-3.5 whitespace-nowrap text-ink/70">${p.groupe || '—'}</td>
+      <td class="px-4 py-3.5 whitespace-nowrap text-right num text-ink/50">${fmtDH(p.salaire || 0)}</td>
       <td class="px-4 py-3.5 text-center">
-        <input type="number" min="0" step="50" value="${montant}" data-teacher="${t.id}"
+        <input type="number" min="0" step="50" value="${montant}" data-person="${p.id}"
           class="amount-field w-28 rounded-xl border border-line bg-mist px-2 py-2 text-sm text-center text-navy font-bold outline-none num">
       </td>
       <td class="px-4 py-3.5 text-center">${statusPillHtml(statut)}</td>
       <td class="px-4 sm:px-8 py-3.5 text-center">
-        <input type="date" value="${datePaiement}" data-teacher-date="${t.id}"
+        <input type="date" value="${datePaiement}" data-person-date="${p.id}"
           class="date-field rounded-xl border border-line bg-mist px-2 py-2 text-xs text-center text-ink/70 outline-none">
       </td>
     `;
@@ -303,19 +337,21 @@ async function loadRows(annee, mois) {
 }
 
 function attachRowHandlers(annee, mois) {
-  document.querySelectorAll('#tableBody tr[data-teacher]').forEach((tr) => {
-    const teacherId = tr.dataset.teacher;
+  document.querySelectorAll('#tableBody tr[data-person]').forEach((tr) => {
+    const personId = tr.dataset.person;
+    const type = tr.dataset.type;
     const amountInput = tr.querySelector('.amount-field');
     const dateInput = tr.querySelector('.date-field');
     const statusBtn = tr.querySelector('.status-toggle');
 
     async function persist() {
-      const pid = paymentId(teacherId, annee, mois);
+      const pid = paymentId(personId, annee, mois);
       const montant = Math.max(0, parseFloat(amountInput.value) || 0);
       amountInput.value = montant;
       try {
-        await setDoc(doc(db, 'teacher_payments', pid), {
-          teacherId, annee, mois, montant,
+        await setDoc(doc(db, paymentsCollectionFor(type), pid), {
+          [type === 'staff' ? 'staffId' : 'teacherId']: personId,
+          annee, mois, montant,
           statut: tr.dataset.statut,
           datePaiement: dateInput.value || null,
         });
@@ -355,15 +391,47 @@ async function reload() {
 
 monthSelect.addEventListener('change', reload);
 yearSelect.addEventListener('change', reload);
+categoryFilter.addEventListener('change', reload);
 
 requireAdmin(async () => {
+  let teachers = [];
+  let staff = [];
+
   try {
     const snap = await getDocs(collection(db, 'teachers'));
-    allTeachers = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
-      .sort((a, b) => `${a.nom}${a.prenom}`.localeCompare(`${b.nom}${b.prenom}`));
+    teachers = snap.docs.map((d) => {
+      const t = d.data();
+      return {
+        id: d.id,
+        type: 'teacher',
+        displayName: `${t.prenom || ''} ${t.nom || ''}`.trim(),
+        role: t.matiere || '—',
+        groupe: t.groupe || '—',
+        salaire: t.salaire || 0,
+      };
+    });
   } catch (e) {
-    allTeachers = [];
+    teachers = [];
   }
+
+  try {
+    const snap = await getDocs(collection(db, 'staff'));
+    staff = snap.docs.map((d) => {
+      const s = d.data();
+      return {
+        id: d.id,
+        type: 'staff',
+        displayName: s.nomComplet || '—',
+        role: s.poste || '—',
+        groupe: '—',
+        salaire: s.salaire || 0,
+      };
+    });
+  } catch (e) {
+    staff = [];
+  }
+
+  allPersonnel = [...teachers, ...staff].sort((a, b) => a.displayName.localeCompare(b.displayName));
   reload();
 });
 
