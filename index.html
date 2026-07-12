@@ -95,6 +95,12 @@
   /* Marquee for trust strip */
   .marquee-track { animation: marquee 28s linear infinite; }
   @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+  /* Actualités slider */
+  .splide-actualites .splide__slide { height: auto; }
+  .actu-card { transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease; cursor: pointer; }
+  .actu-card:hover { transform: translateY(-6px); box-shadow: 0 24px 48px -20px rgba(27,20,100,0.25); }
+  .actu-line-clamp { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 </style>
 </head>
 
@@ -115,6 +121,7 @@
 
       <nav class="hidden lg:flex items-center gap-6 xl:gap-8 font-semibold text-[14px] xl:text-[15px] text-navy/80 whitespace-nowrap">
         <a href="#accueil" class="hover:text-gold-dark transition-colors">Accueil</a>
+        <a href="#actualites" class="hover:text-gold-dark transition-colors">Actualités</a>
         <a href="#apropos" class="hover:text-gold-dark transition-colors">À propos</a>
         <a href="#programmes" class="hover:text-gold-dark transition-colors">Nos Programmes</a>
         <a href="#calendrier" class="hover:text-gold-dark transition-colors">Calendrier</a>
@@ -144,6 +151,7 @@
   <div id="mobileMenu" class="lg:hidden hidden border-t border-line bg-white">
     <nav class="px-5 py-4 flex flex-col gap-1 font-semibold text-navy">
       <a href="#accueil" class="py-3 border-b border-line/70">Accueil</a>
+      <a href="#actualites" class="py-3 border-b border-line/70">Actualités</a>
       <a href="#apropos" class="py-3 border-b border-line/70">À propos</a>
       <a href="#programmes" class="py-3 border-b border-line/70">Nos Programmes</a>
       <a href="#calendrier" class="py-3 border-b border-line/70">Calendrier</a>
@@ -246,6 +254,54 @@
     </div>
   </div>
 </section>
+
+<!-- ================= ACTUALITÉS ================= -->
+<section id="actualites" class="py-24 sm:py-28 bg-mist relative overflow-hidden">
+  <div class="max-w-7xl mx-auto px-5 sm:px-8">
+    <div class="reveal flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-12">
+      <div>
+        <span class="eyebrow text-gold-dark text-xs font-extrabold uppercase">Vie de l'établissement</span>
+        <h2 class="gold-underline font-display text-navy text-3xl sm:text-[2.6rem] font-semibold leading-tight mt-4 pb-4">
+          Actualités &amp; Annonces
+        </h2>
+      </div>
+      <p class="text-ink/60 text-sm max-w-sm">Suivez les dernières nouvelles, événements et communications importantes de DiwanE Al Maaref.</p>
+    </div>
+  </div>
+
+  <div class="reveal max-w-7xl mx-auto px-5 sm:px-8">
+    <div id="actualitesLoading" class="flex items-center justify-center py-16">
+      <span class="w-8 h-8 rounded-full border-4 border-navy/15 border-t-navy animate-spin"></span>
+    </div>
+
+    <div id="actualitesEmpty" class="hidden text-center py-16">
+      <p class="text-ink/40 text-sm">Aucune actualité publiée pour le moment. Revenez bientôt !</p>
+    </div>
+
+    <div id="actualitesSplide" class="splide-actualites hidden" aria-label="Actualités et annonces">
+      <div class="splide__track">
+        <ul id="actualitesList" class="splide__list"></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Modal détails actualité -->
+<div id="actualiteModal" class="hidden fixed inset-0 z-[70] bg-navy-900/70 backdrop-blur-sm flex items-center justify-center px-5 py-8">
+  <div class="w-full max-w-xl max-h-[88vh] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden">
+    <div class="relative shrink-0">
+      <img id="modalActuImage" src="" alt="" class="hidden w-full h-56 sm:h-64 object-cover">
+      <button type="button" id="closeActuModalBtn" aria-label="Fermer" class="absolute top-4 right-4 w-9 h-9 grid place-items-center rounded-full bg-white/90 hover:bg-white text-navy shadow-lg transition-colors">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="px-7 sm:px-9 py-7 sm:py-8 overflow-y-auto">
+      <p id="modalActuDate" class="text-[11px] font-extrabold uppercase tracking-wide text-gold-dark mb-2">—</p>
+      <h3 id="modalActuTitre" class="font-display font-semibold text-navy text-2xl leading-tight">—</h3>
+      <p id="modalActuContenu" class="text-ink/70 leading-relaxed mt-5 text-[15px] whitespace-pre-line">—</p>
+    </div>
+  </div>
+</div>
 
 <!-- ================= ABOUT ================= -->
 <section id="apropos" class="py-24 sm:py-28 bg-white relative overflow-hidden">
@@ -773,6 +829,134 @@
     status.textContent = "Merci ! Votre demande a bien été envoyée, nous vous répondrons sous 24h.";
     form.reset();
   });
+</script>
+
+<script type="module">
+  import { db, collection, getDocs } from './supabase-config.js';
+
+  const listEl        = document.getElementById('actualitesList');
+  const splideWrap     = document.getElementById('actualitesSplide');
+  const loadingEl       = document.getElementById('actualitesLoading');
+  const emptyEl         = document.getElementById('actualitesEmpty');
+
+  const modal          = document.getElementById('actualiteModal');
+  const modalImage      = document.getElementById('modalActuImage');
+  const modalDate        = document.getElementById('modalActuDate');
+  const modalTitre        = document.getElementById('modalActuTitre');
+  const modalContenu       = document.getElementById('modalActuContenu');
+  const closeModalBtn      = document.getElementById('closeActuModalBtn');
+
+  function formatDate(dateStr) {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  function openActuModal(item) {
+    if (item.imageURL) {
+      modalImage.src = item.imageURL;
+      modalImage.alt = item.titre || '';
+      modalImage.classList.remove('hidden');
+    } else {
+      modalImage.classList.add('hidden');
+    }
+    modalDate.textContent = formatDate(item.datePublication) || 'Annonce';
+    modalTitre.textContent = item.titre || '';
+    modalContenu.textContent = item.contenu || '';
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeActuModal() {
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+  closeModalBtn.addEventListener('click', closeActuModal);
+  modal.addEventListener('click', (e) => { if (e.target === modal) closeActuModal(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeActuModal(); });
+
+  function cardHtml(item, index) {
+    if (item.imageURL) {
+      return `
+        <li class="splide__slide">
+          <button type="button" data-index="${index}" class="actu-card w-full h-full text-left bg-white border border-line rounded-3xl overflow-hidden shadow-sm flex flex-col">
+            <div class="h-44 overflow-hidden">
+              <img src="${item.imageURL}" alt="${item.titre || ''}" class="w-full h-full object-cover">
+            </div>
+            <div class="p-6 flex flex-col gap-2 flex-1">
+              <span class="text-[11px] font-extrabold uppercase tracking-wide text-gold-dark">${formatDate(item.datePublication) || 'Annonce'}</span>
+              <h3 class="font-display font-semibold text-navy text-lg leading-snug">${item.titre || ''}</h3>
+              <p class="actu-line-clamp text-ink/55 text-sm leading-relaxed">${item.contenu || ''}</p>
+              <span class="mt-auto pt-2 inline-flex items-center gap-1.5 text-xs font-extrabold text-purple">
+                Lire plus
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+            </div>
+          </button>
+        </li>
+      `;
+    }
+    // Annonce texte seul (sans image) : carte compacte, fond dégradé navy/purple
+    return `
+      <li class="splide__slide">
+        <button type="button" data-index="${index}" class="actu-card w-full h-full text-left bg-gradient-to-br from-navy to-purple rounded-3xl overflow-hidden shadow-sm flex flex-col p-6 gap-3">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M4 4h16v12H7l-3 3V4z" stroke="#F0A93C" stroke-width="1.8" stroke-linejoin="round"/></svg>
+          <span class="text-[11px] font-extrabold uppercase tracking-wide text-gold-light">${formatDate(item.datePublication) || 'Annonce'}</span>
+          <h3 class="font-display font-semibold text-white text-lg leading-snug">${item.titre || ''}</h3>
+          <p class="actu-line-clamp text-white/70 text-sm leading-relaxed">${item.contenu || ''}</p>
+          <span class="mt-auto pt-2 inline-flex items-center gap-1.5 text-xs font-extrabold text-gold-light">
+            Lire plus
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </span>
+        </button>
+      </li>
+    `;
+  }
+
+  (async () => {
+    let items = [];
+    try {
+      const snap = await getDocs(collection(db, 'announcements'));
+      items = snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .filter((a) => a.publie !== false)
+        .sort((a, b) => new Date(b.datePublication || b.createdAt || 0) - new Date(a.datePublication || a.createdAt || 0));
+    } catch (e) {
+      items = [];
+    }
+
+    loadingEl.classList.add('hidden');
+
+    if (items.length === 0) {
+      emptyEl.classList.remove('hidden');
+      return;
+    }
+
+    listEl.innerHTML = items.map((item, i) => cardHtml(item, i)).join('');
+    splideWrap.classList.remove('hidden');
+
+    listEl.querySelectorAll('.actu-card').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const idx = Number(btn.getAttribute('data-index'));
+        openActuModal(items[idx]);
+      });
+    });
+
+    new Splide('.splide-actualites', {
+      type: 'slide',
+      rewind: true,
+      perPage: 3,
+      gap: '1.5rem',
+      arrows: true,
+      pagination: false,
+      drag: true,
+      breakpoints: {
+        1024: { perPage: 2 },
+        640:  { perPage: 1 },
+      }
+    }).mount();
+  })();
 </script>
 </body>
 </html>
