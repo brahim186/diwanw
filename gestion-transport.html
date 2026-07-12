@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transport Scolaire | Diwan Al Maaref</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="logo.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Fraunces:wght@500;600&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          navy:  { DEFAULT:'#1B1464', 700:'#170F52', 900:'#100B3B' },
+          purple:{ DEFAULT:'#5B3AA6' },
+          gold:  { DEFAULT:'#F0A93C', light:'#FBC873', dark:'#D98F1F' },
+          ink:   '#221D3D',
+          mist:  '#F6F4FC',
+          line:  '#E7E2F3',
+        },
+        fontFamily: { sans: ['Inter','sans-serif'], display: ['Fraunces','serif'] }
+      }
+    }
+  }
+</script>
+
+<style>
+  body { font-family:'Inter', sans-serif; color:#221D3D; background:#F6F4FC; }
+  .font-display { font-family:'Fraunces', serif; }
+  .num { font-family:'Manrope', sans-serif; }
+  ::selection { background:#F0A93C; color:#1B1464; }
+
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+    outline: 2px solid #F0A93C; outline-offset: 2px; border-radius: 6px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration:.01ms !important; transition-duration:.01ms !important; }
+  }
+
+  .field { transition: border-color .2s ease, box-shadow .2s ease; }
+  .field:focus { border-color: #5B3AA6; box-shadow: 0 0 0 4px rgba(91,58,166,.12); }
+
+  .btn-primary { transition: transform .2s cubic-bezier(.2,.8,.25,1), box-shadow .2s ease, background-color .2s ease; }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 14px 28px -12px rgba(27,20,100,.45); background-color:#170F52; }
+  .btn-primary:active { transform: translateY(0); }
+
+  .row-enter { animation: rowEnter .35s cubic-bezier(.2,.8,.25,1) both; }
+  @keyframes rowEnter { from { opacity:0; transform: translateY(-6px); } to { opacity:1; transform: translateY(0); } }
+
+  .toast { animation: toastIn .3s ease both, toastOut .3s ease 2.7s both; }
+  @keyframes toastIn { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
+  @keyframes toastOut { from { opacity:1; } to { opacity:0; transform: translateY(-6px); } }
+
+  .badge-active      { background:#D1FAE5; color:#047857; }
+  .badge-maintenance { background:#FDF4E3; color:#B7791F; }
+  .badge-stopped     { background:#FDECEE; color:#BE123C; }
+
+  .seats-ok   { color:#047857; }
+  .seats-full { color:#BE123C; }
+
+  .modal-enter { animation: modalEnter .25s cubic-bezier(.2,.8,.25,1) both; }
+  @keyframes modalEnter { from{opacity:0;transform:translateY(10px) scale(.98)} to{opacity:1;transform:translateY(0) scale(1)} }
+</style>
+</head>
+
+<body class="antialiased min-h-screen">
+
+<script type="module">
+  import { requireAdmin } from './supabase-config.js';
+  requireAdmin(() => { /* accès autorisé */ });
+</script>
+
+<header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-line">
+  <div class="max-w-6xl mx-auto px-5 sm:px-8 h-20 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <img src="logo.png" alt="Logo Diwan Al Maaref" class="h-11 w-11 object-contain">
+      <div class="hidden sm:flex flex-col leading-tight">
+        <span class="font-display font-semibold text-navy text-base">Transport Scolaire</span>
+        <span class="text-[11px] text-gold-dark font-bold">Diwan Al Maaref</span>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="espace-administration.html" class="inline-flex items-center gap-2 text-xs font-bold text-navy/70 hover:text-gold-dark border border-line rounded-full px-4 py-2.5 transition-colors bg-white">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="hidden sm:inline">Espace Administration</span>
+      </a>
+      <button id="logoutBtn" type="button" class="inline-flex items-center gap-2 text-xs font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 rounded-full px-4 py-2.5 transition-colors bg-rose-50">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="hidden sm:inline">Déconnexion</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-5 sm:px-8 py-12 flex flex-col gap-8">
+
+  <div>
+    <h2 class="font-display font-semibold text-navy text-3xl">Gestion du Transport Scolaire</h2>
+    <p class="text-ink/50 text-sm mt-2">Gérez l'ensemble du parc de bus, leurs chauffeurs, leurs lignes et les élèves affectés à chaque trajet.</p>
+  </div>
+
+  <!-- KPI -->
+  <section class="grid sm:grid-cols-3 gap-4">
+    <div class="bg-white border border-line rounded-2xl p-5">
+      <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Bus enregistrés</p>
+      <p id="kpiBuses" class="font-display font-semibold text-navy text-2xl num">0</p>
+    </div>
+    <div class="bg-white border border-line rounded-2xl p-5">
+      <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Capacité totale</p>
+      <p id="kpiCapacity" class="font-display font-semibold text-purple text-2xl num">0</p>
+    </div>
+    <div class="bg-white border border-line rounded-2xl p-5">
+      <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Élèves affectés</p>
+      <p id="kpiAssigned" class="font-display font-semibold text-emerald-600 text-2xl num">0</p>
+    </div>
+  </section>
+
+  <!-- Formulaire d'ajout / édition, replié par défaut -->
+  <div id="addToggleWrap">
+    <button id="toggleFormBtn" type="button" class="btn-primary inline-flex items-center gap-2 bg-navy text-white font-extrabold text-sm rounded-full px-7 py-3.5">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+      Ajouter un bus
+    </button>
+  </div>
+
+  <section id="formSection" class="hidden bg-white border border-line rounded-3xl p-6 sm:p-8 shadow-sm">
+    <div class="flex items-center justify-between mb-6">
+      <h3 id="formTitle" class="font-display font-semibold text-navy text-lg">Ajouter un bus</h3>
+      <button type="button" id="closeFormBtn" aria-label="Fermer le formulaire" class="w-9 h-9 grid place-items-center rounded-full border border-line text-navy/50 hover:text-rose-600 hover:border-rose-200 transition-colors">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <form id="busForm" novalidate class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      <input type="hidden" id="editBusId" value="">
+
+      <div>
+        <label for="immatriculation" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Immatriculation</label>
+        <input id="immatriculation" name="immatriculation" type="text" placeholder="Ex : 12345 | أ | 15" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy placeholder:text-ink/30 outline-none">
+      </div>
+
+      <div>
+        <label for="numBus" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">N° de Bus (interne)</label>
+        <input id="numBus" name="numBus" type="text" placeholder="Ex : Bus 01" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy placeholder:text-ink/30 outline-none">
+      </div>
+
+      <div>
+        <label for="capacite" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Capacité (places)</label>
+        <input id="capacite" name="capacite" type="number" min="1" step="1" placeholder="Ex : 25" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy placeholder:text-ink/30 outline-none">
+      </div>
+
+      <div>
+        <label for="modele" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Modèle / Marque</label>
+        <input id="modele" name="modele" type="text" placeholder="Ex : Mercedes Sprinter" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy placeholder:text-ink/30 outline-none">
+      </div>
+
+      <div>
+        <label for="chauffeur" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Chauffeur</label>
+        <select id="chauffeur" name="chauffeur" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy outline-none">
+          <option value="">— Aucun —</option>
+        </select>
+        <p id="noChauffeurMsg" class="hidden text-[11px] text-gold-dark mt-1.5 px-1">Aucun employé avec le poste "Chauffeur de Transport Scolaire". Ajoutez-en un depuis la page Personnel.</p>
+      </div>
+
+      <div>
+        <label for="accompagnatrice" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Accompagnatrice</label>
+        <select id="accompagnatrice" name="accompagnatrice" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy outline-none">
+          <option value="">— Aucune —</option>
+        </select>
+        <p id="noAccompagnatriceMsg" class="hidden text-[11px] text-gold-dark mt-1.5 px-1">Aucune employée avec le poste "Accompagnatrice de Transport".</p>
+      </div>
+
+      <div class="sm:col-span-2">
+        <label for="ligne" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Ligne / Trajet</label>
+        <input id="ligne" name="ligne" type="text" placeholder="Ex : Centre-ville — Hay Al Wafae" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy placeholder:text-ink/30 outline-none">
+      </div>
+
+      <div>
+        <label for="statut" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Statut</label>
+        <select id="statut" name="statut" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy outline-none">
+          <option value="Active" selected>Active</option>
+          <option value="En maintenance">En maintenance</option>
+          <option value="À l'arrêt">À l'arrêt</option>
+        </select>
+      </div>
+
+      <p id="formError" class="hidden sm:col-span-2 lg:col-span-3 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3"></p>
+
+      <div class="sm:col-span-2 lg:col-span-3 flex justify-end gap-3">
+        <button type="submit" id="submitBtn" class="btn-primary inline-flex items-center gap-2 bg-navy text-white font-extrabold text-sm rounded-full px-7 py-3.5">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+          <span id="submitBtnText">Ajouter le bus</span>
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <!-- Liste des bus -->
+  <section class="bg-white border border-line rounded-3xl shadow-sm overflow-hidden">
+    <div class="px-6 sm:px-8 py-6 flex items-center justify-between border-b border-line">
+      <h3 class="font-display font-semibold text-navy text-lg">Flotte de bus</h3>
+      <span id="countBadge" class="text-xs font-extrabold text-navy/60 bg-mist rounded-full px-3 py-1.5">0 bus</span>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-[11px] font-extrabold uppercase tracking-wide text-ink/40 bg-mist/60">
+            <th class="px-6 sm:px-8 py-3.5 whitespace-nowrap">N° Bus</th>
+            <th class="px-4 py-3.5 whitespace-nowrap">Immatriculation</th>
+            <th class="px-4 py-3.5 whitespace-nowrap">Modèle</th>
+            <th class="px-4 py-3.5 whitespace-nowrap">Chauffeur</th>
+            <th class="px-4 py-3.5 whitespace-nowrap">Accompagnatrice</th>
+            <th class="px-4 py-3.5 whitespace-nowrap">Ligne</th>
+            <th class="px-4 py-3.5 whitespace-nowrap text-center">Places</th>
+            <th class="px-4 py-3.5 whitespace-nowrap text-center">Statut</th>
+            <th class="px-4 sm:px-8 py-3.5 whitespace-nowrap text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="busTableBody" class="divide-y divide-line"></tbody>
+      </table>
+    </div>
+
+    <div id="emptyState" class="px-8 py-14 text-center">
+      <p class="text-ink/40 text-sm">Aucun bus enregistré pour le moment.</p>
+    </div>
+  </section>
+
+</main>
+
+<div id="toastWrap" class="fixed bottom-6 inset-x-0 flex justify-center pointer-events-none z-50"></div>
+
+<!-- Modal : gérer les élèves affectés à un bus -->
+<div id="studentsModal" class="hidden fixed inset-0 z-50 bg-navy-900/60 backdrop-blur-sm flex items-center justify-center px-5 py-8">
+  <div class="modal-enter w-full max-w-2xl max-h-[85vh] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden">
+    <div class="px-6 sm:px-8 py-6 border-b border-line flex items-center justify-between gap-4">
+      <div>
+        <h3 class="font-display font-semibold text-navy text-lg">Élèves affectés — <span id="modalBusLabel" class="text-purple">—</span></h3>
+        <p id="modalSeatsInfo" class="text-ink/50 text-xs mt-1">0 / 0 places occupées</p>
+      </div>
+      <button type="button" id="closeStudentsModalBtn" class="w-9 h-9 shrink-0 grid place-items-center rounded-full border border-line text-navy/50 hover:text-rose-600 hover:border-rose-200 transition-colors">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+
+    <div class="px-6 sm:px-8 py-4 border-b border-line">
+      <div class="relative">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="absolute left-4 top-1/2 -translate-y-1/2 text-ink/30"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input id="modalSearchInput" type="text" placeholder="Rechercher un élève par nom ou matricule..." class="w-full rounded-full border border-line bg-mist pl-11 pr-4 py-2.5 text-sm focus:border-gold outline-none">
+      </div>
+    </div>
+
+    <div id="modalStudentsList" class="flex-1 overflow-y-auto divide-y divide-line"></div>
+  </div>
+</div>
+
+<script type="module">
+  import {
+    db, auth, signOut, doc, setDoc, deleteDoc, updateDoc, collection, getDocs, requireAdmin
+  } from './supabase-config.js';
+
+  const BUSES_COL = collection(db, 'buses');
+  const STAFF_COL = collection(db, 'staff');
+  const STUDENTS_COL = collection(db, 'students');
+
+  let loadedBuses = [];
+  let loadedStaff = [];
+  let loadedStudents = []; // élèves acceptés uniquement
+
+  // ---------- Toast ----------
+  function showToast(message) {
+    const toastWrap = document.getElementById('toastWrap');
+    const toast = document.createElement('div');
+    toast.className = 'toast pointer-events-auto bg-navy text-white text-sm font-bold rounded-full px-6 py-3 shadow-lg flex items-center gap-2';
+    toast.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#F0A93C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>${message}`;
+    toastWrap.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  }
+
+  function genBusId() {
+    if (window.crypto && crypto.randomUUID) return 'bus_' + crypto.randomUUID();
+    return 'bus_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
+  }
+
+  // ---------- Formulaire repliable ----------
+  const form           = document.getElementById('busForm');
+  const formError      = document.getElementById('formError');
+  const editBusId       = document.getElementById('editBusId');
+  const formTitle       = document.getElementById('formTitle');
+  const submitBtnText   = document.getElementById('submitBtnText');
+
+  const addToggleWrap  = document.getElementById('addToggleWrap');
+  const toggleFormBtn  = document.getElementById('toggleFormBtn');
+  const formSection    = document.getElementById('formSection');
+  const closeFormBtn   = document.getElementById('closeFormBtn');
+
+  function openForm() {
+    formSection.classList.remove('hidden');
+    addToggleWrap.classList.add('hidden');
+    formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  function closeForm() {
+    form.reset();
+    editBusId.value = "";
+    formTitle.textContent = "Ajouter un bus";
+    submitBtnText.textContent = "Ajouter le bus";
+    formError.classList.add('hidden');
+    formSection.classList.add('hidden');
+    addToggleWrap.classList.remove('hidden');
+  }
+  toggleFormBtn.addEventListener('click', openForm);
+  closeFormBtn.addEventListener('click', closeForm);
+
+  // ---------- Chargement staff (chauffeurs / accompagnatrices) ----------
+  async function loadStaff() {
+    const snap = await getDocs(STAFF_COL);
+    loadedStaff = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    return loadedStaff;
+  }
+
+  function populateStaffSelects() {
+    const chauffeurSelect = document.getElementById('chauffeur');
+    const accompagnatriceSelect = document.getElementById('accompagnatrice');
+    const noChauffeurMsg = document.getElementById('noChauffeurMsg');
+    const noAccompagnatriceMsg = document.getElementById('noAccompagnatriceMsg');
+
+    const chauffeurs = loadedStaff.filter((s) => s.poste === 'Chauffeur de Transport Scolaire');
+    const accompagnatrices = loadedStaff.filter((s) => s.poste === 'Accompagnatrice de Transport');
+
+    chauffeurSelect.innerHTML = '<option value="">— Aucun —</option>' +
+      chauffeurs.map((s) => `<option value="${s.id}">${s.nomComplet}</option>`).join('');
+    accompagnatriceSelect.innerHTML = '<option value="">— Aucune —</option>' +
+      accompagnatrices.map((s) => `<option value="${s.id}">${s.nomComplet}</option>`).join('');
+
+    noChauffeurMsg.classList.toggle('hidden', chauffeurs.length > 0);
+    noAccompagnatriceMsg.classList.toggle('hidden', accompagnatrices.length > 0);
+  }
+
+  function staffName(id) {
+    const s = loadedStaff.find((x) => x.id === id);
+    return s ? s.nomComplet : null;
+  }
+
+  // ---------- Chargement élèves acceptés (pour compter les places occupées) ----------
+  async function loadStudents() {
+    const snap = await getDocs(STUDENTS_COL);
+    loadedStudents = snap.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .filter((s) => s.statut === 'Accepté');
+    return loadedStudents;
+  }
+
+  function occupiedSeats(busId) {
+    return loadedStudents.filter((s) => s.busId === busId).length;
+  }
+
+  // ---------- Chargement bus ----------
+  async function loadBuses() {
+    const snap = await getDocs(BUSES_COL);
+    loadedBuses = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    return loadedBuses;
+  }
+
+  function statusBadgeHtml(statut) {
+    const cls = statut === 'Active' ? 'badge-active' : statut === 'En maintenance' ? 'badge-maintenance' : 'badge-stopped';
+    return `<span class="inline-block text-[11px] font-extrabold rounded-full px-3 py-1 ${cls}">${statut}</span>`;
+  }
+
+  function updateKpis() {
+    const totalCapacity = loadedBuses.reduce((sum, b) => sum + (Number(b.capacite) || 0), 0);
+    const totalAssigned = loadedStudents.filter((s) => s.busId).length;
+    document.getElementById('kpiBuses').textContent = loadedBuses.length;
+    document.getElementById('kpiCapacity').textContent = totalCapacity;
+    document.getElementById('kpiAssigned').textContent = totalAssigned;
+  }
+
+  async function render() {
+    const tableBody = document.getElementById('busTableBody');
+    const emptyState = document.getElementById('emptyState');
+    const countBadge = document.getElementById('countBadge');
+
+    tableBody.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-navy/50">Chargement des bus...</td></tr>`;
+
+    try {
+      await Promise.all([loadStaff(), loadStudents(), loadBuses()]);
+    } catch (e) {
+      tableBody.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-rose-600 font-bold">Erreur de connexion à la base de données.</td></tr>`;
+      return;
+    }
+
+    populateStaffSelects();
+    loadedBuses.sort((a, b) => (a.numBus || '').localeCompare(b.numBus || ''));
+    tableBody.innerHTML = '';
+
+    if (loadedBuses.length === 0) {
+      emptyState.classList.remove('hidden');
+    } else {
+      emptyState.classList.add('hidden');
+    }
+
+    loadedBuses.forEach((b) => {
+      const occupied = occupiedSeats(b.id);
+      const capacite = Number(b.capacite) || 0;
+      const isFull = occupied >= capacite && capacite > 0;
+
+      const tr = document.createElement('tr');
+      tr.className = 'row-enter hover:bg-mist/50 transition-colors';
+      tr.innerHTML = `
+        <td class="px-6 sm:px-8 py-4 font-bold text-navy whitespace-nowrap">${b.numBus || '—'}</td>
+        <td class="px-4 py-4 whitespace-nowrap font-mono text-xs font-bold text-purple">${b.immatriculation}</td>
+        <td class="px-4 py-4 whitespace-nowrap text-ink/70">${b.modele || '—'}</td>
+        <td class="px-4 py-4 whitespace-nowrap text-ink/70">${staffName(b.chauffeurId) || '—'}</td>
+        <td class="px-4 py-4 whitespace-nowrap text-ink/70">${staffName(b.accompagnatriceId) || '—'}</td>
+        <td class="px-4 py-4 text-ink/70 max-w-[160px] truncate" title="${b.ligne || ''}">${b.ligne || '—'}</td>
+        <td class="px-4 py-4 whitespace-nowrap text-center">
+          <button data-id="${b.id}" class="studentsBtn inline-flex items-center gap-1.5 text-xs font-extrabold rounded-full px-3 py-1.5 border ${isFull ? 'seats-full border-rose-200 bg-rose-50' : 'seats-ok border-emerald-200 bg-emerald-50'}">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/></svg>
+            ${occupied}/${capacite}
+          </button>
+        </td>
+        <td class="px-4 py-4 whitespace-nowrap text-center">${statusBadgeHtml(b.statut || 'Active')}</td>
+        <td class="px-4 sm:px-8 py-4 whitespace-nowrap text-right">
+          <div class="flex items-center justify-end gap-3.5">
+            <button data-id="${b.id}" class="editBtn text-gold-dark hover:text-gold flex items-center gap-1 text-xs font-bold" title="Modifier">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Modifier
+            </button>
+            <button data-id="${b.id}" class="deleteBtn inline-flex items-center gap-1.5 text-xs font-bold text-rose-500 hover:text-rose-700 transition-colors">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Supprimer
+            </button>
+          </div>
+        </td>
+      `;
+      tableBody.appendChild(tr);
+    });
+
+    countBadge.textContent = loadedBuses.length + (loadedBuses.length > 1 ? ' bus' : ' bus');
+    updateKpis();
+
+    document.querySelectorAll('.editBtn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        const b = loadedBuses.find((x) => x.id === id);
+        if (!b) return;
+
+        document.getElementById('immatriculation').value = b.immatriculation || '';
+        document.getElementById('numBus').value           = b.numBus || '';
+        document.getElementById('capacite').value         = b.capacite ?? '';
+        document.getElementById('modele').value           = b.modele || '';
+        document.getElementById('chauffeur').value        = b.chauffeurId || '';
+        document.getElementById('accompagnatrice').value  = b.accompagnatriceId || '';
+        document.getElementById('ligne').value             = b.ligne || '';
+        document.getElementById('statut').value             = b.statut || 'Active';
+
+        editBusId.value = b.id;
+        formTitle.textContent = "Modifier le bus : " + (b.numBus || b.immatriculation);
+        submitBtnText.textContent = "Enregistrer les modifications";
+        formError.classList.add('hidden');
+        openForm();
+      });
+    });
+
+    document.querySelectorAll('.deleteBtn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Voulez-vous vraiment supprimer ce bus ? Les élèves qui y sont affectés seront désaffectés.')) return;
+        const id = btn.getAttribute('data-id');
+        btn.disabled = true;
+        btn.textContent = 'Suppression...';
+        try {
+          await deleteDoc(doc(db, 'buses', id));
+          showToast('Bus supprimé avec succès');
+          render();
+        } catch (e) {
+          alert('Erreur lors de la suppression : ' + e.message);
+          render();
+        }
+      });
+    });
+
+    document.querySelectorAll('.studentsBtn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        const b = loadedBuses.find((x) => x.id === id);
+        if (b) openStudentsModal(b);
+      });
+    });
+  }
+
+  // ---------- Soumission du formulaire ----------
+  function findDuplicateImmatriculation(immatriculation, excludeId) {
+    const norm = (immatriculation || '').trim().toLowerCase();
+    return loadedBuses.find((b) => b.id !== excludeId && (b.immatriculation || '').trim().toLowerCase() === norm) || null;
+  }
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const immatriculation = document.getElementById('immatriculation').value.trim();
+    const numBus           = document.getElementById('numBus').value.trim();
+    const capacite          = document.getElementById('capacite').value;
+    const modele            = document.getElementById('modele').value.trim();
+    const chauffeurId        = document.getElementById('chauffeur').value || null;
+    const accompagnatriceId  = document.getElementById('accompagnatrice').value || null;
+    const ligne              = document.getElementById('ligne').value.trim();
+    const statut             = document.getElementById('statut').value;
+    const isEditMode         = editBusId.value !== "";
+
+    if (!immatriculation || !numBus || capacite === '' || !ligne) {
+      formError.textContent = "Veuillez remplir tous les champs obligatoires (immatriculation, n° de bus, capacité, ligne).";
+      formError.classList.remove('hidden');
+      return;
+    }
+
+    const duplicate = findDuplicateImmatriculation(immatriculation, isEditMode ? editBusId.value : null);
+    if (duplicate) {
+      formError.textContent = `Cette immatriculation est déjà utilisée par "${duplicate.numBus || duplicate.immatriculation}".`;
+      formError.classList.remove('hidden');
+      return;
+    }
+    formError.classList.add('hidden');
+
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    const originalBtnHtml = submitBtn.innerHTML;
+    submitBtn.innerHTML = isEditMode ? 'Enregistrement...' : 'Ajout en cours...';
+
+    try {
+      const id = isEditMode ? editBusId.value : genBusId();
+      await setDoc(doc(db, 'buses', id), {
+        immatriculation, numBus, capacite: Number(capacite), modele,
+        chauffeurId, accompagnatriceId, ligne, statut,
+        createdAt: isEditMode ? undefined : new Date().toISOString()
+      });
+
+      showToast(isEditMode ? 'Bus modifié avec succès' : 'Bus ajouté avec succès');
+      closeForm();
+      render();
+    } catch (err) {
+      alert("Erreur lors de l'opération : " + err.message);
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnHtml;
+    }
+  });
+
+  // ---------- Modal : gestion des élèves affectés à un bus ----------
+  const studentsModal        = document.getElementById('studentsModal');
+  const modalBusLabel        = document.getElementById('modalBusLabel');
+  const modalSeatsInfo       = document.getElementById('modalSeatsInfo');
+  const modalStudentsList    = document.getElementById('modalStudentsList');
+  const modalSearchInput     = document.getElementById('modalSearchInput');
+  const closeStudentsModalBtn = document.getElementById('closeStudentsModalBtn');
+  let currentModalBus = null;
+
+  function openStudentsModal(bus) {
+    currentModalBus = bus;
+    modalBusLabel.textContent = bus.numBus || bus.immatriculation;
+    modalSearchInput.value = '';
+    renderModalStudents();
+    studentsModal.classList.remove('hidden');
+  }
+
+  function closeStudentsModal() {
+    studentsModal.classList.add('hidden');
+    currentModalBus = null;
+    render(); // rafraîchit les compteurs de places dans le tableau
+  }
+  closeStudentsModalBtn.addEventListener('click', closeStudentsModal);
+  studentsModal.addEventListener('click', (e) => { if (e.target === studentsModal) closeStudentsModal(); });
+
+  function renderModalStudents() {
+    if (!currentModalBus) return;
+    const q = modalSearchInput.value.trim().toLowerCase();
+
+    const filtered = loadedStudents.filter((s) => {
+      if (!q) return true;
+      return (s.prenom || '').toLowerCase().includes(q) ||
+             (s.nom || '').toLowerCase().includes(q) ||
+             (s.id || '').toLowerCase().includes(q);
+    }).sort((a, b) => (a.nom || '').localeCompare(b.nom || ''));
+
+    const occupied = loadedStudents.filter((s) => s.busId === currentModalBus.id).length;
+    modalSeatsInfo.textContent = `${occupied} / ${currentModalBus.capacite || 0} places occupées`;
+
+    if (filtered.length === 0) {
+      modalStudentsList.innerHTML = `<p class="text-center text-ink/40 text-sm py-10">Aucun élève ne correspond à cette recherche.</p>`;
+      return;
+    }
+
+    modalStudentsList.innerHTML = filtered.map((s) => {
+      const assignedHere = s.busId === currentModalBus.id;
+      const assignedElsewhere = s.busId && s.busId !== currentModalBus.id;
+      const otherBus = assignedElsewhere ? loadedBuses.find((b) => b.id === s.busId) : null;
+      return `
+        <label class="flex items-center gap-3 px-6 sm:px-8 py-3.5 hover:bg-mist/50 cursor-pointer">
+          <input type="checkbox" data-student="${s.id}" ${assignedHere ? 'checked' : ''} class="studentAssignCheckbox accent-navy w-4 h-4 shrink-0">
+          <span class="flex-1 min-w-0">
+            <span class="block font-bold text-navy text-sm truncate">${s.prenom || ''} ${s.nom || ''} <span class="font-mono text-[11px] text-purple font-bold ml-1">${s.id}</span></span>
+            <span class="block text-xs text-ink/45">${s.niveau || '—'}${assignedElsewhere ? ` · déjà affecté à ${otherBus ? (otherBus.numBus || otherBus.immatriculation) : 'un autre bus'}` : ''}</span>
+          </span>
+        </label>
+      `;
+    }).join('');
+
+    modalStudentsList.querySelectorAll('.studentAssignCheckbox').forEach((cb) => {
+      cb.addEventListener('change', async () => {
+        const studentId = cb.getAttribute('data-student');
+        const student = loadedStudents.find((s) => s.id === studentId);
+        const newBusId = cb.checked ? currentModalBus.id : null;
+
+        cb.disabled = true;
+        try {
+          await updateDoc(doc(db, 'students', studentId), { busId: newBusId });
+          if (student) student.busId = newBusId;
+          showToast(cb.checked ? 'Élève affecté au bus' : 'Élève retiré du bus');
+          renderModalStudents();
+        } catch (e) {
+          alert("Erreur lors de l'affectation : " + e.message);
+          cb.checked = !cb.checked;
+        } finally {
+          cb.disabled = false;
+        }
+      });
+    });
+  }
+
+  modalSearchInput.addEventListener('input', renderModalStudents);
+
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await signOut(auth);
+    window.location.href = 'connexion.html';
+  });
+
+  requireAdmin(() => render());
+</script>
+
+</body>
+</html>
