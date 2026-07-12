@@ -15,11 +15,33 @@ const SUPABASE_ANON_KEY = 'sb_publishable_fmfgWZxctiAj4B7FNS-Z5A_EAsluBBa';
 // Client principal (garde la session de l'utilisateur connecté sur le site)
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// Log de diagnostic (console navigateur) : permet de voir EXACTEMENT ce qui se passe
+// quand une déconnexion automatique survient — un rafraîchissement de token réussi
+// (TOKEN_REFRESHED) qui n'apparaît jamais avant un SIGNED_OUT confirme que c'est bien
+// l'auto-refresh qui échoue (onglet resté en arrière-plan trop longtemps, refresh token
+// expiré/révoqué côté Supabase, etc.) et non un bug dans requireAdmin/requireTeacher/requireStudent.
+supabase.auth.onAuthStateChange((event) => {
+  if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_OUT') {
+    console.log('[supabase-config] auth event:', event, new Date().toLocaleTimeString());
+  }
+});
+
 // Client secondaire, sans persistance de session : sert uniquement à créer un compte
 // enseignant depuis l'espace admin SANS déconnecter l'administrateur en cours.
-const secondaryAuthClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false, storageKey: 'sb-secondary-teacher-creation' }
-});
+// Créé PARESSEUSEMENT (une seule fois, à la demande) plutôt qu'au chargement du module :
+// sinon ce second client Supabase tournait sur CHAQUE page (même mes-notes.html côté
+// élève, qui n'en a jamais besoin), ce qui déclenche l'avertissement "Multiple GoTrueClient
+// instances detected in the same browser context" et peut perturber le rafraîchissement
+// automatique de la session du client principal, causant des déconnexions intempestives.
+let _secondaryAuthClient = null;
+function getSecondaryAuthClient() {
+  if (!_secondaryAuthClient) {
+    _secondaryAuthClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false, storageKey: 'sb-secondary-teacher-creation' }
+    });
+  }
+  return _secondaryAuthClient;
+}
 
 // "auth" et "db" existent pour garder la même signature que firebase-config.js.
 export const auth = supabase;
@@ -93,6 +115,7 @@ export function onAuthStateChanged(_auth, callback) {
 // (Authentication > Providers > Email > "Confirm email" = OFF), sinon le compte
 // enseignant reste en attente de confirmation et ne peut pas se connecter.
 export async function createTeacherAuthAccount(email, password) {
+  const secondaryAuthClient = getSecondaryAuthClient();
   const { data, error } = await secondaryAuthClient.auth.signUp({ email, password });
   if (error) throw error;
   await secondaryAuthClient.auth.signOut();
