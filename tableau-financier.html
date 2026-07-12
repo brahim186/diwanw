@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tableau de Bord Financier | Diwan Al Maaref</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="logo.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Fraunces:wght@500;600&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          navy:  { DEFAULT:'#1B1464', 700:'#170F52', 900:'#100B3B' },
+          purple:{ DEFAULT:'#5B3AA6' },
+          gold:  { DEFAULT:'#F0A93C', light:'#FBC873', dark:'#D98F1F' },
+          ink:   '#221D3D',
+          mist:  '#F6F4FC',
+          line:  '#E7E2F3',
+        },
+        fontFamily: { sans: ['Inter','sans-serif'], display: ['Fraunces','serif'] }
+      }
+    }
+  }
+</script>
+
+<style>
+  body { font-family:'Inter', sans-serif; color:#221D3D; background:#F6F4FC; }
+  .font-display { font-family:'Fraunces', serif; }
+  .num { font-family:'Manrope', sans-serif; }
+  ::selection { background:#F0A93C; color:#1B1464; }
+
+  a:focus-visible, button:focus-visible, select:focus-visible {
+    outline: 2px solid #F0A93C; outline-offset: 2px; border-radius: 6px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration:.01ms !important; transition-duration:.01ms !important; }
+  }
+
+  .spinner {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 3px solid rgba(27,20,100,.15); border-top-color:#1B1464;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .kpi-card { transition: transform .25s cubic-bezier(.2,.8,.25,1), box-shadow .25s ease; }
+  .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 16px 30px -16px rgba(27,20,100,.3); }
+
+  .bar-wrap { align-items: flex-end; }
+  .bar {
+    transition: height .6s cubic-bezier(.2,.8,.25,1);
+    border-radius: 8px 8px 3px 3px;
+  }
+  .bar-enter { animation: barEnter .7s cubic-bezier(.2,.8,.25,1) both; }
+  @keyframes barEnter { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+
+  .row-enter { animation: rowEnter .3s cubic-bezier(.2,.8,.25,1) both; }
+  @keyframes rowEnter { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+
+  .month-select {
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none'><path d='M6 9l6 6 6-6' stroke='%235B3AA6' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat: no-repeat; background-position: right .8rem center;
+  }
+</style>
+</head>
+
+<body class="antialiased min-h-screen">
+
+<!-- Écran affiché si aucune session admin active -->
+<div id="noSessionGate" class="hidden min-h-screen flex items-center justify-center px-5">
+  <div class="w-full max-w-sm bg-white border border-line rounded-3xl shadow-xl p-8 sm:p-10 text-center">
+    <img src="logo.png" alt="Logo Diwan Al Maaref" class="h-16 w-16 object-contain mb-5 mx-auto">
+    <h1 class="font-display font-semibold text-navy text-lg mb-2">Session requise</h1>
+    <p class="text-ink/50 text-sm mb-6">Veuillez vous connecter depuis le tableau de bord administratif principal pour accéder à cette page.</p>
+    <a href="admin-dashboard.html" class="inline-flex items-center justify-center gap-2 bg-navy hover:bg-navy-700 text-white font-extrabold px-6 py-3 rounded-full transition-colors text-sm">
+      Aller au Tableau de Bord
+    </a>
+  </div>
+</div>
+
+<div id="dashboard" class="hidden">
+
+  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-line">
+    <div class="max-w-6xl mx-auto px-5 sm:px-8 h-20 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <img src="logo.png" alt="Logo Diwan Al Maaref" class="h-11 w-11 object-contain">
+        <div class="hidden sm:flex flex-col leading-tight">
+          <span class="font-display font-semibold text-navy text-base">Tableau de Bord Financier</span>
+          <span class="text-[11px] text-gold-dark font-bold">Diwan Al Maaref — Administration</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="espace-administration.html" class="inline-flex items-center gap-2 text-xs font-bold text-navy/70 hover:text-gold-dark border border-line rounded-full px-4 py-2.5 transition-colors bg-white">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="hidden sm:inline">Espace Administration</span>
+        </a>
+        <button id="logoutBtn" class="text-sm font-bold text-navy/60 hover:text-red-500 transition-colors">Déconnexion</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-5 sm:px-8 py-10 flex flex-col gap-8">
+
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+      <div>
+        <h2 class="font-display font-semibold text-navy text-2xl">Vue d'ensemble financière</h2>
+        <p class="text-ink/50 text-sm mt-1">Recettes (frais de scolarité), dépenses (salaires) et solde, sur l'année sélectionnée.</p>
+      </div>
+      <select id="yearSelect" class="month-select rounded-full border border-line bg-white pl-4 pr-9 py-2.5 text-xs font-extrabold text-navy focus:border-gold outline-none cursor-pointer"></select>
+    </div>
+
+    <div id="loadingState" class="flex flex-col items-center justify-center py-20 gap-4">
+      <span class="spinner" style="width:32px;height:32px;border-width:4px;"></span>
+      <p class="text-ink/50 text-sm">Calcul des indicateurs en cours...</p>
+    </div>
+
+    <div id="content" class="hidden flex-col gap-8">
+
+      <!-- KPI -->
+      <section class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="kpi-card bg-white border border-line rounded-2xl p-5">
+          <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Recettes (année)</p>
+          <p id="kpiRevenueYear" class="font-display font-semibold text-emerald-600 text-2xl num">0 DH</p>
+        </div>
+        <div class="kpi-card bg-white border border-line rounded-2xl p-5">
+          <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Dépenses (année)</p>
+          <p id="kpiExpenseYear" class="font-display font-semibold text-rose-600 text-2xl num">0 DH</p>
+        </div>
+        <div class="kpi-card bg-white border border-line rounded-2xl p-5">
+          <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Solde net (année)</p>
+          <p id="kpiNetYear" class="font-display font-semibold text-navy text-2xl num">0 DH</p>
+        </div>
+        <div class="kpi-card bg-white border border-line rounded-2xl p-5">
+          <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Taux de recouvrement</p>
+          <p id="kpiRecoveryYear" class="font-display font-semibold text-purple text-2xl num">0%</p>
+        </div>
+      </section>
+
+      <!-- Graphique mensuel -->
+      <section class="bg-white border border-line rounded-3xl shadow-sm p-6 sm:p-8">
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="font-display font-semibold text-navy text-lg">Recettes vs Dépenses par mois</h3>
+          <div class="flex items-center gap-4 text-xs font-bold">
+            <span class="flex items-center gap-1.5 text-emerald-600"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span>Recettes</span>
+            <span class="flex items-center gap-1.5 text-rose-600"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span>Dépenses</span>
+          </div>
+        </div>
+        <div id="chartWrap" class="flex bar-wrap gap-3 sm:gap-5 h-56 border-b border-line pb-1"></div>
+        <div id="chartLabels" class="flex gap-3 sm:gap-5 mt-2"></div>
+      </section>
+
+      <!-- Résumé mensuel -->
+      <section class="bg-white border border-line rounded-3xl shadow-sm overflow-hidden">
+        <div class="px-6 sm:px-8 py-6 border-b border-line">
+          <h3 class="font-display font-semibold text-navy text-lg">Détail mensuel</h3>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left text-[11px] font-extrabold uppercase tracking-wide text-ink/40 bg-mist/60">
+                <th class="px-6 sm:px-8 py-3.5 whitespace-nowrap">Mois</th>
+                <th class="px-4 py-3.5 whitespace-nowrap text-right">Recettes</th>
+                <th class="px-4 py-3.5 whitespace-nowrap text-right">Dépenses</th>
+                <th class="px-4 sm:px-8 py-3.5 whitespace-nowrap text-right">Solde</th>
+              </tr>
+            </thead>
+            <tbody id="monthlyTableBody" class="divide-y divide-line"></tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+</div>
+
+<script type="module">
+import { auth, db, signOut, collection, getDocs, requireAdmin } from './supabase-config.js';
+
+const MONTHS = ['Janv','Févr','Mars','Avr','Mai','Juin','Juil','Août','Sept','Oct','Nov','Déc'];
+const MONTHS_FULL = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
+const yearSelect = document.getElementById('yearSelect');
+const now = new Date();
+const currentYear = now.getFullYear();
+for (let y = currentYear - 1; y <= currentYear + 1; y++) {
+  const opt = document.createElement('option');
+  opt.value = y;
+  opt.textContent = y;
+  yearSelect.appendChild(opt);
+}
+yearSelect.value = currentYear;
+
+function fmtDH(n) {
+  return (Number(n) || 0).toLocaleString('fr-FR') + ' DH';
+}
+
+async function loadYearData(annee) {
+  const [studentPaySnap, teacherPaySnap] = await Promise.all([
+    getDocs(collection(db, 'student_payments')).catch(() => ({ docs: [] })),
+    getDocs(collection(db, 'teacher_payments')).catch(() => ({ docs: [] })),
+  ]);
+
+  const revenues = Array(12).fill(0);   // encaissé (statut Payé) par mois
+  const expensesDue = Array(12).fill(0);
+  const revenuesDue = Array(12).fill(0);
+  const expenses = Array(12).fill(0);   // payé par mois
+
+  studentPaySnap.docs.forEach((d) => {
+    const row = d.data();
+    if (row.annee !== annee) return;
+    const idx = (row.mois || 1) - 1;
+    if (idx < 0 || idx > 11) return;
+    revenuesDue[idx] += Number(row.montant) || 0;
+    if (row.statut === 'Payé') revenues[idx] += Number(row.montant) || 0;
+  });
+
+  teacherPaySnap.docs.forEach((d) => {
+    const row = d.data();
+    if (row.annee !== annee) return;
+    const idx = (row.mois || 1) - 1;
+    if (idx < 0 || idx > 11) return;
+    expensesDue[idx] += Number(row.montant) || 0;
+    if (row.statut === 'Payé') expenses[idx] += Number(row.montant) || 0;
+  });
+
+  return { revenues, expenses, revenuesDue, expensesDue };
+}
+
+function renderChart(revenues, expenses) {
+  const chartWrap = document.getElementById('chartWrap');
+  const chartLabels = document.getElementById('chartLabels');
+  chartWrap.innerHTML = '';
+  chartLabels.innerHTML = '';
+
+  const max = Math.max(1, ...revenues, ...expenses);
+
+  MONTHS.forEach((label, i) => {
+    const col = document.createElement('div');
+    col.className = 'flex-1 flex items-end justify-center gap-1 h-full';
+
+    const revH = Math.round((revenues[i] / max) * 100);
+    const expH = Math.round((expenses[i] / max) * 100);
+
+    const revBar = document.createElement('div');
+    revBar.className = 'bar bar-enter w-1/2 bg-emerald-500';
+    revBar.style.height = Math.max(revH, revenues[i] > 0 ? 3 : 0) + '%';
+    revBar.title = `Recettes ${MONTHS_FULL[i]} : ${fmtDH(revenues[i])}`;
+
+    const expBar = document.createElement('div');
+    expBar.className = 'bar bar-enter w-1/2 bg-rose-500';
+    expBar.style.height = Math.max(expH, expenses[i] > 0 ? 3 : 0) + '%';
+    expBar.title = `Dépenses ${MONTHS_FULL[i]} : ${fmtDH(expenses[i])}`;
+
+    col.appendChild(revBar);
+    col.appendChild(expBar);
+    chartWrap.appendChild(col);
+
+    const labelEl = document.createElement('div');
+    labelEl.className = 'flex-1 text-center text-[10px] sm:text-[11px] font-bold text-ink/40';
+    labelEl.textContent = label;
+    chartLabels.appendChild(labelEl);
+  });
+}
+
+function renderMonthlyTable(revenues, expenses) {
+  const tbody = document.getElementById('monthlyTableBody');
+  tbody.innerHTML = '';
+  MONTHS_FULL.forEach((label, i) => {
+    const solde = revenues[i] - expenses[i];
+    const tr = document.createElement('tr');
+    tr.className = 'row-enter hover:bg-mist/40 transition-colors';
+    tr.innerHTML = `
+      <td class="px-6 sm:px-8 py-3.5 font-bold text-navy whitespace-nowrap">${label}</td>
+      <td class="px-4 py-3.5 text-right num text-emerald-600 font-bold">${fmtDH(revenues[i])}</td>
+      <td class="px-4 py-3.5 text-right num text-rose-600 font-bold">${fmtDH(expenses[i])}</td>
+      <td class="px-4 sm:px-8 py-3.5 text-right num font-extrabold ${solde >= 0 ? 'text-navy' : 'text-rose-600'}">${fmtDH(solde)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+async function reload() {
+  const loadingState = document.getElementById('loadingState');
+  const content = document.getElementById('content');
+  loadingState.classList.remove('hidden');
+  content.classList.add('hidden');
+
+  const annee = parseInt(yearSelect.value, 10);
+  const { revenues, expenses, revenuesDue } = await loadYearData(annee);
+
+  const totalRevenue = revenues.reduce((a, b) => a + b, 0);
+  const totalExpense = expenses.reduce((a, b) => a + b, 0);
+  const totalDue = revenuesDue.reduce((a, b) => a + b, 0);
+
+  document.getElementById('kpiRevenueYear').textContent = fmtDH(totalRevenue);
+  document.getElementById('kpiExpenseYear').textContent = fmtDH(totalExpense);
+  document.getElementById('kpiNetYear').textContent = fmtDH(totalRevenue - totalExpense);
+  document.getElementById('kpiRecoveryYear').textContent = totalDue > 0 ? Math.round((totalRevenue / totalDue) * 100) + '%' : '0%';
+
+  renderChart(revenues, expenses);
+  renderMonthlyTable(revenues, expenses);
+
+  loadingState.classList.add('hidden');
+  content.classList.remove('hidden');
+}
+
+yearSelect.addEventListener('change', reload);
+
+requireAdmin(() => reload());
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await signOut(auth);
+  location.href = 'connexion.html';
+});
+</script>
+
+</body>
+</html>

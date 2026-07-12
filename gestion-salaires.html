@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestion des Salaires | Diwan Al Maaref</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="logo.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Fraunces:wght@500;600&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          navy:  { DEFAULT:'#1B1464', 700:'#170F52', 900:'#100B3B' },
+          purple:{ DEFAULT:'#5B3AA6' },
+          gold:  { DEFAULT:'#F0A93C', light:'#FBC873', dark:'#D98F1F' },
+          ink:   '#221D3D',
+          mist:  '#F6F4FC',
+          line:  '#E7E2F3',
+        },
+        fontFamily: { sans: ['Inter','sans-serif'], display: ['Fraunces','serif'] }
+      }
+    }
+  }
+</script>
+
+<style>
+  body { font-family:'Inter', sans-serif; color:#221D3D; background:#F6F4FC; }
+  .font-display { font-family:'Fraunces', serif; }
+  .num { font-family:'Manrope', sans-serif; }
+  ::selection { background:#F0A93C; color:#1B1464; }
+
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+    outline: 2px solid #F0A93C; outline-offset: 2px; border-radius: 6px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration:.01ms !important; transition-duration:.01ms !important; }
+  }
+
+  .spinner {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 3px solid rgba(27,20,100,.15); border-top-color:#1B1464;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .row-enter { animation: rowEnter .3s cubic-bezier(.2,.8,.25,1) both; }
+  @keyframes rowEnter { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+
+  .amount-field { transition: border-color .2s ease, box-shadow .2s ease; }
+  .amount-field:focus { border-color:#5B3AA6; box-shadow:0 0 0 4px rgba(91,58,166,.12); }
+  .amount-field.saved { border-color:#10B981; }
+
+  .status-pill { transition: background-color .2s ease, color .2s ease, border-color .2s ease; }
+  .status-paid { background:#D1FAE5; color:#047857; border-color:#A7F3D0; }
+  .status-unpaid { background:#FDECEE; color:#BE123C; border-color:#FBD5DA; }
+
+  .saved-flash { animation: flash 1s ease; }
+  @keyframes flash { 0%{background-color:#D1FAE5} 100%{background-color:transparent} }
+
+  .toast { animation: toastIn .3s ease both, toastOut .3s ease 1.7s both; }
+  @keyframes toastIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes toastOut { from{opacity:1} to{opacity:0;transform:translateY(-6px)} }
+
+  .month-select {
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none'><path d='M6 9l6 6 6-6' stroke='%235B3AA6' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat: no-repeat; background-position: right .8rem center;
+  }
+</style>
+</head>
+
+<body class="antialiased min-h-screen">
+
+<!-- Écran affiché si aucune session admin active -->
+<div id="noSessionGate" class="hidden min-h-screen flex items-center justify-center px-5">
+  <div class="w-full max-w-sm bg-white border border-line rounded-3xl shadow-xl p-8 sm:p-10 text-center">
+    <img src="logo.png" alt="Logo Diwan Al Maaref" class="h-16 w-16 object-contain mb-5 mx-auto">
+    <h1 class="font-display font-semibold text-navy text-lg mb-2">Session requise</h1>
+    <p class="text-ink/50 text-sm mb-6">Veuillez vous connecter depuis le tableau de bord administratif principal pour accéder à cette page.</p>
+    <a href="admin-dashboard.html" class="inline-flex items-center justify-center gap-2 bg-navy hover:bg-navy-700 text-white font-extrabold px-6 py-3 rounded-full transition-colors text-sm">
+      Aller au Tableau de Bord
+    </a>
+  </div>
+</div>
+
+<div id="dashboard" class="hidden">
+
+  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-line">
+    <div class="max-w-6xl mx-auto px-5 sm:px-8 h-20 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <img src="logo.png" alt="Logo Diwan Al Maaref" class="h-11 w-11 object-contain">
+        <div class="hidden sm:flex flex-col leading-tight">
+          <span class="font-display font-semibold text-navy text-base">Gestion des Salaires</span>
+          <span class="text-[11px] text-gold-dark font-bold">Diwan Al Maaref — Administration</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="espace-administration.html" class="inline-flex items-center gap-2 text-xs font-bold text-navy/70 hover:text-gold-dark border border-line rounded-full px-4 py-2.5 transition-colors bg-white">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="hidden sm:inline">Espace Administration</span>
+        </a>
+        <button id="logoutBtn" class="text-sm font-bold text-navy/60 hover:text-red-500 transition-colors">Déconnexion</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-5 sm:px-8 py-10 flex flex-col gap-6">
+
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+      <div>
+        <h2 class="font-display font-semibold text-navy text-2xl">Salaires des Enseignants</h2>
+        <p class="text-ink/50 text-sm mt-1">Suivez et enregistrez le paiement mensuel de chaque enseignant.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <select id="monthSelect" class="month-select rounded-full border border-line bg-white pl-4 pr-9 py-2.5 text-xs font-extrabold text-navy focus:border-gold outline-none cursor-pointer"></select>
+        <select id="yearSelect" class="month-select rounded-full border border-line bg-white pl-4 pr-9 py-2.5 text-xs font-extrabold text-navy focus:border-gold outline-none cursor-pointer"></select>
+      </div>
+    </div>
+
+    <!-- KPI -->
+    <section class="grid sm:grid-cols-3 gap-4">
+      <div class="bg-white border border-line rounded-2xl p-5">
+        <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Total dû ce mois</p>
+        <p id="kpiTotal" class="font-display font-semibold text-navy text-2xl num">0 DH</p>
+      </div>
+      <div class="bg-white border border-line rounded-2xl p-5">
+        <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Total payé</p>
+        <p id="kpiPaid" class="font-display font-semibold text-emerald-600 text-2xl num">0 DH</p>
+      </div>
+      <div class="bg-white border border-line rounded-2xl p-5">
+        <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Reste à payer</p>
+        <p id="kpiRemaining" class="font-display font-semibold text-rose-600 text-2xl num">0 DH</p>
+      </div>
+    </section>
+
+    <section class="bg-white border border-line rounded-3xl shadow-sm overflow-hidden">
+      <div class="px-6 sm:px-8 py-6 flex items-center justify-between border-b border-line">
+        <h3 class="font-display font-semibold text-navy text-lg">Liste des enseignants</h3>
+        <span id="countBadge" class="text-xs font-extrabold text-navy/60 bg-mist rounded-full px-3 py-1.5">0 enseignant</span>
+      </div>
+
+      <div id="loadingState" class="flex flex-col items-center justify-center py-16 gap-4">
+        <span class="spinner" style="width:28px;height:28px;border-width:4px;"></span>
+        <p class="text-ink/50 text-sm">Chargement des données...</p>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table id="dataTable" class="hidden w-full text-sm">
+          <thead>
+            <tr class="text-left text-[11px] font-extrabold uppercase tracking-wide text-ink/40 bg-mist/60">
+              <th class="px-6 sm:px-8 py-3.5 whitespace-nowrap">Nom</th>
+              <th class="px-4 py-3.5 whitespace-nowrap">Matière</th>
+              <th class="px-4 py-3.5 whitespace-nowrap">Groupe</th>
+              <th class="px-4 py-3.5 whitespace-nowrap text-right">Salaire de base</th>
+              <th class="px-4 py-3.5 whitespace-nowrap text-center">Montant du mois</th>
+              <th class="px-4 py-3.5 whitespace-nowrap text-center">Statut</th>
+              <th class="px-4 sm:px-8 py-3.5 whitespace-nowrap text-center">Date de paiement</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody" class="divide-y divide-line"></tbody>
+        </table>
+      </div>
+
+      <div id="emptyState" class="hidden px-8 py-14 text-center">
+        <p class="text-ink/40 text-sm">Aucun enseignant enregistré pour le moment.</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div id="toastWrap" class="fixed bottom-6 inset-x-0 flex justify-center pointer-events-none z-50"></div>
+
+<script type="module">
+import { auth, db, signOut, collection, getDocs, doc, getDoc, setDoc, requireAdmin } from './supabase-config.js';
+
+const MONTHS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
+const monthSelect = document.getElementById('monthSelect');
+const yearSelect = document.getElementById('yearSelect');
+const now = new Date();
+
+MONTHS.forEach((m, i) => {
+  const opt = document.createElement('option');
+  opt.value = i + 1;
+  opt.textContent = m;
+  monthSelect.appendChild(opt);
+});
+monthSelect.value = now.getMonth() + 1;
+
+const currentYear = now.getFullYear();
+for (let y = currentYear - 1; y <= currentYear + 1; y++) {
+  const opt = document.createElement('option');
+  opt.value = y;
+  opt.textContent = y;
+  yearSelect.appendChild(opt);
+}
+yearSelect.value = currentYear;
+
+let allTeachers = [];
+
+function fmtDH(n) {
+  return (Number(n) || 0).toLocaleString('fr-FR') + ' DH';
+}
+
+function paymentId(teacherId, annee, mois) {
+  return `${teacherId}::${annee}-${String(mois).padStart(2, '0')}`;
+}
+
+function showToast(message) {
+  const toastWrap = document.getElementById('toastWrap');
+  const toast = document.createElement('div');
+  toast.className = 'toast pointer-events-auto bg-navy text-white text-sm font-bold rounded-full px-6 py-3 shadow-lg flex items-center gap-2';
+  toast.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#F0A93C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>${message}`;
+  toastWrap.appendChild(toast);
+  setTimeout(() => toast.remove(), 2000);
+}
+
+function updateKpis() {
+  let total = 0, paid = 0;
+  document.querySelectorAll('#tableBody tr[data-teacher]').forEach((tr) => {
+    const amount = parseFloat(tr.querySelector('.amount-field').value) || 0;
+    total += amount;
+    if (tr.dataset.statut === 'Payé') paid += amount;
+  });
+  document.getElementById('kpiTotal').textContent = fmtDH(total);
+  document.getElementById('kpiPaid').textContent = fmtDH(paid);
+  document.getElementById('kpiRemaining').textContent = fmtDH(total - paid);
+}
+
+function statusPillHtml(statut) {
+  const cls = statut === 'Payé' ? 'status-paid' : 'status-unpaid';
+  return `<button type="button" class="status-pill status-toggle border text-[11px] font-extrabold rounded-full px-3.5 py-2 ${cls}">${statut}</button>`;
+}
+
+async function loadRows(annee, mois) {
+  const tbody = document.getElementById('tableBody');
+  const table = document.getElementById('dataTable');
+  const loadingState = document.getElementById('loadingState');
+  const emptyState = document.getElementById('emptyState');
+
+  loadingState.classList.remove('hidden');
+  table.classList.add('hidden');
+  emptyState.classList.add('hidden');
+  tbody.innerHTML = '';
+
+  if (allTeachers.length === 0) {
+    loadingState.classList.add('hidden');
+    emptyState.classList.remove('hidden');
+    return;
+  }
+
+  document.getElementById('countBadge').textContent =
+    allTeachers.length + (allTeachers.length > 1 ? ' enseignants' : ' enseignant');
+
+  for (const t of allTeachers) {
+    const pid = paymentId(t.id, annee, mois);
+    let payment = {};
+    try {
+      const snap = await getDoc(doc(db, 'teacher_payments', pid));
+      if (snap.exists()) payment = snap.data();
+    } catch (e) { /* ignore, ligne pas encore créée */ }
+
+    const montant = payment.montant ?? t.salaire ?? 0;
+    const statut = payment.statut || 'Non payé';
+    const datePaiement = payment.datePaiement || '';
+
+    const tr = document.createElement('tr');
+    tr.className = 'row-enter hover:bg-mist/40 transition-colors';
+    tr.dataset.teacher = t.id;
+    tr.dataset.statut = statut;
+    tr.innerHTML = `
+      <td class="px-6 sm:px-8 py-3.5 font-bold text-navy whitespace-nowrap">${t.prenom || ''} ${t.nom || ''}</td>
+      <td class="px-4 py-3.5 whitespace-nowrap text-ink/70">${t.matiere || '—'}</td>
+      <td class="px-4 py-3.5 whitespace-nowrap text-ink/70">${t.groupe || '—'}</td>
+      <td class="px-4 py-3.5 whitespace-nowrap text-right num text-ink/50">${fmtDH(t.salaire || 0)}</td>
+      <td class="px-4 py-3.5 text-center">
+        <input type="number" min="0" step="50" value="${montant}" data-teacher="${t.id}"
+          class="amount-field w-28 rounded-xl border border-line bg-mist px-2 py-2 text-sm text-center text-navy font-bold outline-none num">
+      </td>
+      <td class="px-4 py-3.5 text-center">${statusPillHtml(statut)}</td>
+      <td class="px-4 sm:px-8 py-3.5 text-center">
+        <input type="date" value="${datePaiement}" data-teacher-date="${t.id}"
+          class="date-field rounded-xl border border-line bg-mist px-2 py-2 text-xs text-center text-ink/70 outline-none">
+      </td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  loadingState.classList.add('hidden');
+  table.classList.remove('hidden');
+  updateKpis();
+
+  attachRowHandlers(annee, mois);
+}
+
+function attachRowHandlers(annee, mois) {
+  document.querySelectorAll('#tableBody tr[data-teacher]').forEach((tr) => {
+    const teacherId = tr.dataset.teacher;
+    const amountInput = tr.querySelector('.amount-field');
+    const dateInput = tr.querySelector('.date-field');
+    const statusBtn = tr.querySelector('.status-toggle');
+
+    async function persist() {
+      const pid = paymentId(teacherId, annee, mois);
+      const montant = Math.max(0, parseFloat(amountInput.value) || 0);
+      amountInput.value = montant;
+      try {
+        await setDoc(doc(db, 'teacher_payments', pid), {
+          teacherId, annee, mois, montant,
+          statut: tr.dataset.statut,
+          datePaiement: dateInput.value || null,
+        });
+        amountInput.classList.add('saved');
+        setTimeout(() => amountInput.classList.remove('saved'), 1000);
+        tr.classList.add('saved-flash');
+        setTimeout(() => tr.classList.remove('saved-flash'), 1000);
+        showToast('Enregistré');
+        updateKpis();
+      } catch (e) {
+        alert("Erreur lors de l'enregistrement.");
+      }
+    }
+
+    amountInput.addEventListener('change', persist);
+    dateInput.addEventListener('change', persist);
+
+    statusBtn.addEventListener('click', async () => {
+      const next = tr.dataset.statut === 'Payé' ? 'Non payé' : 'Payé';
+      tr.dataset.statut = next;
+      statusBtn.textContent = next;
+      statusBtn.classList.remove('status-paid', 'status-unpaid');
+      statusBtn.classList.add(next === 'Payé' ? 'status-paid' : 'status-unpaid');
+      if (next === 'Payé' && !dateInput.value) {
+        dateInput.value = new Date().toISOString().slice(0, 10);
+      }
+      await persist();
+    });
+  });
+}
+
+async function reload() {
+  const annee = parseInt(yearSelect.value, 10);
+  const mois = parseInt(monthSelect.value, 10);
+  await loadRows(annee, mois);
+}
+
+monthSelect.addEventListener('change', reload);
+yearSelect.addEventListener('change', reload);
+
+requireAdmin(async () => {
+  try {
+    const snap = await getDocs(collection(db, 'teachers'));
+    allTeachers = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => `${a.nom}${a.prenom}`.localeCompare(`${b.nom}${b.prenom}`));
+  } catch (e) {
+    allTeachers = [];
+  }
+  reload();
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await signOut(auth);
+  location.href = 'connexion.html';
+});
+</script>
+
+</body>
+</html>

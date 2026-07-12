@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestion des Paiements | Diwan Al Maaref</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="logo.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Fraunces:wght@500;600&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          navy:  { DEFAULT:'#1B1464', 700:'#170F52', 900:'#100B3B' },
+          purple:{ DEFAULT:'#5B3AA6' },
+          gold:  { DEFAULT:'#F0A93C', light:'#FBC873', dark:'#D98F1F' },
+          ink:   '#221D3D',
+          mist:  '#F6F4FC',
+          line:  '#E7E2F3',
+        },
+        fontFamily: { sans: ['Inter','sans-serif'], display: ['Fraunces','serif'] }
+      }
+    }
+  }
+</script>
+
+<style>
+  body { font-family:'Inter', sans-serif; color:#221D3D; background:#F6F4FC; }
+  .font-display { font-family:'Fraunces', serif; }
+  .num { font-family:'Manrope', sans-serif; }
+  ::selection { background:#F0A93C; color:#1B1464; }
+
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+    outline: 2px solid #F0A93C; outline-offset: 2px; border-radius: 6px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration:.01ms !important; transition-duration:.01ms !important; }
+  }
+
+  .spinner {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 3px solid rgba(27,20,100,.15); border-top-color:#1B1464;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .row-enter { animation: rowEnter .3s cubic-bezier(.2,.8,.25,1) both; }
+  @keyframes rowEnter { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+
+  .amount-field { transition: border-color .2s ease, box-shadow .2s ease; }
+  .amount-field:focus { border-color:#5B3AA6; box-shadow:0 0 0 4px rgba(91,58,166,.12); }
+  .amount-field.saved { border-color:#10B981; }
+
+  .status-pill { transition: background-color .2s ease, color .2s ease, border-color .2s ease; }
+  .status-paid { background:#D1FAE5; color:#047857; border-color:#A7F3D0; }
+  .status-unpaid { background:#FDECEE; color:#BE123C; border-color:#FBD5DA; }
+
+  .saved-flash { animation: flash 1s ease; }
+  @keyframes flash { 0%{background-color:#D1FAE5} 100%{background-color:transparent} }
+
+  .toast { animation: toastIn .3s ease both, toastOut .3s ease 1.7s both; }
+  @keyframes toastIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes toastOut { from{opacity:1} to{opacity:0;transform:translateY(-6px)} }
+
+  .month-select, .plain-select {
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none'><path d='M6 9l6 6 6-6' stroke='%235B3AA6' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat: no-repeat; background-position: right .8rem center;
+  }
+</style>
+</head>
+
+<body class="antialiased min-h-screen">
+
+<!-- Écran affiché si aucune session admin active -->
+<div id="noSessionGate" class="hidden min-h-screen flex items-center justify-center px-5">
+  <div class="w-full max-w-sm bg-white border border-line rounded-3xl shadow-xl p-8 sm:p-10 text-center">
+    <img src="logo.png" alt="Logo Diwan Al Maaref" class="h-16 w-16 object-contain mb-5 mx-auto">
+    <h1 class="font-display font-semibold text-navy text-lg mb-2">Session requise</h1>
+    <p class="text-ink/50 text-sm mb-6">Veuillez vous connecter depuis le tableau de bord administratif principal pour accéder à cette page.</p>
+    <a href="admin-dashboard.html" class="inline-flex items-center justify-center gap-2 bg-navy hover:bg-navy-700 text-white font-extrabold px-6 py-3 rounded-full transition-colors text-sm">
+      Aller au Tableau de Bord
+    </a>
+  </div>
+</div>
+
+<div id="dashboard" class="hidden">
+
+  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-line">
+    <div class="max-w-6xl mx-auto px-5 sm:px-8 h-20 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <img src="logo.png" alt="Logo Diwan Al Maaref" class="h-11 w-11 object-contain">
+        <div class="hidden sm:flex flex-col leading-tight">
+          <span class="font-display font-semibold text-navy text-base">Gestion des Paiements</span>
+          <span class="text-[11px] text-gold-dark font-bold">Diwan Al Maaref — Administration</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="espace-administration.html" class="inline-flex items-center gap-2 text-xs font-bold text-navy/70 hover:text-gold-dark border border-line rounded-full px-4 py-2.5 transition-colors bg-white">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="hidden sm:inline">Espace Administration</span>
+        </a>
+        <button id="logoutBtn" class="text-sm font-bold text-navy/60 hover:text-red-500 transition-colors">Déconnexion</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-5 sm:px-8 py-10 flex flex-col gap-6">
+
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+      <div>
+        <h2 class="font-display font-semibold text-navy text-2xl">Frais de Scolarité</h2>
+        <p class="text-ink/50 text-sm mt-1">Suivez les paiements mensuels des élèves admis.</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <select id="monthSelect" class="month-select rounded-full border border-line bg-white pl-4 pr-9 py-2.5 text-xs font-extrabold text-navy focus:border-gold outline-none cursor-pointer"></select>
+        <select id="yearSelect" class="month-select rounded-full border border-line bg-white pl-4 pr-9 py-2.5 text-xs font-extrabold text-navy focus:border-gold outline-none cursor-pointer"></select>
+      </div>
+    </div>
+
+    <!-- KPI -->
+    <section class="grid sm:grid-cols-3 gap-4">
+      <div class="bg-white border border-line rounded-2xl p-5">
+        <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Total attendu</p>
+        <p id="kpiTotal" class="font-display font-semibold text-navy text-2xl num">0 DH</p>
+      </div>
+      <div class="bg-white border border-line rounded-2xl p-5">
+        <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Total encaissé</p>
+        <p id="kpiPaid" class="font-display font-semibold text-emerald-600 text-2xl num">0 DH</p>
+      </div>
+      <div class="bg-white border border-line rounded-2xl p-5">
+        <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Taux de recouvrement</p>
+        <p id="kpiRate" class="font-display font-semibold text-purple text-2xl num">0%</p>
+      </div>
+    </section>
+
+    <div class="flex flex-wrap items-center gap-3">
+      <div class="relative w-full sm:w-72">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="absolute left-4 top-1/2 -translate-y-1/2 text-ink/30"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input id="searchInput" type="text" placeholder="Rechercher par nom ou matricule..." class="w-full rounded-full border border-line bg-white pl-11 pr-4 py-2.5 text-sm focus:border-gold outline-none">
+      </div>
+      <select id="levelFilter" class="plain-select rounded-full border border-line bg-white pl-4 pr-9 py-2 text-xs font-bold text-navy focus:border-gold outline-none cursor-pointer">
+        <option value="">Tous les niveaux</option>
+      </select>
+      <select id="statusFilter" class="plain-select rounded-full border border-line bg-white pl-4 pr-9 py-2 text-xs font-bold text-navy focus:border-gold outline-none cursor-pointer">
+        <option value="">Tous les statuts</option>
+        <option value="Payé">Payé</option>
+        <option value="Non payé">Non payé</option>
+      </select>
+    </div>
+
+    <section class="bg-white border border-line rounded-3xl shadow-sm overflow-hidden">
+      <div class="px-6 sm:px-8 py-6 flex items-center justify-between border-b border-line">
+        <h3 class="font-display font-semibold text-navy text-lg">Liste des élèves</h3>
+        <span id="countBadge" class="text-xs font-extrabold text-navy/60 bg-mist rounded-full px-3 py-1.5">0 élève</span>
+      </div>
+
+      <div id="loadingState" class="flex flex-col items-center justify-center py-16 gap-4">
+        <span class="spinner" style="width:28px;height:28px;border-width:4px;"></span>
+        <p class="text-ink/50 text-sm">Chargement des données...</p>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table id="dataTable" class="hidden w-full text-sm">
+          <thead>
+            <tr class="text-left text-[11px] font-extrabold uppercase tracking-wide text-ink/40 bg-mist/60">
+              <th class="px-6 sm:px-8 py-3.5 whitespace-nowrap">Matricule</th>
+              <th class="px-4 py-3.5 whitespace-nowrap">Nom</th>
+              <th class="px-4 py-3.5 whitespace-nowrap">Niveau</th>
+              <th class="px-4 py-3.5 whitespace-nowrap text-center">Montant</th>
+              <th class="px-4 py-3.5 whitespace-nowrap text-center">Méthode</th>
+              <th class="px-4 py-3.5 whitespace-nowrap text-center">Statut</th>
+              <th class="px-4 sm:px-8 py-3.5 whitespace-nowrap text-center">Date de paiement</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody" class="divide-y divide-line"></tbody>
+        </table>
+      </div>
+
+      <div id="emptyState" class="hidden px-8 py-14 text-center">
+        <p class="text-ink/40 text-sm">Aucun élève admis pour le moment.</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div id="toastWrap" class="fixed bottom-6 inset-x-0 flex justify-center pointer-events-none z-50"></div>
+
+<script type="module">
+import { auth, db, signOut, collection, getDocs, doc, getDoc, setDoc, requireAdmin } from './supabase-config.js';
+
+const MONTHS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+const METHODS = ['Espèces', 'Chèque', 'Virement'];
+
+const monthSelect = document.getElementById('monthSelect');
+const yearSelect = document.getElementById('yearSelect');
+const now = new Date();
+
+MONTHS.forEach((m, i) => {
+  const opt = document.createElement('option');
+  opt.value = i + 1;
+  opt.textContent = m;
+  monthSelect.appendChild(opt);
+});
+monthSelect.value = now.getMonth() + 1;
+
+const currentYear = now.getFullYear();
+for (let y = currentYear - 1; y <= currentYear + 1; y++) {
+  const opt = document.createElement('option');
+  opt.value = y;
+  opt.textContent = y;
+  yearSelect.appendChild(opt);
+}
+yearSelect.value = currentYear;
+
+let allStudents = [];       // élèves admis
+let paymentsByStudent = {}; // studentId -> {montant, methode, statut, datePaiement}
+
+function fmtDH(n) {
+  return (Number(n) || 0).toLocaleString('fr-FR') + ' DH';
+}
+
+function paymentId(studentId, annee, mois) {
+  return `${studentId}::${annee}-${String(mois).padStart(2, '0')}`;
+}
+
+function showToast(message) {
+  const toastWrap = document.getElementById('toastWrap');
+  const toast = document.createElement('div');
+  toast.className = 'toast pointer-events-auto bg-navy text-white text-sm font-bold rounded-full px-6 py-3 shadow-lg flex items-center gap-2';
+  toast.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#F0A93C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>${message}`;
+  toastWrap.appendChild(toast);
+  setTimeout(() => toast.remove(), 2000);
+}
+
+function populateLevelFilter() {
+  const select = document.getElementById('levelFilter');
+  const levels = [...new Set(allStudents.map(s => s.niveau).filter(Boolean))].sort();
+  select.innerHTML = '<option value="">Tous les niveaux</option>' +
+    levels.map(l => `<option value="${l}">${l}</option>`).join('');
+}
+
+function statusPillHtml(statut) {
+  const cls = statut === 'Payé' ? 'status-paid' : 'status-unpaid';
+  return `<button type="button" class="status-pill status-toggle border text-[11px] font-extrabold rounded-full px-3.5 py-2 ${cls}">${statut}</button>`;
+}
+
+function methodSelectHtml(current) {
+  return `<select class="method-select plain-select rounded-full border border-line bg-mist pl-3 pr-7 py-2 text-xs font-bold text-navy outline-none cursor-pointer">
+    ${METHODS.map(m => `<option value="${m}" ${m === current ? 'selected' : ''}>${m}</option>`).join('')}
+  </select>`;
+}
+
+async function loadPayments(annee, mois) {
+  paymentsByStudent = {};
+  for (const s of allStudents) {
+    const pid = paymentId(s.id, annee, mois);
+    try {
+      const snap = await getDoc(doc(db, 'student_payments', pid));
+      if (snap.exists()) paymentsByStudent[s.id] = snap.data();
+    } catch (e) { /* pas encore de paiement pour cet élève ce mois */ }
+  }
+}
+
+function updateKpis(rows) {
+  let total = 0, paid = 0;
+  rows.forEach((r) => {
+    total += r.montant;
+    if (r.statut === 'Payé') paid += r.montant;
+  });
+  document.getElementById('kpiTotal').textContent = fmtDH(total);
+  document.getElementById('kpiPaid').textContent = fmtDH(paid);
+  document.getElementById('kpiRate').textContent = total > 0 ? Math.round((paid / total) * 100) + '%' : '0%';
+}
+
+function getFilteredStudents() {
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  const level = document.getElementById('levelFilter').value;
+  const status = document.getElementById('statusFilter').value;
+
+  return allStudents.filter((s) => {
+    const matchesQuery = !q ||
+      (s.prenom || '').toLowerCase().includes(q) ||
+      (s.nom || '').toLowerCase().includes(q) ||
+      (s.id || '').toLowerCase().includes(q);
+    const matchesLevel = !level || s.niveau === level;
+    const p = paymentsByStudent[s.id] || {};
+    const statut = p.statut || 'Non payé';
+    const matchesStatus = !status || statut === status;
+    return matchesQuery && matchesLevel && matchesStatus;
+  });
+}
+
+function renderRows(annee, mois) {
+  const tbody = document.getElementById('tableBody');
+  const table = document.getElementById('dataTable');
+  const emptyState = document.getElementById('emptyState');
+  tbody.innerHTML = '';
+
+  const filtered = getFilteredStudents();
+  document.getElementById('countBadge').textContent =
+    filtered.length + (filtered.length > 1 ? ' élèves' : ' élève');
+
+  if (filtered.length === 0) {
+    table.classList.add('hidden');
+    emptyState.classList.remove('hidden');
+    return;
+  }
+  emptyState.classList.add('hidden');
+  table.classList.remove('hidden');
+
+  const summaryRows = [];
+
+  filtered.forEach((s) => {
+    const p = paymentsByStudent[s.id] || {};
+    const montant = p.montant ?? 0;
+    const methode = p.methode || 'Espèces';
+    const statut = p.statut || 'Non payé';
+    const datePaiement = p.datePaiement || '';
+    summaryRows.push({ montant: Number(montant) || 0, statut });
+
+    const tr = document.createElement('tr');
+    tr.className = 'row-enter hover:bg-mist/40 transition-colors';
+    tr.dataset.student = s.id;
+    tr.dataset.statut = statut;
+    tr.innerHTML = `
+      <td class="px-6 sm:px-8 py-3.5 whitespace-nowrap font-mono text-xs font-bold text-purple">${s.id}</td>
+      <td class="px-4 py-3.5 whitespace-nowrap font-bold text-navy">${s.prenom || ''} ${s.nom || ''}</td>
+      <td class="px-4 py-3.5 whitespace-nowrap text-ink/70">${s.niveau || '—'}</td>
+      <td class="px-4 py-3.5 text-center">
+        <input type="number" min="0" step="50" value="${montant}" data-student="${s.id}"
+          class="amount-field w-24 rounded-xl border border-line bg-mist px-2 py-2 text-sm text-center text-navy font-bold outline-none num">
+      </td>
+      <td class="px-4 py-3.5 text-center">${methodSelectHtml(methode)}</td>
+      <td class="px-4 py-3.5 text-center">${statusPillHtml(statut)}</td>
+      <td class="px-4 sm:px-8 py-3.5 text-center">
+        <input type="date" value="${datePaiement}" class="date-field rounded-xl border border-line bg-mist px-2 py-2 text-xs text-center text-ink/70 outline-none">
+      </td>
+    `;
+    tbody.appendChild(tr);
+
+    const amountInput = tr.querySelector('.amount-field');
+    const methodSelect = tr.querySelector('.method-select');
+    const statusBtn = tr.querySelector('.status-toggle');
+    const dateInput = tr.querySelector('.date-field');
+
+    async function persist() {
+      const pid = paymentId(s.id, annee, mois);
+      const montantVal = Math.max(0, parseFloat(amountInput.value) || 0);
+      amountInput.value = montantVal;
+      const dataObj = {
+        studentId: s.id, annee, mois,
+        montant: montantVal,
+        methode: methodSelect.value,
+        statut: tr.dataset.statut,
+        datePaiement: dateInput.value || null,
+      };
+      try {
+        await setDoc(doc(db, 'student_payments', pid), dataObj);
+        paymentsByStudent[s.id] = dataObj;
+        amountInput.classList.add('saved');
+        setTimeout(() => amountInput.classList.remove('saved'), 1000);
+        tr.classList.add('saved-flash');
+        setTimeout(() => tr.classList.remove('saved-flash'), 1000);
+        showToast('Enregistré');
+        updateKpis(getFilteredStudents().map(st => {
+          const pp = paymentsByStudent[st.id] || {};
+          return { montant: Number(pp.montant) || 0, statut: pp.statut || 'Non payé' };
+        }));
+      } catch (e) {
+        alert("Erreur lors de l'enregistrement du paiement.");
+      }
+    }
+
+    amountInput.addEventListener('change', persist);
+    methodSelect.addEventListener('change', persist);
+    dateInput.addEventListener('change', persist);
+
+    statusBtn.addEventListener('click', async () => {
+      const next = tr.dataset.statut === 'Payé' ? 'Non payé' : 'Payé';
+      tr.dataset.statut = next;
+      statusBtn.textContent = next;
+      statusBtn.classList.remove('status-paid', 'status-unpaid');
+      statusBtn.classList.add(next === 'Payé' ? 'status-paid' : 'status-unpaid');
+      if (next === 'Payé' && !dateInput.value) {
+        dateInput.value = new Date().toISOString().slice(0, 10);
+      }
+      await persist();
+    });
+  });
+
+  updateKpis(summaryRows);
+}
+
+async function reload() {
+  const loadingState = document.getElementById('loadingState');
+  const table = document.getElementById('dataTable');
+  loadingState.classList.remove('hidden');
+  table.classList.add('hidden');
+
+  const annee = parseInt(yearSelect.value, 10);
+  const mois = parseInt(monthSelect.value, 10);
+  await loadPayments(annee, mois);
+
+  loadingState.classList.add('hidden');
+  renderRows(annee, mois);
+}
+
+monthSelect.addEventListener('change', reload);
+yearSelect.addEventListener('change', reload);
+document.getElementById('searchInput').addEventListener('input', () => renderRows(parseInt(yearSelect.value, 10), parseInt(monthSelect.value, 10)));
+document.getElementById('levelFilter').addEventListener('change', () => renderRows(parseInt(yearSelect.value, 10), parseInt(monthSelect.value, 10)));
+document.getElementById('statusFilter').addEventListener('change', () => renderRows(parseInt(yearSelect.value, 10), parseInt(monthSelect.value, 10)));
+
+requireAdmin(async () => {
+  try {
+    const snap = await getDocs(collection(db, 'students'));
+    allStudents = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
+      .filter((s) => s.statut === 'Accepté')
+      .sort((a, b) => `${a.nom}${a.prenom}`.localeCompare(`${b.nom}${b.prenom}`));
+  } catch (e) {
+    allStudents = [];
+  }
+  populateLevelFilter();
+  reload();
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await signOut(auth);
+  location.href = 'connexion.html';
+});
+</script>
+
+</body>
+</html>
