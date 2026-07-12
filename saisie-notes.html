@@ -100,9 +100,19 @@
   </div>
 
   <section class="bg-white border border-line rounded-3xl shadow-sm overflow-hidden">
-    <div class="px-6 sm:px-8 py-6 flex items-center justify-between border-b border-line">
-      <h3 class="font-display font-semibold text-navy text-lg">Liste des élèves</h3>
-      <span id="countBadge" class="text-xs font-extrabold text-navy/60 bg-mist rounded-full px-3 py-1.5">0 élève</span>
+    <div class="px-6 sm:px-8 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-line">
+      <div class="flex items-center gap-3">
+        <h3 class="font-display font-semibold text-navy text-lg">Liste des élèves</h3>
+        <span id="countBadge" class="text-xs font-extrabold text-navy/60 bg-mist rounded-full px-3 py-1.5">0 élève</span>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <select id="levelFilter" class="rounded-full border border-line bg-white px-4 py-2 text-xs font-bold text-navy focus:border-gold outline-none">
+          <option value="">Tous les niveaux</option>
+        </select>
+        <select id="groupFilter" class="rounded-full border border-line bg-white px-4 py-2 text-xs font-bold text-navy focus:border-gold outline-none">
+          <option value="">Tous les groupes</option>
+        </select>
+      </div>
     </div>
 
     <div class="overflow-x-auto">
@@ -182,6 +192,8 @@
     const tbody = document.getElementById('studentsTableBody');
     const emptyState = document.getElementById('emptyState');
     const matiereBadge = document.getElementById('matiereBadge');
+    const levelFilter = document.getElementById('levelFilter');
+    const groupFilter = document.getElementById('groupFilter');
 
     if (teacher.matiere) {
       matiereBadge.textContent = 'Matière : ' + teacher.matiere;
@@ -203,66 +215,114 @@
       return;
     }
 
-    document.getElementById('countBadge').textContent =
-      myStudents.length + (myStudents.length > 1 ? ' élèves' : ' élève');
     tbody.innerHTML = '';
 
-    if (myStudents.length === 0) {
-      emptyState.classList.remove('hidden');
-      return;
-    }
-
+    // Précharge les notes de chaque élève une seule fois, pour éviter de les
+    // recharger à chaque changement de filtre.
     for (const s of myStudents) {
-      const studentNotes = await loadNoteFor(s.id, teacher.matiere);
-      const tr = document.createElement('tr');
-      tr.className = 'row-enter hover:bg-mist/50 transition-colors';
-      tr.innerHTML = `
-        <td class="px-6 sm:px-8 py-3.5 font-bold text-navy whitespace-nowrap">${s.nom}</td>
-        <td class="px-4 py-3.5 whitespace-nowrap">${s.prenom}</td>
-        <td class="px-4 py-3.5 whitespace-nowrap font-mono text-xs font-bold text-purple">${s.id}</td>
-        <td class="px-4 py-3.5 whitespace-nowrap"><span class="inline-block text-[11px] font-extrabold rounded-full px-3 py-1 ${levelBadgeClass(s.niveau)}">${s.niveau}</span></td>
-        <td class="px-2 py-3.5 text-center">
-          <input type="number" min="0" max="20" step="0.25" data-student="${s.id}" data-exam="examen1"
-            value="${studentNotes.examen1 ?? ''}"
-            class="note-field w-20 rounded-xl border border-line bg-mist px-2 py-2 text-sm text-center text-navy outline-none">
-        </td>
-        <td class="px-2 py-3.5 text-center">
-          <input type="number" min="0" max="20" step="0.25" data-student="${s.id}" data-exam="examen2"
-            value="${studentNotes.examen2 ?? ''}"
-            class="note-field w-20 rounded-xl border border-line bg-mist px-2 py-2 text-sm text-center text-navy outline-none">
-        </td>
-        <td class="px-2 sm:px-8 py-3.5 text-center">
-          <input type="number" min="0" max="20" step="0.25" data-student="${s.id}" data-exam="examen3"
-            value="${studentNotes.examen3 ?? ''}"
-            class="note-field w-20 rounded-xl border border-line bg-mist px-2 py-2 text-sm text-center text-navy outline-none">
-        </td>
-      `;
-      tbody.appendChild(tr);
+      s._notes = await loadNoteFor(s.id, teacher.matiere);
     }
 
-    tbody.querySelectorAll('.note-field').forEach((input) => {
-      input.addEventListener('change', async () => {
-        let val = parseFloat(input.value);
-        if (isNaN(val)) { val = null; }
-        else { val = Math.max(0, Math.min(20, val)); input.value = val; }
+    // ---------- Filtres niveau / groupe ----------
+    function populateFilters(students) {
+      const levels = [...new Set(students.map((s) => s.niveau).filter(Boolean))].sort();
+      const groups = [...new Set(students.map((s) => s.groupe).filter(Boolean))].sort();
+      const currentLevel = levelFilter.value;
+      const currentGroup = groupFilter.value;
+      levelFilter.innerHTML = '<option value="">Tous les niveaux</option>' +
+        levels.map((l) => `<option value="${l}">${l}</option>`).join('');
+      groupFilter.innerHTML = '<option value="">Tous les groupes</option>' +
+        groups.map((g) => `<option value="${g}">${g}</option>`).join('');
+      levelFilter.value = currentLevel || '';
+      groupFilter.value = currentGroup || '';
+    }
 
-        const studentId = input.getAttribute('data-student');
-        const exam = input.getAttribute('data-exam');
+    function getFilteredStudents() {
+      const level = levelFilter.value;
+      const group = groupFilter.value;
+      return myStudents.filter((s) =>
+        (!level || s.niveau === level) && (!group || s.groupe === group));
+    }
 
-        try {
-          await saveNoteFor(studentId, teacher.matiere, { [exam]: val });
-          input.classList.add('saved');
-          setTimeout(() => input.classList.remove('saved'), 1000);
-          showToast('Note enregistrée');
-        } catch (e) {
-          // Log complet dans la console (F12) pour voir la VRAIE cause Supabase
-          // (RLS, contrainte de clé étrangère, colonne manquante, session expirée...)
-          // au lieu d'une simple alerte générique.
-          console.error('Erreur enregistrement note :', e);
-          alert("Erreur lors de l'enregistrement de la note.\n\nDétail : " + (e?.message || e?.error_description || JSON.stringify(e)));
-        }
+    function renderRows() {
+      const list = getFilteredStudents();
+      tbody.innerHTML = '';
+
+      document.getElementById('countBadge').textContent =
+        list.length + (list.length > 1 ? ' élèves' : ' élève');
+
+      if (list.length === 0) {
+        emptyState.classList.remove('hidden');
+        emptyState.querySelector('p').textContent = myStudents.length === 0
+          ? "Aucun élève trouvé pour vos classes. Contactez l'administration si cela ne semble pas correct."
+          : "Aucun élève ne correspond aux filtres sélectionnés.";
+        return;
+      }
+      emptyState.classList.add('hidden');
+
+      list.forEach((s) => {
+        const studentNotes = s._notes || {};
+        const tr = document.createElement('tr');
+        tr.className = 'row-enter hover:bg-mist/50 transition-colors';
+        tr.innerHTML = `
+          <td class="px-6 sm:px-8 py-3.5 font-bold text-navy whitespace-nowrap">${s.nom}</td>
+          <td class="px-4 py-3.5 whitespace-nowrap">${s.prenom}</td>
+          <td class="px-4 py-3.5 whitespace-nowrap font-mono text-xs font-bold text-purple">${s.id}</td>
+          <td class="px-4 py-3.5 whitespace-nowrap"><span class="inline-block text-[11px] font-extrabold rounded-full px-3 py-1 ${levelBadgeClass(s.niveau)}">${s.niveau}</span></td>
+          <td class="px-2 py-3.5 text-center">
+            <input type="number" min="0" max="20" step="0.25" data-student="${s.id}" data-exam="examen1"
+              value="${studentNotes.examen1 ?? ''}"
+              class="note-field w-20 rounded-xl border border-line bg-mist px-2 py-2 text-sm text-center text-navy outline-none">
+          </td>
+          <td class="px-2 py-3.5 text-center">
+            <input type="number" min="0" max="20" step="0.25" data-student="${s.id}" data-exam="examen2"
+              value="${studentNotes.examen2 ?? ''}"
+              class="note-field w-20 rounded-xl border border-line bg-mist px-2 py-2 text-sm text-center text-navy outline-none">
+          </td>
+          <td class="px-2 sm:px-8 py-3.5 text-center">
+            <input type="number" min="0" max="20" step="0.25" data-student="${s.id}" data-exam="examen3"
+              value="${studentNotes.examen3 ?? ''}"
+              class="note-field w-20 rounded-xl border border-line bg-mist px-2 py-2 text-sm text-center text-navy outline-none">
+          </td>
+        `;
+        tbody.appendChild(tr);
       });
+    }
+
+    // Délégation d'événement : un seul écouteur sur le tbody, valable après chaque
+    // re-rendu déclenché par les filtres.
+    tbody.addEventListener('change', async (e) => {
+      const input = e.target.closest('.note-field');
+      if (!input) return;
+
+      let val = parseFloat(input.value);
+      if (isNaN(val)) { val = null; }
+      else { val = Math.max(0, Math.min(20, val)); input.value = val; }
+
+      const studentId = input.getAttribute('data-student');
+      const exam = input.getAttribute('data-exam');
+
+      try {
+        await saveNoteFor(studentId, teacher.matiere, { [exam]: val });
+        const student = myStudents.find((s) => s.id === studentId);
+        if (student) { student._notes = student._notes || {}; student._notes[exam] = val; }
+        input.classList.add('saved');
+        setTimeout(() => input.classList.remove('saved'), 1000);
+        showToast('Note enregistrée');
+      } catch (e) {
+        // Log complet dans la console (F12) pour voir la VRAIE cause Supabase
+        // (RLS, contrainte de clé étrangère, colonne manquante, session expirée...)
+        // au lieu d'une simple alerte générique.
+        console.error('Erreur enregistrement note :', e);
+        alert("Erreur lors de l'enregistrement de la note.\n\nDétail : " + (e?.message || e?.error_description || JSON.stringify(e)));
+      }
     });
+
+    levelFilter.addEventListener('change', renderRows);
+    groupFilter.addEventListener('change', renderRows);
+
+    populateFilters(myStudents);
+    renderRows();
   });
 
   document.getElementById('logoutBtn').addEventListener('click', async () => {
