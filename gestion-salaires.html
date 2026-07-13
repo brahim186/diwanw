@@ -296,7 +296,7 @@ function generateBulletin(teacher, montantBrut, annee, mois, datePaiement) {
     body: [
       ['Nom & Prénom', `${teacher.prenom || ''} ${teacher.nom || ''}`.trim() || '—', 'Fonction', teacher.matiere ? `Enseignant(e) — ${teacher.matiere}` : 'Enseignant(e)'],
       ['N° CNSS', teacher.cnss || '—', 'Groupe / Niveaux', teacher.groupe || '—'],
-      ['Situation familiale', '—', 'Date de paiement', datePaiement ? new Date(datePaiement).toLocaleDateString('fr-FR') : '—'],
+      ['RIB Bancaire', teacher.rib || '—', 'Date de paiement', datePaiement ? new Date(datePaiement).toLocaleDateString('fr-FR') : '—'],
     ],
     columnStyles: {
       0: { fontStyle: 'bold', textColor: [27, 20, 100], cellWidth: 34 },
