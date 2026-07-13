@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Espace Parent | Diwan Al Maaref</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { theme: { extend: {
+    colors: { navy:{DEFAULT:'#1B1464'}, purple:{DEFAULT:'#5B3AA6'}, gold:{DEFAULT:'#F0A93C',dark:'#D98F1F'}, ink:'#221D3D', mist:'#F6F4FC', line:'#E7E2F3' },
+    fontFamily: { sans:['Inter','sans-serif'], display:['Fraunces','serif'] }
+  }}}
+</script>
+<style>
+  body { font-family:'Inter', sans-serif; background:#F6F4FC; }
+  .font-display { font-family:'Fraunces', serif; }
+</style>
+</head>
+<body class="min-h-screen grid place-items-center px-5 antialiased">
+  <div class="max-w-md w-full bg-white border border-line rounded-3xl p-10 text-center shadow-sm">
+    <div class="w-16 h-16 mx-auto rounded-2xl bg-rose-500/10 grid place-items-center mb-6">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" stroke="#E11D48" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="7" r="4" stroke="#E11D48" stroke-width="1.8"/><path d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="#E11D48" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <h1 class="font-display font-semibold text-navy text-2xl">Espace Parent</h1>
+    <p class="text-ink/50 text-sm mt-3 leading-relaxed">Cet espace est en cours de préparation. Il sera bientôt disponible pour suivre la scolarité et les résultats de votre enfant.</p>
+    <a href="espaces.html" class="mt-8 inline-flex items-center gap-2 bg-navy hover:bg-navy-700 text-white text-sm font-bold px-6 py-3 rounded-full transition-colors">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Retour aux espaces
+    </a>
+  </div>
+</body>
+</html>

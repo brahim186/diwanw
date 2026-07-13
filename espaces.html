@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nos Espaces | Diwan Al Maaref</title>
+<link rel="icon" type="image/png" href="logo.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Fraunces:wght@500;600&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          navy:  { DEFAULT:'#1B1464', 700:'#170F52', 900:'#100B3B' },
+          purple:{ DEFAULT:'#5B3AA6' },
+          gold:  { DEFAULT:'#F0A93C', light:'#FBC873', dark:'#D98F1F' },
+          ink:   '#221D3D',
+          mist:  '#F6F4FC',
+          line:  '#E7E2F3',
+        },
+        fontFamily: { sans: ['Inter','sans-serif'], display: ['Fraunces','serif'] }
+      }
+    }
+  }
+</script>
+
+<style>
+  body { font-family:'Inter', sans-serif; color:#221D3D; background:#F6F4FC; }
+  .font-display { font-family:'Fraunces', serif; }
+  ::selection { background:#F0A93C; color:#1B1464; }
+
+  a:focus-visible, button:focus-visible {
+    outline: 2px solid #F0A93C; outline-offset: 2px; border-radius: 6px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration:.01ms !important; transition-duration:.01ms !important; }
+  }
+
+  .space-card {
+    transition: transform .25s cubic-bezier(.2,.8,.25,1), box-shadow .25s ease, border-color .25s ease;
+  }
+  .space-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 22px 40px -20px rgba(27,20,100,.35);
+  }
+  .space-card:hover .space-arrow { transform: translateX(4px); }
+  .space-arrow { transition: transform .25s ease; }
+</style>
+</head>
+
+<body class="antialiased min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-line">
+  <div class="max-w-6xl mx-auto px-5 sm:px-8 h-20 flex items-center justify-between gap-4">
+    <a href="index.html" class="flex items-center gap-3">
+      <img src="logo.png" alt="Logo Diwan Al Maaref" class="h-11 w-11 object-contain">
+      <div class="hidden sm:flex flex-col leading-tight">
+        <span class="font-display font-semibold text-navy text-base">Nos Espaces</span>
+        <span class="text-[11px] text-gold-dark font-bold">Diwan Al Maaref</span>
+      </div>
+    </a>
+    <a href="index.html" class="inline-flex items-center gap-2 text-xs font-bold text-navy/70 hover:text-gold-dark border border-line rounded-full px-4 py-2.5 transition-colors bg-white">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="hidden sm:inline">Retour au site</span>
+    </a>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-5 sm:px-8 py-14 sm:py-20">
+
+  <div class="max-w-2xl mb-12">
+    <span class="text-gold-dark text-xs font-extrabold uppercase tracking-wide">Diwan Al Maaref</span>
+    <h1 class="font-display font-semibold text-navy text-3xl sm:text-4xl mt-3 leading-tight">Choisissez votre espace</h1>
+    <p class="text-ink/55 text-sm mt-3 leading-relaxed">Chaque membre de la communauté Diwan Al Maaref dispose de son propre espace personnel. Sélectionnez celui qui vous correspond pour vous connecter.</p>
+  </div>
+
+  <div class="grid sm:grid-cols-2 gap-6">
+
+    <!-- Espace Étudiant -->
+    <a href="connexion-etudiant.html" class="space-card group bg-white border border-line rounded-3xl p-8 flex flex-col gap-6 shadow-sm">
+      <div class="w-16 h-16 rounded-2xl bg-purple/10 grid place-items-center">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M22 10L12 5 2 10l10 5 10-5z" stroke="#5B3AA6" stroke-width="1.8" stroke-linejoin="round"/><path d="M6 12v5c0 1.5 2.5 3.5 6 3.5s6-2 6-3.5v-5" stroke="#5B3AA6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="flex-1">
+        <h2 class="font-display font-semibold text-navy text-xl">Espace Étudiant</h2>
+        <p class="text-ink/50 text-sm mt-2 leading-relaxed">Consultez vos notes, votre emploi du temps et les documents transmis par vos enseignants.</p>
+      </div>
+      <span class="space-arrow inline-flex items-center gap-1.5 text-xs font-extrabold text-purple">
+        Se connecter
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+    </a>
+
+    <!-- Espace Enseignant -->
+    <a href="connexion-enseignant.html" class="space-card group bg-white border border-line rounded-3xl p-8 flex flex-col gap-6 shadow-sm">
+      <div class="w-16 h-16 rounded-2xl bg-teal-500/10 grid place-items-center">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M12 14l9-5-9-5-9 5 9 5z" stroke="#0D9488" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 14l6.16-3.42A9 9 0 0121 12v3M6 12v5c0 1.5 2.5 3 6 3s6-1.5 6-3v-5" stroke="#0D9488" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="flex-1">
+        <h2 class="font-display font-semibold text-navy text-xl">Espace Enseignant</h2>
+        <p class="text-ink/50 text-sm mt-2 leading-relaxed">Accédez à vos classes, la liste de vos élèves et la saisie des notes et appréciations.</p>
+      </div>
+      <span class="space-arrow inline-flex items-center gap-1.5 text-xs font-extrabold text-teal-600">
+        Se connecter
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+    </a>
+
+    <!-- Espace Administration -->
+    <a href="connexion.html" class="space-card group bg-white border border-line rounded-3xl p-8 flex flex-col gap-6 shadow-sm">
+      <div class="w-16 h-16 rounded-2xl bg-gold/15 grid place-items-center">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6" stroke="#D98F1F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="flex-1">
+        <h2 class="font-display font-semibold text-navy text-xl">Espace Administration</h2>
+        <p class="text-ink/50 text-sm mt-2 leading-relaxed">Gestion des inscriptions, des enseignants, des annonces et du suivi financier de l'établissement.</p>
+      </div>
+      <span class="space-arrow inline-flex items-center gap-1.5 text-xs font-extrabold text-gold-dark">
+        Se connecter
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+    </a>
+
+    <!-- Espace Parent -->
+    <a href="connexion-parent.html" class="space-card group bg-white border border-line rounded-3xl p-8 flex flex-col gap-6 shadow-sm">
+      <div class="w-16 h-16 rounded-2xl bg-rose-500/10 grid place-items-center">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" stroke="#E11D48" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="7" r="4" stroke="#E11D48" stroke-width="1.8"/><path d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="#E11D48" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="flex-1">
+        <h2 class="font-display font-semibold text-navy text-xl">Espace Parent</h2>
+        <p class="text-ink/50 text-sm mt-2 leading-relaxed">Suivez la scolarité de votre enfant, ses résultats et les annonces qui le concernent.</p>
+      </div>
+      <span class="space-arrow inline-flex items-center gap-1.5 text-xs font-extrabold text-rose-600">
+        Se connecter
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+    </a>
+
+  </div>
+</main>
+
+</body>
+</html>
