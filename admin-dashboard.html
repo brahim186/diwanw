@@ -435,13 +435,13 @@ function renderRecords(records) {
     node.querySelector('[data-field="motherPhone"]').textContent = r.telMere || '—';
     node.querySelector('[data-field="emergencyPhone"]').textContent = r.telUrgence || '—';
 
-    wireDoc(node, 'photo', r.photoURL);
-    wireDoc(node, 'birthCert', r.acteNaissanceURL);
-    wireDoc(node, 'idCards', r.cinParentsURL);
+    wireDoc(rowRoot, 'photo', r.photoURL);
+    wireDoc(rowRoot, 'birthCert', r.acteNaissanceURL);
+    wireDoc(rowRoot, 'idCards', r.cinParentsURL);
 
-    wireUploadButton(node, r, 'photo', 'photoURL', 'photo');
-    wireUploadButton(node, r, 'birthCert', 'acteNaissanceURL', 'acte');
-    wireUploadButton(node, r, 'idCards', 'cinParentsURL', 'cin');
+    wireUploadButton(rowRoot, r, 'photo', 'photoURL', 'photo');
+    wireUploadButton(rowRoot, r, 'birthCert', 'acteNaissanceURL', 'acte');
+    wireUploadButton(rowRoot, r, 'idCards', 'cinParentsURL', 'cin');
 
     applyStatusInterface(rowRoot, r.statut || '');
 
