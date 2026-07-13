@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Emplois du Temps | Diwan Al Maaref</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="logo.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Fraunces:wght@500;600&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          navy:  { DEFAULT:'#1B1464', 700:'#170F52', 900:'#100B3B' },
+          purple:{ DEFAULT:'#5B3AA6' },
+          gold:  { DEFAULT:'#F0A93C', light:'#FBC873', dark:'#D98F1F' },
+          ink:   '#221D3D',
+          mist:  '#F6F4FC',
+          line:  '#E7E2F3',
+        },
+        fontFamily: { sans: ['Inter','sans-serif'], display: ['Fraunces','serif'] }
+      }
+    }
+  }
+</script>
+
+<style>
+  body { font-family:'Inter', sans-serif; color:#221D3D; background:#F6F4FC; }
+  .font-display { font-family:'Fraunces', serif; }
+  ::selection { background:#F0A93C; color:#1B1464; }
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+    outline: 2px solid #F0A93C; outline-offset: 2px; border-radius: 6px;
+  }
+  @media (prefers-reduced-motion: reduce) { * { animation-duration:.01ms !important; transition-duration:.01ms !important; } }
+
+  .field { transition: border-color .2s ease, box-shadow .2s ease; }
+  .field:focus { border-color:#5B3AA6; box-shadow:0 0 0 4px rgba(91,58,166,.12); }
+
+  .btn-primary { transition: transform .2s cubic-bezier(.2,.8,.25,1), box-shadow .2s ease, background-color .2s ease; }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 14px 28px -12px rgba(27,20,100,.45); background-color:#170F52; }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled { opacity:.5; cursor:not-allowed; transform:none; box-shadow:none; }
+
+  .tab-btn { transition: background-color .2s ease, color .2s ease; }
+  .tab-btn.active { background:#1B1464; color:#fff; }
+
+  .row-enter { animation: rowEnter .3s cubic-bezier(.2,.8,.25,1) both; }
+  @keyframes rowEnter { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+
+  .toast { animation: toastIn .3s ease both, toastOut .3s ease 2.7s both; }
+  @keyframes toastIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes toastOut { from{opacity:1} to{opacity:0;transform:translateY(-6px)} }
+
+  .edt-cell { min-height:64px; }
+  .edt-period-row td { background:#EEF2FF; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; color:#4338CA; padding:6px 10px; }
+
+  @media print {
+    header, .no-print { display:none !important; }
+    body { background:#fff; }
+    .print-area { box-shadow:none !important; border:none !important; }
+  }
+</style>
+</head>
+
+<body class="antialiased min-h-screen">
+
+<!-- Écran affiché si aucune session admin active -->
+<div id="noSessionGate" class="hidden min-h-screen flex items-center justify-center px-5">
+  <div class="w-full max-w-sm bg-white border border-line rounded-3xl shadow-xl p-8 sm:p-10 text-center">
+    <img src="logo.png" alt="Logo Diwan Al Maaref" class="h-16 w-16 object-contain mb-5 mx-auto">
+    <h1 class="font-display font-semibold text-navy text-lg mb-2">Session requise</h1>
+    <p class="text-ink/50 text-sm mb-6">Veuillez vous connecter depuis le tableau de bord administratif principal pour accéder à cette page.</p>
+    <a href="admin-dashboard.html" class="inline-flex items-center justify-center gap-2 bg-navy hover:bg-navy-700 text-white font-extrabold px-6 py-3 rounded-full transition-colors text-sm">
+      Aller au Tableau de Bord
+    </a>
+  </div>
+</div>
+
+<div id="dashboard" class="hidden">
+
+  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-line no-print">
+    <div class="max-w-6xl mx-auto px-5 sm:px-8 h-20 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <img src="logo.png" alt="Logo Diwan Al Maaref" class="h-11 w-11 object-contain">
+        <div class="hidden sm:flex flex-col leading-tight">
+          <span class="font-display font-semibold text-navy text-base">Emplois du Temps</span>
+          <span class="text-[11px] text-gold-dark font-bold">Diwan Al Maaref — Administration</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="espace-administration.html" class="inline-flex items-center gap-2 text-xs font-bold text-navy/70 hover:text-gold-dark border border-line rounded-full px-4 py-2.5 transition-colors bg-white">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="hidden sm:inline">Espace Administration</span>
+        </a>
+        <button id="logoutBtn" class="text-sm font-bold text-navy/60 hover:text-red-500 transition-colors">Déconnexion</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-5 sm:px-8 py-12 flex flex-col gap-10">
+
+    <div>
+      <h2 class="font-display font-semibold text-navy text-3xl">Emplois du Temps</h2>
+      <p class="text-ink/50 text-sm mt-2 leading-relaxed">Configurez les horaires de l'établissement, détectez vos classes, puis générez automatiquement un emploi du temps sans conflit d'enseignant ni de section.</p>
+    </div>
+
+    <!-- ============ 1. CONFIGURATION HORAIRE ============ -->
+    <section class="bg-white border border-line rounded-3xl shadow-sm p-6 sm:p-8">
+      <h3 class="font-display font-semibold text-navy text-lg mb-1">1. Configuration des horaires</h3>
+      <p class="text-ink/50 text-xs mb-6">Ces réglages définissent la grille de créneaux utilisée pour la génération.</p>
+
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div class="lg:col-span-4">
+          <label class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Jours d'enseignement</label>
+          <div id="joursWrap" class="flex flex-wrap gap-2">
+            <!-- injecté par JS -->
+          </div>
+        </div>
+
+        <div>
+          <label for="dureeSeance" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Durée d'une séance</label>
+          <select id="dureeSeance" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy outline-none">
+            <option value="45">45 minutes</option>
+            <option value="50">50 minutes</option>
+            <option value="60" selected>60 minutes</option>
+            <option value="90">1h30 (90 minutes)</option>
+            <option value="120">2h (120 minutes)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Matin — Début</label>
+          <input id="matinDebut" type="time" value="08:00" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy outline-none">
+        </div>
+        <div>
+          <label class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Matin — Fin</label>
+          <input id="matinFin" type="time" value="12:00" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy outline-none">
+        </div>
+        <div></div>
+
+        <div>
+          <label class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Après-midi — Début</label>
+          <input id="apresmidiDebut" type="time" value="14:00" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy outline-none">
+        </div>
+        <div>
+          <label class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Après-midi — Fin</label>
+          <input id="apresmidiFin" type="time" value="18:00" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy outline-none">
+        </div>
+        <div></div><div></div>
+
+        <div class="lg:col-span-4 flex items-center gap-3 pt-2">
+          <input id="soirActif" type="checkbox" class="accent-navy w-4 h-4">
+          <label for="soirActif" class="text-navy text-xs font-extrabold tracking-wide uppercase">Activer les séances en soirée (cours du soir)</label>
+        </div>
+        <div>
+          <label class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Soirée — Début</label>
+          <input id="soirDebut" type="time" value="18:30" disabled class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy outline-none disabled:opacity-40">
+        </div>
+        <div>
+          <label class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Soirée — Fin</label>
+          <input id="soirFin" type="time" value="20:00" disabled class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy outline-none disabled:opacity-40">
+        </div>
+      </div>
+
+      <div class="flex justify-end mt-6">
+        <button id="saveConfigBtn" class="btn-primary inline-flex items-center gap-2 bg-navy text-white font-extrabold text-sm rounded-full px-7 py-3.5">
+          Enregistrer la configuration
+        </button>
+      </div>
+    </section>
+
+    <!-- ============ 2. CLASSES / SECTIONS ============ -->
+    <section class="bg-white border border-line rounded-3xl shadow-sm p-6 sm:p-8">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div>
+          <h3 class="font-display font-semibold text-navy text-lg">2. Classes / Sections</h3>
+          <p class="text-ink/50 text-xs mt-1">Une classe = un niveau + un groupe (ex : « 1ère année collège — Groupe A »).</p>
+        </div>
+        <button id="detectClassesBtn" class="inline-flex items-center gap-1.5 text-xs font-extrabold text-purple bg-purple/10 hover:bg-purple hover:text-white border border-purple/20 rounded-full px-4 py-2.5 transition-colors">
+          Détecter les classes depuis les enseignants
+        </button>
+      </div>
+
+      <form id="classForm" class="grid sm:grid-cols-3 gap-4 mb-6">
+        <div>
+          <label class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Niveau</label>
+          <select id="classNiveau" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy outline-none">
+            <option value="" disabled selected>Sélectionner</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Groupe</label>
+          <select id="classGroupe" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy outline-none">
+            <option value="" disabled selected>Sélectionner</option>
+            <option>Groupe A</option><option>Groupe B</option><option>Groupe C</option>
+            <option>Groupe D</option><option>Groupe E</option><option>Groupe F</option>
+          </select>
+        </div>
+        <div class="flex items-end">
+          <button type="submit" class="btn-primary w-full inline-flex items-center justify-center gap-2 bg-navy text-white font-extrabold text-sm rounded-full px-6 py-3">
+            Ajouter la classe
+          </button>
+        </div>
+      </form>
+
+      <div class="overflow-x-auto rounded-2xl border border-line">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-[11px] font-extrabold uppercase tracking-wide text-ink/40 bg-mist/60">
+              <th class="px-5 py-3">Classe</th>
+              <th class="px-5 py-3">Cycle</th>
+              <th class="px-5 py-3">Matières détectées</th>
+              <th class="px-5 py-3 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody id="classesBody" class="divide-y divide-line"></tbody>
+        </table>
+        <p id="classesEmpty" class="hidden px-5 py-8 text-center text-ink/40 text-sm">Aucune classe pour le moment. Utilisez « Détecter » ou ajoutez-en une manuellement.</p>
+      </div>
+    </section>
+
+    <!-- ============ 3. GÉNÉRATION ============ -->
+    <section class="bg-white border border-line rounded-3xl shadow-sm p-6 sm:p-8">
+      <h3 class="font-display font-semibold text-navy text-lg mb-1">3. Génération automatique</h3>
+      <p class="text-ink/50 text-xs mb-6">Le volume horaire par matière est suggéré depuis les coefficients (Primaire/Collège) ou fixé à 2 séances/semaine par défaut. Ajustez si besoin avant de générer.</p>
+
+      <div id="volumeWrap" class="overflow-x-auto rounded-2xl border border-line mb-6">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-[11px] font-extrabold uppercase tracking-wide text-ink/40 bg-mist/60">
+              <th class="px-5 py-3">Classe</th>
+              <th class="px-5 py-3">Matière</th>
+              <th class="px-5 py-3">Enseignant</th>
+              <th class="px-5 py-3 text-center">Séances / semaine</th>
+            </tr>
+          </thead>
+          <tbody id="volumeBody" class="divide-y divide-line"></tbody>
+        </table>
+        <p id="volumeEmpty" class="px-5 py-8 text-center text-ink/40 text-sm">Ajoutez au moins une classe pour voir apparaître le volume horaire.</p>
+      </div>
+
+      <div class="flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+        <p id="generationSummary" class="text-xs font-bold text-ink/50"></p>
+        <button id="generateBtn" class="btn-primary inline-flex items-center justify-center gap-2 bg-gold-dark hover:bg-gold-dark text-white font-extrabold text-sm rounded-full px-7 py-3.5">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Générer les emplois du temps
+        </button>
+      </div>
+    </section>
+
+    <!-- ============ 4. CONSULTATION ============ -->
+    <section class="bg-white border border-line rounded-3xl shadow-sm p-6 sm:p-8 print-area">
+      <div class="flex flex-wrap items-center justify-between gap-4 mb-6 no-print">
+        <div class="flex flex-wrap gap-2">
+          <button data-view="classe" class="view-tab tab-btn active text-xs font-extrabold rounded-full px-4 py-2.5 border border-line bg-white">Par Classe</button>
+          <button data-view="enseignant" class="view-tab tab-btn text-xs font-extrabold rounded-full px-4 py-2.5 border border-line bg-white">Par Enseignant</button>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <select id="viewSelect" class="field rounded-2xl border border-line bg-mist px-4 py-2.5 text-sm text-navy outline-none min-w-[220px]"></select>
+          <button id="exportExcelBtn" class="inline-flex items-center gap-1.5 text-xs font-extrabold text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white border border-emerald-200 rounded-full px-4 py-2.5 transition-colors">Excel</button>
+          <button id="exportPdfBtn" class="inline-flex items-center gap-1.5 text-xs font-extrabold text-rose-700 bg-rose-50 hover:bg-rose-600 hover:text-white border border-rose-200 rounded-full px-4 py-2.5 transition-colors">PDF</button>
+          <button id="printBtn" class="inline-flex items-center gap-1.5 text-xs font-extrabold text-navy bg-mist hover:bg-line border border-line rounded-full px-4 py-2.5 transition-colors">Imprimer</button>
+        </div>
+      </div>
+
+      <h4 id="viewTitle" class="font-display font-semibold text-navy text-lg mb-4">—</h4>
+
+      <div class="overflow-x-auto rounded-2xl border border-line">
+        <table class="w-full text-xs sm:text-sm border-collapse">
+          <thead id="gridHead" class="bg-mist/60"></thead>
+          <tbody id="gridBody" class="divide-y divide-line"></tbody>
+        </table>
+        <p id="gridEmpty" class="hidden px-5 py-10 text-center text-ink/40 text-sm">Aucun emploi du temps généré pour le moment.</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div id="toastWrap" class="fixed bottom-6 inset-x-0 flex justify-center pointer-events-none z-50"></div>
+
+<script type="module">
+import {
+  db, supabase, auth, signOut, requireAdmin,
+  collection, getDocs, query, where, setDoc, doc, deleteDoc, getDoc
+} from './supabase-config.js';
+
+/* ===================== Référentiels ===================== */
+const NIVEAUX = [
+  '1ère année primaire','2ème année primaire','3ème année primaire','4ème année primaire','5ème année primaire','6ème année primaire',
+  '1ère année collège','2ème année collège','3ème année collège',
+  'Tronc Commun','1ère année Baccalauréat','2ème année Baccalauréat'
+];
+function mapNiveauToCycle(niveau) {
+  if (niveau.includes('primaire')) return 'primaire';
+  if (niveau.includes('collège')) return 'college';
+  return 'lycee';
+}
+// Cycles utilisés par gestion-coefficients.html (le lycée y est scindé en 2 filières) :
+// on tente sciences puis lettres pour suggérer un volume horaire, sinon 2 par défaut.
+const COEFF_CYCLE_CANDIDATES = { primaire: ['primaire'], college: ['college'], lycee: ['lycee_sciences', 'lycee_lettres'] };
+
+const JOURS_ALL = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+const JOURS_DEFAULT = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi'];
+
+/* ===================== État ===================== */
+let TEACHERS = [];
+let CLASSES = [];
+let COEFF = {}; // { cycle: { matiere: coefficient } }
+let CONFIG = null;
+let SCHEDULE = []; // lignes emploi_du_temps { id, classe_id, teacher_id, matiere, jour, periode, heure_debut, heure_fin }
+let VOLUME_OVERRIDES = {}; // "classeId|matiere" -> nombre de séances
+
+/* ===================== Utilitaires UI ===================== */
+function showToast(message, tone = 'ok') {
+  const wrap = document.getElementById('toastWrap');
+  const t = document.createElement('div');
+  const color = tone === 'error' ? 'bg-rose-600' : 'bg-navy';
+  t.className = `toast pointer-events-auto ${color} text-white text-sm font-bold rounded-full px-6 py-3 shadow-lg`;
+  t.textContent = message;
+  wrap.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+function timeToMin(t) { const [h,m] = t.split(':').map(Number); return h*60+m; }
+function minToTime(min) { const h=Math.floor(min/60), m=min%60; return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`; }
+
+function generateSlotsForPeriod(debut, fin, duree, periode) {
+  const slots = [];
+  let t = timeToMin(debut);
+  const end = timeToMin(fin);
+  while (t + duree <= end) {
+    const s = minToTime(t), e = minToTime(t + duree);
+    slots.push({ id: `${periode}_${s}`, debut: s, fin: e, periode });
+    t += duree;
+  }
+  return slots;
+}
+
+function allSlots() {
+  if (!CONFIG) return [];
+  const duree = Number(CONFIG.duree_seance);
+  let slots = [
+    ...generateSlotsForPeriod(CONFIG.matin_debut, CONFIG.matin_fin, duree, 'matin'),
+    ...generateSlotsForPeriod(CONFIG.apresmidi_debut, CONFIG.apresmidi_fin, duree, 'apres_midi'),
+  ];
+  if (CONFIG.soir_actif) {
+    slots = slots.concat(generateSlotsForPeriod(CONFIG.soir_debut, CONFIG.soir_fin, duree, 'soir'));
+  }
+  return slots;
+}
+
+const PERIODE_LABELS = { matin: 'Matin', apres_midi: 'Après-midi', soir: 'Soirée' };
+
+/* ===================== 1. Configuration ===================== */
+function renderJoursCheckboxes(selected) {
+  const wrap = document.getElementById('joursWrap');
+  wrap.innerHTML = JOURS_ALL.map((j) => `
+    <label class="inline-flex items-center gap-2 border border-line rounded-full px-4 py-2 text-xs font-bold cursor-pointer bg-mist">
+      <input type="checkbox" class="jourOption accent-navy" value="${j}" ${selected.includes(j) ? 'checked' : ''}>
+      ${j}
+    </label>
+  `).join('');
+}
+
+function getSelectedJours() {
+  return Array.from(document.querySelectorAll('.jourOption')).filter(cb => cb.checked).map(cb => cb.value);
+}
+
+async function loadConfig() {
+  const { data } = await supabase.from('emploi_du_temps_config').select('*').eq('id', 'default').maybeSingle();
+  CONFIG = data || {
+    id: 'default', jours: JOURS_DEFAULT, duree_seance: 60,
+    matin_debut: '08:00', matin_fin: '12:00',
+    apresmidi_debut: '14:00', apresmidi_fin: '18:00',
+    soir_actif: false, soir_debut: '18:30', soir_fin: '20:00',
+  };
+  renderJoursCheckboxes(CONFIG.jours || JOURS_DEFAULT);
+  document.getElementById('dureeSeance').value = String(CONFIG.duree_seance || 60);
+  document.getElementById('matinDebut').value = CONFIG.matin_debut;
+  document.getElementById('matinFin').value = CONFIG.matin_fin;
+  document.getElementById('apresmidiDebut').value = CONFIG.apresmidi_debut;
+  document.getElementById('apresmidiFin').value = CONFIG.apresmidi_fin;
+  document.getElementById('soirActif').checked = !!CONFIG.soir_actif;
+  document.getElementById('soirDebut').value = CONFIG.soir_debut || '18:30';
+  document.getElementById('soirFin').value = CONFIG.soir_fin || '20:00';
+  toggleSoirFields();
+}
+
+function toggleSoirFields() {
+  const actif = document.getElementById('soirActif').checked;
+  document.getElementById('soirDebut').disabled = !actif;
+  document.getElementById('soirFin').disabled = !actif;
+}
+document.getElementById('soirActif').addEventListener('change', toggleSoirFields);
+
+document.getElementById('saveConfigBtn').addEventListener('click', async () => {
+  const jours = getSelectedJours();
+  if (jours.length === 0) { showToast('Sélectionnez au moins un jour.', 'error'); return; }
+  CONFIG = {
+    id: 'default',
+    jours,
+    duree_seance: Number(document.getElementById('dureeSeance').value),
+    matin_debut: document.getElementById('matinDebut').value,
+    matin_fin: document.getElementById('matinFin').value,
+    apresmidi_debut: document.getElementById('apresmidiDebut').value,
+    apresmidi_fin: document.getElementById('apresmidiFin').value,
+    soir_actif: document.getElementById('soirActif').checked,
+    soir_debut: document.getElementById('soirDebut').value,
+    soir_fin: document.getElementById('soirFin').value,
+  };
+  try {
+    await setDoc(doc(db, 'emploi_du_temps_config', 'default'), CONFIG);
+    showToast('Configuration enregistrée');
+    renderVolumeTable();
+  } catch (e) {
+    showToast("Erreur lors de l'enregistrement (table emploi_du_temps_config existe-t-elle ?).", 'error');
+  }
+});
+
+/* ===================== 2. Classes ===================== */
+function classCycleFromNiveau(niveau) { return mapNiveauToCycle(niveau); }
+
+function classId(niveau, groupe) {
+  return `${niveau}__${groupe}`.replace(/\s+/g, '-');
+}
+
+function matieresForClasse(classe) {
+  return TEACHERS.filter(t => (t.niveaux || []).includes(classe.niveau) && t.groupe === classe.groupe);
+}
+
+async function loadClasses() {
+  const snap = await getDocs(collection(db, 'classes'));
+  CLASSES = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+async function loadTeachers() {
+  const snap = await getDocs(collection(db, 'teachers'));
+  TEACHERS = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+async function loadCoefficients() {
+  const cycles = ['primaire', 'college', 'lycee_sciences', 'lycee_lettres'];
+  COEFF = {};
+  for (const cycle of cycles) {
+    const q = query(collection(db, 'subject_coefficients'), where('cycle', '==', cycle));
+    try {
+      const snap = await getDocs(q);
+      COEFF[cycle] = {};
+      snap.docs.forEach(d => { const row = d.data(); COEFF[cycle][row.matiere] = row.coefficient; });
+    } catch (e) { COEFF[cycle] = {}; }
+  }
+}
+
+async function loadSchedule() {
+  const snap = await getDocs(collection(db, 'emploi_du_temps'));
+  SCHEDULE = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+function populateNiveauSelect() {
+  const sel = document.getElementById('classNiveau');
+  sel.innerHTML = '<option value="" disabled selected>Sélectionner</option>' +
+    NIVEAUX.map(n => `<option value="${n}">${n}</option>`).join('');
+}
+
+async function detectClassesFromTeachers() {
+  const pairs = new Map();
+  TEACHERS.forEach(t => {
+    (t.niveaux || []).forEach(niveau => {
+      if (!t.groupe) return;
+      const id = classId(niveau, t.groupe);
+      if (!pairs.has(id)) pairs.set(id, { niveau, groupe: t.groupe });
+    });
+  });
+  if (pairs.size === 0) {
+    showToast('Aucune combinaison niveau/groupe trouvée dans les enseignants.', 'error');
+    return;
+  }
+  let created = 0;
+  for (const [id, { niveau, groupe }] of pairs) {
+    if (CLASSES.some(c => c.id === id)) continue;
+    const cycle = classCycleFromNiveau(niveau);
+    const nom = `${niveau} — ${groupe}`;
+    const dataObj = { nom, cycle, niveau, groupe };
+    await setDoc(doc(db, 'classes', id), dataObj);
+    CLASSES.push({ id, ...dataObj });
+    created += 1;
+  }
+  showToast(created > 0 ? `${created} classe(s) détectée(s) et ajoutée(s).` : 'Aucune nouvelle classe à ajouter (déjà présentes).');
+  renderClassesTable();
+  renderVolumeTable();
+  populateViewSelect();
+}
+
+function renderClassesTable() {
+  const body = document.getElementById('classesBody');
+  const empty = document.getElementById('classesEmpty');
+  if (CLASSES.length === 0) {
+    body.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  body.innerHTML = CLASSES.map(c => {
+    const matieres = [...new Set(matieresForClasse(c).map(t => t.matiere))];
+    return `
+      <tr class="row-enter hover:bg-mist/40">
+        <td class="px-5 py-3 font-bold text-navy">${c.nom}</td>
+        <td class="px-5 py-3 text-ink/60">${c.cycle}</td>
+        <td class="px-5 py-3 text-ink/60">${matieres.length ? matieres.join(', ') : '<span class="text-rose-500">Aucun enseignant assigné</span>'}</td>
+        <td class="px-5 py-3 text-right">
+          <button data-id="${c.id}" class="deleteClassBtn text-xs font-extrabold text-rose-600 hover:underline">Supprimer</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  body.querySelectorAll('.deleteClassBtn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      if (!confirm('Supprimer cette classe et son emploi du temps généré ?')) return;
+      await deleteDoc(doc(db, 'classes', id));
+      await supabase.from('emploi_du_temps').delete().eq('classe_id', id);
+      CLASSES = CLASSES.filter(c => c.id !== id);
+      SCHEDULE = SCHEDULE.filter(s => s.classe_id !== id);
+      renderClassesTable();
+      renderVolumeTable();
+      populateViewSelect();
+      renderGrid();
+      showToast('Classe supprimée');
+    });
+  });
+}
+
+document.getElementById('classForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const niveau = document.getElementById('classNiveau').value;
+  const groupe = document.getElementById('classGroupe').value;
+  if (!niveau || !groupe) { showToast('Sélectionnez un niveau et un groupe.', 'error'); return; }
+  const id = classId(niveau, groupe);
+  if (CLASSES.some(c => c.id === id)) { showToast('Cette classe existe déjà.', 'error'); return; }
+  const cycle = classCycleFromNiveau(niveau);
+  const dataObj = { nom: `${niveau} — ${groupe}`, cycle, niveau, groupe };
+  await setDoc(doc(db, 'classes', id), dataObj);
+  CLASSES.push({ id, ...dataObj });
+  renderClassesTable();
+  renderVolumeTable();
+  populateViewSelect();
+  showToast('Classe ajoutée');
+  e.target.reset();
+});
+
+document.getElementById('detectClassesBtn').addEventListener('click', detectClassesFromTeachers);
+
+/* ===================== 3. Volume horaire + génération ===================== */
+function suggestedSeances(cycle, matiere) {
+  const candidates = COEFF_CYCLE_CANDIDATES[cycle] || [cycle];
+  for (const c of candidates) {
+    const val = COEFF[c] && COEFF[c][matiere];
+    if (val) return Math.min(6, Math.max(1, Math.round(val)));
+  }
+  return 2;
+}
+
+function buildVolumeRows() {
+  const rows = [];
+  CLASSES.forEach(classe => {
+    const byMatiere = new Map();
+    matieresForClasse(classe).forEach(t => { if (!byMatiere.has(t.matiere)) byMatiere.set(t.matiere, t); });
+    byMatiere.forEach((teacher, matiere) => {
+      rows.push({ classe, matiere, teacher });
+    });
+  });
+  return rows;
+}
+
+function renderVolumeTable() {
+  const body = document.getElementById('volumeBody');
+  const empty = document.getElementById('volumeEmpty');
+  const rows = buildVolumeRows();
+  if (rows.length === 0) {
+    body.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  body.innerHTML = rows.map(({ classe, matiere, teacher }) => {
+    const key = `${classe.id}|${matiere}`;
+    const value = VOLUME_OVERRIDES[key] ?? suggestedSeances(classe.cycle, matiere);
+    VOLUME_OVERRIDES[key] = value;
+    return `
+      <tr class="row-enter hover:bg-mist/40">
+        <td class="px-5 py-3 font-bold text-navy">${classe.nom}</td>
+        <td class="px-5 py-3 text-ink/70">${matiere}</td>
+        <td class="px-5 py-3 text-ink/60">${teacher.prenom} ${teacher.nom}</td>
+        <td class="px-5 py-3 text-center">
+          <input type="number" min="1" max="10" value="${value}" data-key="${key}"
+            class="volumeInput w-20 rounded-xl border border-line bg-mist px-2 py-1.5 text-center text-purple font-extrabold outline-none">
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  body.querySelectorAll('.volumeInput').forEach(input => {
+    input.addEventListener('change', () => {
+      let v = parseInt(input.value, 10);
+      if (isNaN(v) || v < 1) v = 1;
+      input.value = v;
+      VOLUME_OVERRIDES[input.dataset.key] = v;
+    });
+  });
+}
+
+function buildLessonUnits() {
+  const units = [];
+  buildVolumeRows().forEach(({ classe, matiere, teacher }) => {
+    const key = `${classe.id}|${matiere}`;
+    const count = VOLUME_OVERRIDES[key] ?? suggestedSeances(classe.cycle, matiere);
+    for (let i = 0; i < count; i++) units.push({ classe, matiere, teacher });
+  });
+  return units;
+}
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function attemptSchedule(units, days, slots) {
+  const shuffledUnits = shuffle(units);
+  const classOcc = {};
+  const teacherOcc = {};
+  const classDayMatiere = {};
+  const placed = [];
+  const unplaced = [];
+
+  for (const unit of shuffledUnits) {
+    let found = null;
+    for (const avoidSameDay of [true, false]) {
+      if (found) break;
+      for (const day of shuffle(days)) {
+        if (found) break;
+        for (const slot of shuffle(slots)) {
+          const key = `${day}|${slot.id}`;
+          if (classOcc[unit.classe.id]?.has(key)) continue;
+          if (teacherOcc[unit.teacher.id]?.has(key)) continue;
+          if (avoidSameDay) {
+            const cdmKey = `${unit.classe.id}|${day}`;
+            if (classDayMatiere[cdmKey]?.has(unit.matiere)) continue;
+          }
+          found = { day, slot };
+          break;
+        }
+      }
+    }
+    if (found) {
+      const key = `${found.day}|${found.slot.id}`;
+      (classOcc[unit.classe.id] ??= new Set()).add(key);
+      (teacherOcc[unit.teacher.id] ??= new Set()).add(key);
+      const cdmKey = `${unit.classe.id}|${found.day}`;
+      (classDayMatiere[cdmKey] ??= new Set()).add(unit.matiere);
+      placed.push({
+        classe_id: unit.classe.id, teacher_id: unit.teacher.id, matiere: unit.matiere,
+        jour: found.day, periode: found.slot.periode, heure_debut: found.slot.debut, heure_fin: found.slot.fin,
+      });
+    } else {
+      unplaced.push(unit);
+    }
+  }
+  return { placed, unplaced };
+}
+
+document.getElementById('generateBtn').addEventListener('click', async () => {
+  if (!CONFIG) { showToast('Enregistrez la configuration horaire d\'abord.', 'error'); return; }
+  const days = CONFIG.jours || JOURS_DEFAULT;
+  const slots = allSlots();
+  if (slots.length === 0) { showToast('Aucun créneau disponible avec ces horaires.', 'error'); return; }
+  const units = buildLessonUnits();
+  if (units.length === 0) { showToast('Aucune séance à planifier (ajoutez des classes/enseignants).', 'error'); return; }
+
+  const btn = document.getElementById('generateBtn');
+  btn.disabled = true;
+  const original = btn.innerHTML;
+  btn.innerHTML = 'Génération en cours...';
+
+  let best = null;
+  const TRIES = 25;
+  for (let i = 0; i < TRIES; i++) {
+    const attempt = attemptSchedule(units, days, slots);
+    if (!best || attempt.unplaced.length < best.unplaced.length) best = attempt;
+    if (best.unplaced.length === 0) break;
+  }
+
+  try {
+    // On régénère entièrement : on supprime les anciennes séances des classes concernées.
+    const classeIds = CLASSES.map(c => c.id);
+    if (classeIds.length > 0) {
+      await supabase.from('emploi_du_temps').delete().in('classe_id', classeIds);
+    }
+    const rows = best.placed.map(p => ({ id: crypto.randomUUID(), ...p }));
+    if (rows.length > 0) {
+      const { error } = await supabase.from('emploi_du_temps').insert(rows);
+      if (error) throw error;
+    }
+    SCHEDULE = rows;
+
+    const summary = document.getElementById('generationSummary');
+    summary.textContent = best.unplaced.length === 0
+      ? `${rows.length}/${units.length} séance(s) placée(s) avec succès — aucun conflit.`
+      : `${rows.length}/${units.length} séance(s) placée(s). ${best.unplaced.length} séance(s) n'ont pas pu être casées (créneaux insuffisants pour : ${[...new Set(best.unplaced.map(u => `${u.classe.nom} / ${u.matiere}`))].join(', ')}).`;
+
+    showToast(best.unplaced.length === 0 ? 'Emploi du temps généré sans conflit !' : 'Généré avec quelques séances non placées.', best.unplaced.length === 0 ? 'ok' : 'error');
+    populateViewSelect();
+    renderGrid();
+  } catch (e) {
+    showToast("Erreur lors de l'enregistrement (vérifiez que la table emploi_du_temps existe).", 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = original;
+  }
+});
+
+/* ===================== 4. Consultation (grilles) ===================== */
+let currentView = 'classe';
+
+function populateViewSelect() {
+  const sel = document.getElementById('viewSelect');
+  if (currentView === 'classe') {
+    sel.innerHTML = CLASSES.map(c => `<option value="${c.id}">${c.nom}</option>`).join('');
+  } else {
+    sel.innerHTML = TEACHERS.map(t => `<option value="${t.id}">${t.prenom} ${t.nom} — ${t.matiere || ''}</option>`).join('');
+  }
+  renderGrid();
+}
+
+document.querySelectorAll('.view-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.view-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentView = btn.dataset.view;
+    populateViewSelect();
+  });
+});
+document.getElementById('viewSelect').addEventListener('change', renderGrid);
+
+function renderGrid() {
+  const head = document.getElementById('gridHead');
+  const body = document.getElementById('gridBody');
+  const empty = document.getElementById('gridEmpty');
+  const title = document.getElementById('viewTitle');
+  const selId = document.getElementById('viewSelect').value;
+
+  if (!CONFIG || !selId) {
+    head.innerHTML = ''; body.innerHTML = '';
+    empty.classList.remove('hidden');
+    title.textContent = '—';
+    return;
+  }
+
+  const days = CONFIG.jours || JOURS_DEFAULT;
+  const slots = allSlots();
+  let rows;
+  if (currentView === 'classe') {
+    const classe = CLASSES.find(c => c.id === selId);
+    title.textContent = classe ? `Emploi du temps — ${classe.nom} (élèves)` : '—';
+    rows = SCHEDULE.filter(s => s.classe_id === selId);
+  } else {
+    const teacher = TEACHERS.find(t => t.id === selId);
+    title.textContent = teacher ? `Emploi du temps — ${teacher.prenom} ${teacher.nom} (enseignant)` : '—';
+    rows = SCHEDULE.filter(s => s.teacher_id === selId);
+  }
+
+  if (rows.length === 0) {
+    empty.classList.remove('hidden');
+  } else {
+    empty.classList.add('hidden');
+  }
+
+  head.innerHTML = `<tr>
+    <th class="px-4 py-3 text-left text-[11px] font-extrabold uppercase tracking-wide text-ink/40">Horaire</th>
+    ${days.map(d => `<th class="px-4 py-3 text-center text-[11px] font-extrabold uppercase tracking-wide text-ink/40">${d}</th>`).join('')}
+  </tr>`;
+
+  let lastPeriode = null;
+  const bodyRows = [];
+  slots.forEach(slot => {
+    if (slot.periode !== lastPeriode) {
+      lastPeriode = slot.periode;
+      bodyRows.push(`<tr class="edt-period-row"><td colspan="${days.length + 1}">${PERIODE_LABELS[slot.periode]}</td></tr>`);
+    }
+    const cells = days.map(day => {
+      const entry = rows.find(r => r.jour === day && r.periode === slot.periode && r.heure_debut === slot.debut);
+      if (!entry) return `<td class="edt-cell px-3 py-2 align-top text-ink/20 text-center">—</td>`;
+      if (currentView === 'classe') {
+        const teacher = TEACHERS.find(t => t.id === entry.teacher_id);
+        return `<td class="edt-cell px-3 py-2 align-top bg-purple/5">
+          <p class="font-bold text-navy text-xs">${entry.matiere}</p>
+          <p class="text-[11px] text-ink/50 mt-0.5">${teacher ? teacher.prenom + ' ' + teacher.nom : '—'}</p>
+        </td>`;
+      } else {
+        const classe = CLASSES.find(c => c.id === entry.classe_id);
+        return `<td class="edt-cell px-3 py-2 align-top bg-gold/5">
+          <p class="font-bold text-navy text-xs">${entry.matiere}</p>
+          <p class="text-[11px] text-ink/50 mt-0.5">${classe ? classe.nom : '—'}</p>
+        </td>`;
+      }
+    }).join('');
+    bodyRows.push(`<tr>
+      <td class="px-4 py-2 text-xs font-bold text-navy/70 whitespace-nowrap">${slot.debut} – ${slot.fin}</td>
+      ${cells}
+    </tr>`);
+  });
+  body.innerHTML = bodyRows.join('');
+}
+
+/* ===================== Export Excel / PDF / Impression ===================== */
+function currentGridRows() {
+  const selId = document.getElementById('viewSelect').value;
+  const days = CONFIG.jours || JOURS_DEFAULT;
+  const slots = allSlots();
+  const rows = currentView === 'classe'
+    ? SCHEDULE.filter(s => s.classe_id === selId)
+    : SCHEDULE.filter(s => s.teacher_id === selId);
+
+  return slots.map(slot => {
+    const line = { 'Horaire': `${slot.debut} – ${slot.fin}` };
+    days.forEach(day => {
+      const entry = rows.find(r => r.jour === day && r.periode === slot.periode && r.heure_debut === slot.debut);
+      if (!entry) { line[day] = ''; return; }
+      if (currentView === 'classe') {
+        const teacher = TEACHERS.find(t => t.id === entry.teacher_id);
+        line[day] = `${entry.matiere} (${teacher ? teacher.prenom + ' ' + teacher.nom : '—'})`;
+      } else {
+        const classe = CLASSES.find(c => c.id === entry.classe_id);
+        line[day] = `${entry.matiere} — ${classe ? classe.nom : '—'}`;
+      }
+    });
+    return line;
+  });
+}
+
+document.getElementById('exportExcelBtn').addEventListener('click', () => {
+  const rows = currentGridRows();
+  if (rows.length === 0) { showToast('Rien à exporter.', 'error'); return; }
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Emploi du temps');
+  XLSX.writeFile(wb, `emploi_du_temps_${new Date().toISOString().slice(0, 10)}.xlsx`);
+});
+
+document.getElementById('exportPdfBtn').addEventListener('click', () => {
+  const rows = currentGridRows();
+  if (rows.length === 0) { showToast('Rien à exporter.', 'error'); return; }
+  const days = CONFIG.jours || JOURS_DEFAULT;
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  pdf.setFontSize(14); pdf.setTextColor(27, 20, 100);
+  pdf.text(document.getElementById('viewTitle').textContent, 14, 15);
+  pdf.autoTable({
+    head: [['Horaire', ...days]],
+    body: rows.map(r => [r['Horaire'], ...days.map(d => r[d] || '—')]),
+    startY: 22,
+    styles: { fontSize: 8, cellPadding: 2 },
+    headStyles: { fillColor: [27, 20, 100], textColor: 255, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [246, 244, 252] },
+  });
+  pdf.save(`emploi_du_temps_${new Date().toISOString().slice(0, 10)}.pdf`);
+});
+
+document.getElementById('printBtn').addEventListener('click', () => window.print());
+
+/* ===================== Init ===================== */
+async function init() {
+  populateNiveauSelect();
+  await Promise.all([loadTeachers(), loadClasses(), loadCoefficients(), loadConfig(), loadSchedule()]);
+  renderClassesTable();
+  renderVolumeTable();
+  populateViewSelect();
+}
+
+requireAdmin(() => init());
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await signOut(auth);
+  location.href = 'connexion.html';
+});
+</script>
+
+</body>
+</html>
