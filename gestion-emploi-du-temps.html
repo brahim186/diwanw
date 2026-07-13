@@ -121,8 +121,9 @@
 
       <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <div class="lg:col-span-4">
-          <label class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Jours d'enseignement</label>
-          <div id="joursWrap" class="flex flex-wrap gap-2">
+          <label class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Jours & périodes d'enseignement</label>
+          <p class="text-ink/50 text-xs mb-3">Cochez, pour chaque jour, les périodes actives (Matin / Après-midi / Soirée). Par défaut : Lundi → Vendredi, Matin + Après-midi.</p>
+          <div id="joursWrap">
             <!-- injecté par JS -->
           </div>
         </div>
@@ -312,6 +313,21 @@ const COEFF_CYCLE_CANDIDATES = { primaire: ['primaire'], college: ['college'], l
 
 const JOURS_ALL = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
 const JOURS_DEFAULT = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi'];
+const PERIODES_ALL = [
+  { key: 'matin', label: 'Matin' },
+  { key: 'apres_midi', label: 'Après-midi' },
+  { key: 'soir', label: 'Soirée' },
+];
+// Par défaut : Lundi → Vendredi avec Matin + Après-midi cochés, Soirée décochée, Samedi vide.
+const DEFAULT_PERIODES = {
+  Lundi:    { matin: true,  apres_midi: true,  soir: false },
+  Mardi:    { matin: true,  apres_midi: true,  soir: false },
+  Mercredi: { matin: true,  apres_midi: true,  soir: false },
+  Jeudi:    { matin: true,  apres_midi: true,  soir: false },
+  Vendredi: { matin: true,  apres_midi: true,  soir: false },
+  Samedi:   { matin: false, apres_midi: false, soir: false },
+};
+function clonePeriodes(p) { return JSON.parse(JSON.stringify(p)); }
 
 /* ===================== État ===================== */
 let TEACHERS = [];
@@ -363,29 +379,85 @@ function allSlots() {
 const PERIODE_LABELS = { matin: 'Matin', apres_midi: 'Après-midi', soir: 'Soirée' };
 
 /* ===================== 1. Configuration ===================== */
-function renderJoursCheckboxes(selected) {
+function renderPeriodesMatrix(periodes) {
   const wrap = document.getElementById('joursWrap');
-  wrap.innerHTML = JOURS_ALL.map((j) => `
-    <label class="inline-flex items-center gap-2 border border-line rounded-full px-4 py-2 text-xs font-bold cursor-pointer bg-mist">
-      <input type="checkbox" class="jourOption accent-navy" value="${j}" ${selected.includes(j) ? 'checked' : ''}>
-      ${j}
-    </label>
-  `).join('');
+  const soirActifEl = document.getElementById('soirActif');
+  const soirActif = soirActifEl ? soirActifEl.checked : false;
+
+  wrap.innerHTML = `
+    <div class="overflow-x-auto rounded-2xl border-2 border-navy">
+      <table class="w-full text-sm border-collapse">
+        <thead>
+          <tr>
+            <th class="bg-navy text-white text-[11px] font-extrabold uppercase tracking-wide px-4 py-3 border border-navy text-left">Jour</th>
+            ${PERIODES_ALL.map(p => `
+              <th class="bg-navy text-white text-[11px] font-extrabold uppercase tracking-wide px-4 py-3 border border-navy text-center ${p.key === 'soir' && !soirActif ? 'opacity-40' : ''}">
+                ${p.label}
+              </th>
+            `).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${JOURS_ALL.map(j => `
+            <tr class="odd:bg-white even:bg-mist/40">
+              <td class="px-4 py-3 border border-line font-extrabold text-navy text-xs uppercase whitespace-nowrap">${j}</td>
+              ${PERIODES_ALL.map(p => {
+                const checked = !!(periodes[j] && periodes[j][p.key]);
+                const disabled = p.key === 'soir' && !soirActif;
+                return `
+                  <td class="px-4 py-3 border border-line text-center">
+                    <label class="relative inline-flex items-center justify-center w-8 h-8 ${disabled ? 'cursor-not-allowed opacity-30' : 'cursor-pointer'}">
+                      <input type="checkbox" class="periodeOption peer absolute inset-0 w-full h-full opacity-0 ${disabled ? 'cursor-not-allowed' : 'cursor-pointer'}"
+                        data-jour="${j}" data-periode="${p.key}" ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''}>
+                      <span class="w-7 h-7 rounded-lg border-2 border-navy/25 peer-checked:bg-navy peer-checked:border-navy transition-colors pointer-events-none"></span>
+                      <span class="absolute text-white text-sm font-black leading-none opacity-0 peer-checked:opacity-100 pointer-events-none">✓</span>
+                    </label>
+                  </td>
+                `;
+              }).join('')}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function getPeriodesMatrix() {
+  const periodes = {};
+  JOURS_ALL.forEach(j => { periodes[j] = { matin: false, apres_midi: false, soir: false }; });
+  document.querySelectorAll('.periodeOption').forEach(cb => {
+    if (cb.checked) periodes[cb.dataset.jour][cb.dataset.periode] = true;
+  });
+  return periodes;
 }
 
 function getSelectedJours() {
-  return Array.from(document.querySelectorAll('.jourOption')).filter(cb => cb.checked).map(cb => cb.value);
+  const periodes = getPeriodesMatrix();
+  return JOURS_ALL.filter(j => periodes[j].matin || periodes[j].apres_midi || periodes[j].soir);
+}
+
+function dayHasPeriode(day, periode) {
+  return !!(CONFIG && CONFIG.periodes && CONFIG.periodes[day] && CONFIG.periodes[day][periode]);
 }
 
 async function loadConfig() {
   const { data } = await supabase.from('emploi_du_temps_config').select('*').eq('id', 'default').maybeSingle();
   CONFIG = data || {
-    id: 'default', jours: JOURS_DEFAULT, duree_seance: 60,
+    id: 'default', jours: JOURS_DEFAULT, periodes: clonePeriodes(DEFAULT_PERIODES), duree_seance: 60,
     matin_debut: '08:00', matin_fin: '12:00',
     apresmidi_debut: '14:00', apresmidi_fin: '18:00',
     soir_actif: false, soir_debut: '18:30', soir_fin: '20:00',
   };
-  renderJoursCheckboxes(CONFIG.jours || JOURS_DEFAULT);
+  if (!CONFIG.periodes) {
+    // Migration depuis une ancienne configuration ne connaissant que la liste des jours actifs.
+    const joursActifs = CONFIG.jours || JOURS_DEFAULT;
+    CONFIG.periodes = clonePeriodes(DEFAULT_PERIODES);
+    JOURS_ALL.forEach(j => {
+      const actif = joursActifs.includes(j);
+      CONFIG.periodes[j] = { matin: actif, apres_midi: actif, soir: actif && !!CONFIG.soir_actif };
+    });
+  }
   document.getElementById('dureeSeance').value = String(CONFIG.duree_seance || 60);
   document.getElementById('matinDebut').value = CONFIG.matin_debut;
   document.getElementById('matinFin').value = CONFIG.matin_fin;
@@ -394,6 +466,7 @@ async function loadConfig() {
   document.getElementById('soirActif').checked = !!CONFIG.soir_actif;
   document.getElementById('soirDebut').value = CONFIG.soir_debut || '18:30';
   document.getElementById('soirFin').value = CONFIG.soir_fin || '20:00';
+  renderPeriodesMatrix(CONFIG.periodes);
   toggleSoirFields();
 }
 
@@ -401,15 +474,19 @@ function toggleSoirFields() {
   const actif = document.getElementById('soirActif').checked;
   document.getElementById('soirDebut').disabled = !actif;
   document.getElementById('soirFin').disabled = !actif;
+  // Re-render la matrice pour (dés)activer la colonne Soirée en conservant les cases déjà cochées.
+  renderPeriodesMatrix(getPeriodesMatrix());
 }
 document.getElementById('soirActif').addEventListener('change', toggleSoirFields);
 
 document.getElementById('saveConfigBtn').addEventListener('click', async () => {
-  const jours = getSelectedJours();
-  if (jours.length === 0) { showToast('Sélectionnez au moins un jour.', 'error'); return; }
+  const periodes = getPeriodesMatrix();
+  const jours = JOURS_ALL.filter(j => periodes[j].matin || periodes[j].apres_midi || periodes[j].soir);
+  if (jours.length === 0) { showToast('Sélectionnez au moins un jour et une période.', 'error'); return; }
   CONFIG = {
     id: 'default',
     jours,
+    periodes,
     duree_seance: Number(document.getElementById('dureeSeance').value),
     matin_debut: document.getElementById('matinDebut').value,
     matin_fin: document.getElementById('matinFin').value,
@@ -655,6 +732,7 @@ function attemptSchedule(units, days, slots) {
       for (const day of shuffle(days)) {
         if (found) break;
         for (const slot of shuffle(slots)) {
+          if (!dayHasPeriode(day, slot.periode)) continue;
           const key = `${day}|${slot.id}`;
           if (classOcc[unit.classe.id]?.has(key)) continue;
           if (teacherOcc[unit.teacher.id]?.has(key)) continue;
@@ -771,7 +849,8 @@ function renderGrid() {
     return;
   }
 
-  const days = CONFIG.jours || JOURS_DEFAULT;
+  const activeDays = CONFIG.jours && CONFIG.jours.length ? CONFIG.jours : JOURS_DEFAULT;
+  const days = JOURS_ALL.filter(j => activeDays.includes(j));
   const slots = allSlots();
   let rows;
   if (currentView === 'classe') {
@@ -790,63 +869,78 @@ function renderGrid() {
     empty.classList.add('hidden');
   }
 
+  // En-tête façon "grille institut" : JOUR + une colonne par créneau horaire,
+  // avec un léger séparateur visuel entre Matin / Après-midi / Soirée.
+  let lastPeriode = null;
+  const headCells = slots.map(slot => {
+    const newGroup = slot.periode !== lastPeriode;
+    lastPeriode = slot.periode;
+    return `<th class="bg-navy text-white px-3 py-3 text-center text-xs font-extrabold uppercase tracking-wide border border-navy ${newGroup ? 'border-l-4 border-l-gold' : ''}">${slot.debut}-${slot.fin}</th>`;
+  }).join('');
   head.innerHTML = `<tr>
-    <th class="px-4 py-3 text-left text-[11px] font-extrabold uppercase tracking-wide text-ink/40">Horaire</th>
-    ${days.map(d => `<th class="px-4 py-3 text-center text-[11px] font-extrabold uppercase tracking-wide text-ink/40">${d}</th>`).join('')}
+    <th class="bg-navy text-white px-4 py-3 text-center text-xs font-extrabold uppercase tracking-wide border border-navy">Jour</th>
+    ${headCells}
   </tr>`;
 
-  let lastPeriode = null;
-  const bodyRows = [];
-  slots.forEach(slot => {
-    if (slot.periode !== lastPeriode) {
+  body.innerHTML = days.map(day => {
+    lastPeriode = null;
+    const cells = slots.map(slot => {
+      const newGroup = slot.periode !== lastPeriode;
       lastPeriode = slot.periode;
-      bodyRows.push(`<tr class="edt-period-row"><td colspan="${days.length + 1}">${PERIODE_LABELS[slot.periode]}</td></tr>`);
-    }
-    const cells = days.map(day => {
+      const borderExtra = newGroup ? 'border-l-4 border-l-gold/60' : '';
+      const actif = dayHasPeriode(day, slot.periode);
+
+      if (!actif) {
+        return `<td class="edt-cell px-3 py-2 text-center border border-line bg-line/50 ${borderExtra}"></td>`;
+      }
       const entry = rows.find(r => r.jour === day && r.periode === slot.periode && r.heure_debut === slot.debut);
-      if (!entry) return `<td class="edt-cell px-3 py-2 align-top text-ink/20 text-center">—</td>`;
+      if (!entry) {
+        return `<td class="edt-cell px-3 py-2 text-center align-middle border border-line bg-mist/50 text-ink/20 ${borderExtra}">—</td>`;
+      }
       if (currentView === 'classe') {
         const teacher = TEACHERS.find(t => t.id === entry.teacher_id);
-        return `<td class="edt-cell px-3 py-2 align-top bg-purple/5">
-          <p class="font-bold text-navy text-xs">${entry.matiere}</p>
-          <p class="text-[11px] text-ink/50 mt-0.5">${teacher ? teacher.prenom + ' ' + teacher.nom : '—'}</p>
+        return `<td class="edt-cell px-3 py-2 text-center align-middle border border-line bg-mist ${borderExtra}">
+          <p class="font-extrabold text-navy text-xs uppercase">${entry.matiere}</p>
+          <p class="text-[11px] text-ink/50 mt-0.5">${teacher ? 'Pr.' + teacher.nom : '—'}</p>
         </td>`;
       } else {
         const classe = CLASSES.find(c => c.id === entry.classe_id);
-        return `<td class="edt-cell px-3 py-2 align-top bg-gold/5">
-          <p class="font-bold text-navy text-xs">${entry.matiere}</p>
+        return `<td class="edt-cell px-3 py-2 text-center align-middle border border-line bg-mist ${borderExtra}">
+          <p class="font-extrabold text-navy text-xs uppercase">${entry.matiere}</p>
           <p class="text-[11px] text-ink/50 mt-0.5">${classe ? classe.nom : '—'}</p>
         </td>`;
       }
     }).join('');
-    bodyRows.push(`<tr>
-      <td class="px-4 py-2 text-xs font-bold text-navy/70 whitespace-nowrap">${slot.debut} – ${slot.fin}</td>
+    return `<tr>
+      <td class="px-4 py-3 text-center text-xs font-extrabold text-navy uppercase bg-mist border border-line whitespace-nowrap">${day}</td>
       ${cells}
-    </tr>`);
-  });
-  body.innerHTML = bodyRows.join('');
+    </tr>`;
+  }).join('');
 }
 
 /* ===================== Export Excel / PDF / Impression ===================== */
 function currentGridRows() {
   const selId = document.getElementById('viewSelect').value;
-  const days = CONFIG.jours || JOURS_DEFAULT;
+  const activeDays = CONFIG.jours && CONFIG.jours.length ? CONFIG.jours : JOURS_DEFAULT;
+  const days = JOURS_ALL.filter(j => activeDays.includes(j));
   const slots = allSlots();
   const rows = currentView === 'classe'
     ? SCHEDULE.filter(s => s.classe_id === selId)
     : SCHEDULE.filter(s => s.teacher_id === selId);
 
-  return slots.map(slot => {
-    const line = { 'Horaire': `${slot.debut} – ${slot.fin}` };
-    days.forEach(day => {
+  return days.map(day => {
+    const line = { 'Jour': day };
+    slots.forEach(slot => {
+      const label = `${slot.debut}-${slot.fin}`;
+      if (!dayHasPeriode(day, slot.periode)) { line[label] = ''; return; }
       const entry = rows.find(r => r.jour === day && r.periode === slot.periode && r.heure_debut === slot.debut);
-      if (!entry) { line[day] = ''; return; }
+      if (!entry) { line[label] = ''; return; }
       if (currentView === 'classe') {
         const teacher = TEACHERS.find(t => t.id === entry.teacher_id);
-        line[day] = `${entry.matiere} (${teacher ? teacher.prenom + ' ' + teacher.nom : '—'})`;
+        line[label] = `${entry.matiere} (${teacher ? teacher.prenom + ' ' + teacher.nom : '—'})`;
       } else {
         const classe = CLASSES.find(c => c.id === entry.classe_id);
-        line[day] = `${entry.matiere} — ${classe ? classe.nom : '—'}`;
+        line[label] = `${entry.matiere} — ${classe ? classe.nom : '—'}`;
       }
     });
     return line;
@@ -865,14 +959,15 @@ document.getElementById('exportExcelBtn').addEventListener('click', () => {
 document.getElementById('exportPdfBtn').addEventListener('click', () => {
   const rows = currentGridRows();
   if (rows.length === 0) { showToast('Rien à exporter.', 'error'); return; }
-  const days = CONFIG.jours || JOURS_DEFAULT;
+  const slots = allSlots();
+  const columns = ['Jour', ...slots.map(s => `${s.debut}-${s.fin}`)];
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   pdf.setFontSize(14); pdf.setTextColor(27, 20, 100);
   pdf.text(document.getElementById('viewTitle').textContent, 14, 15);
   pdf.autoTable({
-    head: [['Horaire', ...days]],
-    body: rows.map(r => [r['Horaire'], ...days.map(d => r[d] || '—')]),
+    head: [columns],
+    body: rows.map(r => columns.map(c => r[c] || '—')),
     startY: 22,
     styles: { fontSize: 8, cellPadding: 2 },
     headStyles: { fillColor: [27, 20, 100], textColor: 255, fontStyle: 'bold' },
