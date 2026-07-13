@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gestion des Enseignants | Diwan Al Maaref</title>
+<title>Espace Enseignant | Diwan Al Maaref</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/png" href="logo.png">
 
@@ -12,10 +12,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Fraunces:wght@500;600&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-
 <script>
   tailwind.config = {
     theme: {
@@ -24,9 +20,7 @@
           navy:  { DEFAULT:'#1B1464', 700:'#170F52', 900:'#100B3B' },
           purple:{ DEFAULT:'#5B3AA6' },
           gold:  { DEFAULT:'#F0A93C', light:'#FBC873', dark:'#D98F1F' },
-          ink:   '#221D3D',
-          mist:  '#F6F4FC',
-          line:  '#E7E2F3',
+          ink:   '#221D3D', mist:'#F6F4FC', line:'#E7E2F3',
         },
         fontFamily: { sans: ['Inter','sans-serif'], display: ['Fraunces','serif'] }
       }
@@ -37,61 +31,44 @@
 <style>
   body { font-family:'Inter', sans-serif; color:#221D3D; background:#F6F4FC; }
   .font-display { font-family:'Fraunces', serif; }
-  ::selection { background:#F0A93C; color:#1B1464; }
-
-  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
-    outline: 2px solid #F0A93C; outline-offset: 2px; border-radius: 6px;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    * { animation-duration:.01ms !important; transition-duration:.01ms !important; }
-  }
-
-  .field { transition: border-color .2s ease, box-shadow .2s ease; }
-  .field:focus {
-    border-color: #5B3AA6;
-    box-shadow: 0 0 0 4px rgba(91,58,166,.12);
-  }
-
-  .btn-primary { transition: transform .2s cubic-bezier(.2,.8,.25,1), box-shadow .2s ease, background-color .2s ease; }
-  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 14px 28px -12px rgba(27,20,100,.45); background-color:#170F52; }
-  .btn-primary:active { transform: translateY(0); }
-
+  .num { font-family:'Manrope', sans-serif; }
+  a:focus-visible, button:focus-visible, select:focus-visible { outline: 2px solid #F0A93C; outline-offset: 2px; border-radius: 6px; }
   .row-enter { animation: rowEnter .35s cubic-bezier(.2,.8,.25,1) both; }
-  @keyframes rowEnter { from { opacity:0; transform: translateY(-6px); } to { opacity:1; transform: translateY(0); } }
+  @keyframes rowEnter { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
 
-  .toast {
-    animation: toastIn .3s ease both, toastOut .3s ease 2.7s both;
+  .plain-select {
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none'><path d='M6 9l6 6 6-6' stroke='%235B3AA6' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat: no-repeat; background-position: right .9rem center;
   }
-  @keyframes toastIn { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
-  @keyframes toastOut { from { opacity:1; } to { opacity:0; transform: translateY(-6px); } }
 
-  .badge-lvl-primaire { background:#EEF2FF; color:#4338CA; }
-  .badge-lvl-college   { background:#FDF4E3; color:#B7791F; }
-  .badge-lvl-lycee     { background:#FDECEE; color:#BE123C; }
-  .badge-groupe        { background:#EFF6FF; color:#1D4ED8; }
+  .attendance-pill { transition: background-color .15s ease, color .15s ease, border-color .15s ease; }
+  .att-present.active { background:#D1FAE5; color:#047857; border-color:#A7F3D0; }
+  .att-absent.active  { background:#FDECEE; color:#BE123C; border-color:#FBD5DA; }
+  .att-late.active    { background:#FEF3C7; color:#B45309; border-color:#FDE68A; }
+  .attendance-pill:not(.active) { background:#F6F4FC; color:#9CA3AF; border-color:#E7E2F3; }
+
+  .toast { animation: toastIn .3s ease both, toastOut .3s ease 1.7s both; }
+  @keyframes toastIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes toastOut { from{opacity:1} to{opacity:0;transform:translateY(-6px)} }
 </style>
 </head>
 
 <body class="antialiased min-h-screen">
-
-<script type="module">
-  import { requireAdmin } from './supabase-config.js';
-  requireAdmin(() => { /* accès autorisé */ });
-</script>
 
 <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-line">
   <div class="max-w-6xl mx-auto px-5 sm:px-8 h-20 flex items-center justify-between gap-4">
     <div class="flex items-center gap-3">
       <img src="logo.png" alt="Logo Diwan Al Maaref" class="h-11 w-11 object-contain">
       <div class="hidden sm:flex flex-col leading-tight">
-        <span class="font-display font-semibold text-navy text-base">Gestion des Enseignants</span>
+        <span class="font-display font-semibold text-navy text-base">Espace Enseignant</span>
         <span class="text-[11px] text-gold-dark font-bold">Diwan Al Maaref</span>
       </div>
     </div>
     <div class="flex items-center gap-3">
-      <a href="espace-administration.html" class="inline-flex items-center gap-2 text-xs font-bold text-navy/70 hover:text-gold-dark border border-line rounded-full px-4 py-2.5 transition-colors bg-white">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span class="hidden sm:inline">Espace Administration</span>
+      <a href="saisie-notes.html" class="inline-flex items-center gap-2 text-xs font-bold text-navy/70 hover:text-gold-dark border border-line rounded-full px-4 py-2.5 transition-colors bg-white">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 12h6M9 16h6M9 8h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M4 19V6a2 2 0 012-2h9l5 5v10a2 2 0 01-2 2H6a2 2 0 01-2-2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+        <span class="hidden sm:inline">Saisie des notes</span>
       </a>
       <button id="logoutBtn" type="button" class="inline-flex items-center gap-2 text-xs font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 rounded-full px-4 py-2.5 transition-colors bg-rose-50">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -101,200 +78,123 @@
   </div>
 </header>
 
-<main class="max-w-6xl mx-auto px-5 sm:px-8 py-12 flex flex-col gap-10">
+<main class="max-w-6xl mx-auto px-5 sm:px-8 py-12 flex flex-col gap-8">
 
   <div>
-    <h2 class="font-display font-semibold text-navy text-3xl">Gestion des Enseignants</h2>
-    <p class="text-ink/50 text-sm mt-2">Ajoutez un enseignant et générez automatiquement ses identifiants de connexion.</p>
+    <h2 id="welcomeTitle" class="font-display font-semibold text-navy text-3xl">Bonjour</h2>
+    <p class="text-ink/50 text-sm mt-2">Voici un aperçu de votre profil et de vos élèves.</p>
   </div>
 
+  <section class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="bg-white border border-line rounded-2xl p-5">
+      <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Genre</p>
+      <p id="infoGenre" class="font-bold text-navy text-sm">—</p>
+    </div>
+    <div class="bg-white border border-line rounded-2xl p-5">
+      <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Téléphone</p>
+      <p id="infoTelephone" class="font-bold text-navy text-sm">—</p>
+    </div>
+    <div class="bg-white border border-line rounded-2xl p-5">
+      <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Adresse</p>
+      <p id="infoAdresse" class="font-bold text-navy text-sm truncate">—</p>
+    </div>
+    <div class="bg-white border border-line rounded-2xl p-5">
+      <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Groupe</p>
+      <p id="infoGroupe" class="font-bold text-navy text-sm">—</p>
+    </div>
+  </section>
+
   <section class="bg-white border border-line rounded-3xl p-6 sm:p-8 shadow-sm">
-    <h3 id="formTitle" class="font-display font-semibold text-navy text-lg mb-6">Ajouter un enseignant</h3>
+    <h3 class="font-display font-semibold text-navy text-lg mb-4">Mes classes</h3>
+    <div id="classesWrap" class="flex flex-wrap gap-2"></div>
+  </section>
 
-    <form id="teacherForm" novalidate class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-      <input type="hidden" id="editTeacherId" value="">
+  <!-- ============================= PRISE DES PRÉSENCES ============================= -->
+  <section class="bg-white border border-line rounded-3xl shadow-sm p-6 sm:p-8 flex flex-col gap-6">
+    <div>
+      <h3 class="font-display font-semibold text-navy text-lg">Prise des Présences</h3>
+      <p class="text-ink/50 text-sm mt-1">Sélectionnez la classe et l'horaire de la séance, puis marquez la présence de chaque élève.</p>
+    </div>
 
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <div>
-        <label for="nom" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Nom</label>
-        <input id="nom" name="nom" type="text" placeholder="Ex : El Amrani" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy placeholder:text-ink/30 outline-none">
-      </div>
-
-      <div>
-        <label for="prenom" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Prénom</label>
-        <input id="prenom" name="prenom" type="text" placeholder="Ex : Yassine" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy placeholder:text-ink/30 outline-none">
-      </div>
-
-      <div>
-        <label for="genre" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Genre</label>
-        <select id="genre" name="genre" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy outline-none">
-          <option value="" disabled selected>Sélectionner</option>
-          <option value="Homme">Homme</option>
-          <option value="Femme">Femme</option>
+        <label class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Niveau</label>
+        <select id="attNiveauSelect" class="plain-select w-full rounded-2xl border border-line bg-mist pl-4 pr-9 py-3 text-sm text-navy outline-none cursor-pointer">
+          <option value="">Choisir un niveau...</option>
         </select>
       </div>
-
-      <div class="sm:col-span-2 lg:col-span-1">
-        <label for="adresse" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Adresse</label>
-        <input id="adresse" name="adresse" type="text" placeholder="Ex : Kénitra, Rabat-Salé-Kénitra" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy placeholder:text-ink/30 outline-none">
-      </div>
-
       <div>
-        <label for="telephone" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Téléphone</label>
-        <input id="telephone" name="telephone" type="tel" placeholder="Ex : 06 12 34 56 78" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy placeholder:text-ink/30 outline-none">
+        <label class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Groupe / Classe</label>
+        <select id="attGroupeSelect" disabled class="plain-select w-full rounded-2xl border border-line bg-mist pl-4 pr-9 py-3 text-sm text-navy outline-none cursor-pointer disabled:opacity-50">
+          <option value="">Choisir d'abord un niveau...</option>
+        </select>
       </div>
-
       <div>
-        <label for="niveauBtn" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Niveau d'enseignement</label>
-        <div class="relative" id="niveauWrap">
-          <button type="button" id="niveauBtn" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-left flex items-center justify-between gap-2">
-            <span id="niveauBtnLabel" class="text-ink/30">Sélectionner (3 max)</span>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" class="shrink-0 text-navy/50"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
-          <div id="niveauPanel" class="hidden absolute z-20 mt-2 w-full max-h-64 overflow-y-auto bg-white border border-line rounded-2xl shadow-lg p-2">
-            <p class="text-[10px] font-extrabold uppercase tracking-wide text-ink/40 px-3 pt-2 pb-1">Primaire</p>
-            <label class="niveauOptionLabel flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-mist cursor-pointer text-sm">
-              <input type="checkbox" class="niveauOption accent-navy" value="1ère année primaire"><span>1ère année primaire</span>
-            </label>
-            <label class="niveauOptionLabel flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-mist cursor-pointer text-sm">
-              <input type="checkbox" class="niveauOption accent-navy" value="2ème année primaire"><span>2ème année primaire</span>
-            </label>
-            <label class="niveauOptionLabel flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-mist cursor-pointer text-sm">
-              <input type="checkbox" class="niveauOption accent-navy" value="3ème année primaire"><span>3ème année primaire</span>
-            </label>
-            <label class="niveauOptionLabel flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-mist cursor-pointer text-sm">
-              <input type="checkbox" class="niveauOption accent-navy" value="4ème année primaire"><span>4ème année primaire</span>
-            </label>
-            <label class="niveauOptionLabel flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-mist cursor-pointer text-sm">
-              <input type="checkbox" class="niveauOption accent-navy" value="5ème année primaire"><span>5ème année primaire</span>
-            </label>
-            <label class="niveauOptionLabel flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-mist cursor-pointer text-sm">
-              <input type="checkbox" class="niveauOption accent-navy" value="6ème année primaire"><span>6ème année primaire</span>
-            </label>
+        <label class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">De</label>
+        <select id="heureDebutSelect" class="plain-select w-full rounded-2xl border border-line bg-mist pl-4 pr-9 py-3 text-sm text-navy outline-none cursor-pointer"></select>
+      </div>
+      <div>
+        <label class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">À</label>
+        <select id="heureFinSelect" class="plain-select w-full rounded-2xl border border-line bg-mist pl-4 pr-9 py-3 text-sm text-navy outline-none cursor-pointer"></select>
+      </div>
+    </div>
 
-            <p class="text-[10px] font-extrabold uppercase tracking-wide text-ink/40 px-3 pt-3 pb-1">Collège</p>
-            <label class="niveauOptionLabel flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-mist cursor-pointer text-sm">
-              <input type="checkbox" class="niveauOption accent-navy" value="1ère année collège"><span>1ère année collège</span>
-            </label>
-            <label class="niveauOptionLabel flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-mist cursor-pointer text-sm">
-              <input type="checkbox" class="niveauOption accent-navy" value="2ème année collège"><span>2ème année collège</span>
-            </label>
-            <label class="niveauOptionLabel flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-mist cursor-pointer text-sm">
-              <input type="checkbox" class="niveauOption accent-navy" value="3ème année collège"><span>3ème année collège</span>
-            </label>
+    <div id="attendancePlaceholder" class="text-center py-10 text-ink/40 text-sm border border-dashed border-line rounded-2xl">
+      Sélectionnez un niveau puis un groupe pour afficher la liste des élèves.
+    </div>
 
-            <p class="text-[10px] font-extrabold uppercase tracking-wide text-ink/40 px-3 pt-3 pb-1">Lycée</p>
-            <label class="niveauOptionLabel flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-mist cursor-pointer text-sm">
-              <input type="checkbox" class="niveauOption accent-navy" value="Tronc Commun"><span>Tronc Commun</span>
-            </label>
-            <label class="niveauOptionLabel flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-mist cursor-pointer text-sm">
-              <input type="checkbox" class="niveauOption accent-navy" value="1ère année Baccalauréat"><span>1ère année Baccalauréat</span>
-            </label>
-            <label class="niveauOptionLabel flex items-center gap-2.5 px-3 py-2 rounded-xl hover:bg-mist cursor-pointer text-sm">
-              <input type="checkbox" class="niveauOption accent-navy" value="2ème année Baccalauréat"><span>2ème année Baccalauréat</span>
-            </label>
-          </div>
-          <p id="niveauLimitMsg" class="hidden text-[11px] font-bold text-gold-dark mt-1.5 px-1">Maximum 3 niveaux sélectionnables.</p>
+    <div id="attendanceListWrap" class="hidden flex flex-col gap-4">
+      <div class="flex items-center justify-between">
+        <span id="attendanceCount" class="text-xs font-extrabold text-navy/60 bg-mist rounded-full px-3 py-1.5">0 élève</span>
+        <div class="flex items-center gap-2">
+          <button type="button" id="markAllPresentBtn" class="text-xs font-bold text-emerald-700 hover:underline">Tout marquer "Présent"</button>
         </div>
       </div>
 
-      <div>
-        <label for="matiere" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Matière enseignée</label>
-        <select id="matiere" name="matiere" disabled class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy outline-none disabled:text-ink/30">
-          <option value="" disabled selected>Sélectionner d'abord un niveau</option>
-        </select>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-[11px] font-extrabold uppercase tracking-wide text-ink/40 bg-mist/60">
+              <th class="px-4 py-3 whitespace-nowrap">Élève</th>
+              <th class="px-4 py-3 whitespace-nowrap">Matricule</th>
+              <th class="px-4 py-3 whitespace-nowrap text-center">Présence</th>
+            </tr>
+          </thead>
+          <tbody id="attendanceTableBody" class="divide-y divide-line"></tbody>
+        </table>
       </div>
 
-      <div>
-        <label for="groupe" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Groupe</label>
-        <select id="groupe" name="groupe" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy outline-none">
-          <option value="" disabled selected>Sélectionner</option>
-          <option value="Groupe A">Groupe A</option>
-          <option value="Groupe B">Groupe B</option>
-          <option value="Groupe C">Groupe C</option>
-          <option value="Groupe D">Groupe D</option>
-          <option value="Groupe E">Groupe E</option>
-          <option value="Groupe F">Groupe F</option>
-        </select>
-      </div>
-
-      <div>
-        <label for="salaire" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Salaire net (DH)</label>
-        <input id="salaire" name="salaire" type="number" min="0" step="0.01" placeholder="Ex : 6500" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy placeholder:text-ink/30 outline-none">
-      </div>
-
-      <div id="duplicateWarning" class="hidden sm:col-span-2 lg:col-span-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-bold text-gold-dark bg-gold/10 border border-gold/30 rounded-xl px-4 py-3">
-        <span id="duplicateWarningText" class="leading-relaxed"></span>
-        <button type="button" id="goToDuplicateBtn" class="shrink-0 inline-flex items-center gap-1.5 bg-white border border-gold/40 text-gold-dark hover:bg-gold/10 rounded-full px-4 py-2 transition-colors">
-          Ouvrir sa fiche pour modifier
-        </button>
-      </div>
-
-      <p id="formError" class="hidden sm:col-span-2 lg:col-span-3 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3">
-        Veuillez remplir tous les champs avant d'ajouter l'enseignant.
-      </p>
-
-      <div class="sm:col-span-2 lg:col-span-3 flex justify-end gap-3">
-        <button type="button" id="cancelEditBtn" class="hidden inline-flex items-center gap-2 bg-line text-navy font-extrabold text-sm rounded-full px-6 py-3.5 transition-all">
-          Annuler
-        </button>
-        <button type="submit" id="submitBtn" class="btn-primary inline-flex items-center gap-2 bg-navy text-white font-extrabold text-sm rounded-full px-7 py-3.5">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
-          <span id="submitBtnText">Ajouter l'enseignant</span>
-        </button>
-      </div>
-
-    </form>
-  </section>
-
-  <section class="bg-white border border-line rounded-3xl shadow-sm overflow-hidden">
-    <div class="px-6 sm:px-8 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-line">
-      <div class="flex items-center gap-3">
-        <h3 class="font-display font-semibold text-navy text-lg">Liste des enseignants</h3>
-        <span id="countBadge" class="text-xs font-extrabold text-navy/60 bg-mist rounded-full px-3 py-1.5">0 enseignant</span>
-      </div>
-      <div class="flex flex-wrap items-center gap-2">
-        <input type="file" id="importFileInput" accept=".xlsx,.xls,.csv" class="hidden">
-        <button type="button" id="importBtn" class="inline-flex items-center gap-1.5 text-xs font-extrabold text-purple bg-purple/10 hover:bg-purple hover:text-white border border-purple/20 rounded-full px-4 py-2.5 transition-colors">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0-12l4 4m-4-4L8 7M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(180 12 12)"/></svg>
-          Importer
-        </button>
-        <button type="button" id="exportExcelBtn" class="inline-flex items-center gap-1.5 text-xs font-extrabold text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white border border-emerald-200 rounded-full px-4 py-2.5 transition-colors">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 19V6a2 2 0 012-2h9l5 5v10a2 2 0 01-2 2H6a2 2 0 01-2-2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-          Excel
-        </button>
-        <button type="button" id="exportPdfBtn" class="inline-flex items-center gap-1.5 text-xs font-extrabold text-rose-700 bg-rose-50 hover:bg-rose-600 hover:text-white border border-rose-200 rounded-full px-4 py-2.5 transition-colors">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 19V6a2 2 0 012-2h9l5 5v10a2 2 0 01-2 2H6a2 2 0 01-2-2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-          PDF
+      <div class="flex justify-end">
+        <button type="button" id="saveAttendanceBtn" class="inline-flex items-center gap-2 bg-navy hover:bg-navy-700 text-white font-extrabold text-sm rounded-full px-7 py-3.5 transition-colors">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Enregistrer l'appel
         </button>
       </div>
     </div>
-    <p id="importSummary" class="hidden mx-6 sm:mx-8 mt-4 text-xs font-bold text-navy bg-mist border border-line rounded-xl px-4 py-3"></p>
+  </section>
+  <!-- =========================================================================== -->
 
+  <section class="bg-white border border-line rounded-3xl shadow-sm overflow-hidden">
+    <div class="px-6 sm:px-8 py-6 flex items-center justify-between border-b border-line">
+      <h3 class="font-display font-semibold text-navy text-lg">Mes élèves</h3>
+      <span id="studentCount" class="text-xs font-extrabold text-navy/60 bg-mist rounded-full px-3 py-1.5">0 élève</span>
+    </div>
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead>
           <tr class="text-left text-[11px] font-extrabold uppercase tracking-wide text-ink/40 bg-mist/60">
             <th class="px-6 sm:px-8 py-3.5 whitespace-nowrap">Nom</th>
             <th class="px-4 py-3.5 whitespace-nowrap">Prénom</th>
-            <th class="px-4 py-3.5 whitespace-nowrap">Genre</th>
-            <th class="px-4 py-3.5 whitespace-nowrap">Adresse</th>
-            <th class="px-4 py-3.5 whitespace-nowrap">Téléphone</th>
+            <th class="px-4 py-3.5 whitespace-nowrap">Matricule</th>
             <th class="px-4 py-3.5 whitespace-nowrap">Niveau</th>
-            <th class="px-4 py-3.5 whitespace-nowrap">Matière</th>
-            <th class="px-4 py-3.5 whitespace-nowrap">Groupe</th>
-            <th class="px-4 py-3.5 whitespace-nowrap text-emerald-600">Salaire net</th>
-            <th class="px-4 py-3.5 whitespace-nowrap text-purple">Identifiant (Nom d'utilisateur)</th>
-            <th class="px-4 py-3.5 whitespace-nowrap text-purple">Mot de passe</th>
-            <th class="px-4 sm:px-8 py-3.5 whitespace-nowrap text-right">Action</th>
+            <th class="px-4 sm:px-8 py-3.5 whitespace-nowrap">Groupe</th>
           </tr>
         </thead>
-        <tbody id="teacherTableBody" class="divide-y divide-line">
-          </tbody>
+        <tbody id="studentsTableBody" class="divide-y divide-line"></tbody>
       </table>
     </div>
-
-    <div id="emptyState" class="px-8 py-14 text-center">
-      <p class="text-ink/40 text-sm">Aucun enseignant ajouté pour le moment.</p>
+    <div id="emptyState" class="hidden px-8 py-14 text-center">
+      <p class="text-ink/40 text-sm">Aucun élève trouvé pour vos classes.</p>
     </div>
   </section>
 
@@ -302,693 +202,297 @@
 
 <div id="toastWrap" class="fixed bottom-6 inset-x-0 flex justify-center pointer-events-none z-50"></div>
 
-<div id="credentialsModal" class="hidden fixed inset-0 z-50 bg-navy-900/60 backdrop-blur-sm flex items-center justify-center px-5">
-  <div class="w-full max-w-sm bg-white rounded-3xl shadow-2xl p-8 text-center">
-    <div class="w-14 h-14 mx-auto rounded-2xl bg-emerald-500/10 grid place-items-center mb-4">
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-    </div>
-    <h3 id="modalTitle" class="font-display font-semibold text-navy text-lg mb-2">Identifiants de l'enseignant</h3>
-    <p id="modalDesc" class="text-ink/50 text-xs mb-6">Notez ces identifiants maintenant.</p>
-
-    <div class="text-left space-y-3 mb-6">
-      <div class="bg-mist rounded-2xl px-4 py-3">
-        <p class="text-[10px] font-extrabold uppercase tracking-wide text-ink/40 mb-1">Identifiant</p>
-        <p id="credUsername" class="font-mono font-bold text-navy text-sm break-all">—</p>
-      </div>
-      <div class="bg-mist rounded-2xl px-4 py-3">
-        <p class="text-[10px] font-extrabold uppercase tracking-wide text-ink/40 mb-1">Mot de passe</p>
-        <p id="credPassword" class="font-mono font-bold text-navy text-sm break-all">—</p>
-      </div>
-    </div>
-
-    <div class="flex flex-col gap-2">
-      <button id="copyCredsBtn" type="button" class="w-full inline-flex items-center justify-center gap-2 bg-mist hover:bg-line text-navy font-bold text-xs px-5 py-3 rounded-full transition-colors">
-        Copier identifiant + mot de passe
-      </button>
-      <button id="closeCredsBtn" type="button" class="w-full bg-navy hover:bg-navy-700 text-white font-extrabold text-sm px-5 py-3 rounded-full transition-colors">
-        Fermer
-      </button>
-    </div>
-  </div>
-</div>
-
 <script type="module">
-  import {
-    db, auth, signOut, doc, setDoc, deleteDoc, collection, getDocs,
-    usernameToEmail, createTeacherAuthAccount, generatePassword
-  } from './supabase-config.js';
+  import { auth, db, signOut, collection, getDocs, doc, setDoc, query, where, requireTeacher }
+    from './supabase-config.js';
 
-  const TEACHERS_COL = collection(db, 'teachers');
-  let loadedTeachersCache = [];
-
-  // Matières possibles par cycle — mêmes listes que gestion-coefficients.html / mes-notes.html
-  // (lycée fusionné : la distinction Sciences/Lettres n'est pas nécessaire ici, un enseignant
-  // du lycée peut être amené à enseigner sa matière dans les deux filières).
-  const SUBJECTS = {
-    primaire: [
-      'Langue arabe', 'Langue française', 'Mathématiques', 'Éducation islamique',
-      'Éveil scientifique / Sciences', 'Histoire-Géographie et Éducation civique',
-      'Éducation artistique', 'Éducation physique', 'Langue amazighe'
-    ],
-    college: [
-      'Langue arabe', 'Langue française', 'Mathématiques', 'Physique-Chimie',
-      'Sciences de la Vie et de la Terre (SVT)', 'Histoire-Géographie', 'Éducation islamique',
-      'Éducation physique', 'Informatique', 'Éducation technologique', 'Arts plastiques / Éducation musicale'
-    ],
-    lycee: [
-      'Langue arabe', 'Histoire-Géographie', 'Philosophie', 'Langue française', 'Langue anglaise',
-      'Éducation islamique', 'Mathématiques', 'Sciences de la Vie et de la Terre (SVT)',
-      'Éducation physique', 'Informatique', 'Physique-Chimie'
-    ]
-  };
-
-  function mapNiveauToCycle(niveau) {
-    if (niveau.includes('primaire')) return 'primaire';
-    if (niveau.includes('collège')) return 'college';
-    return 'lycee'; // Tronc Commun / 1ère / 2ème année Baccalauréat
+  function levelBadgeClass(lvl) {
+    const m = {
+      'Maternelle': 'bg-emerald-50 text-emerald-700 border border-emerald-200/60',
+      'Primaire':   'bg-purple/5 text-purple border border-purple/10',
+      'Collège':    'bg-gold/5 text-gold-dark border border-gold/10'
+    };
+    for (const key in m) if (lvl && lvl.includes(key)) return m[key];
+    return 'bg-mist text-ink/60';
   }
-
-  const matiereSelect = document.getElementById('matiere');
-
-  // Reconstruit la liste des matières disponibles à partir des niveaux cochés.
-  // preserveValue : matière à re-sélectionner si elle est toujours proposée (utilisé en mode édition).
-  function updateMatiereOptions(preserveValue) {
-    const niveaux = getSelectedNiveaux();
-    const current = preserveValue !== undefined ? preserveValue : matiereSelect.value;
-    const cycles = [...new Set(niveaux.map(mapNiveauToCycle))];
-    const subjects = [...new Set(cycles.flatMap((c) => SUBJECTS[c] || []))].sort();
-
-    if (subjects.length === 0) {
-      matiereSelect.innerHTML = '<option value="" disabled selected>Sélectionner d\'abord un niveau</option>';
-      matiereSelect.disabled = true;
-      return;
-    }
-
-    matiereSelect.disabled = false;
-    const stillAvailable = current && subjects.includes(current);
-    matiereSelect.innerHTML =
-      `<option value="" disabled ${stillAvailable ? '' : 'selected'}>Sélectionner</option>` +
-      subjects.map((s) => `<option value="${s}" ${s === current ? 'selected' : ''}>${s}</option>`).join('');
-  }
-
-  const niveauBtn      = document.getElementById('niveauBtn');
-  const niveauBtnLabel = document.getElementById('niveauBtnLabel');
-  const niveauPanel    = document.getElementById('niveauPanel');
-  const niveauLimitMsg = document.getElementById('niveauLimitMsg');
-  const niveauOptions  = Array.from(document.querySelectorAll('.niveauOption'));
-  const MAX_NIVEAUX = 3;
-
-  function getSelectedNiveaux() {
-    return niveauOptions.filter((cb) => cb.checked).map((cb) => cb.value);
-  }
-
-  function updateNiveauBtnLabel() {
-    const selected = getSelectedNiveaux();
-    if (selected.length === 0) {
-      niveauBtnLabel.textContent = 'Sélectionner (3 max)';
-      niveauBtnLabel.classList.add('text-ink/30');
-    } else {
-      niveauBtnLabel.textContent = selected.join(', ');
-      niveauBtnLabel.classList.remove('text-ink/30');
-    }
-  }
-
-  function refreshNiveauLocks() {
-    const selected = getSelectedNiveaux();
-    const limitReached = selected.length >= MAX_NIVEAUX;
-    niveauOptions.forEach((cb) => {
-      cb.disabled = limitReached && !cb.checked;
-    });
-    niveauLimitMsg.classList.toggle('hidden', !limitReached);
-  }
-
-  niveauOptions.forEach((cb) => {
-    cb.addEventListener('change', () => {
-      updateNiveauBtnLabel();
-      refreshNiveauLocks();
-      updateMatiereOptions();
-    });
-  });
-
-  niveauBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    niveauPanel.classList.toggle('hidden');
-  });
-
-  document.addEventListener('click', (e) => {
-    if (!document.getElementById('niveauWrap').contains(e.target)) {
-      niveauPanel.classList.add('hidden');
-    }
-  });
-
-  function resetNiveauSelector() {
-    niveauOptions.forEach((cb) => { cb.checked = false; cb.disabled = false; });
-    updateNiveauBtnLabel();
-    niveauLimitMsg.classList.add('hidden');
-    updateMatiereOptions('');
-  }
-
-  const form           = document.getElementById('teacherForm');
-  const formError      = document.getElementById('formError');
-  const tableBody      = document.getElementById('teacherTableBody');
-  const emptyState     = document.getElementById('emptyState');
-  const countBadge     = document.getElementById('countBadge');
-  const toastWrap      = document.getElementById('toastWrap');
-  
-  const editTeacherId  = document.getElementById('editTeacherId');
-  const formTitle      = document.getElementById('formTitle');
-  const submitBtnText  = document.getElementById('submitBtnText');
-  const cancelEditBtn  = document.getElementById('cancelEditBtn');
-
-  const nomInput             = document.getElementById('nom');
-  const prenomInput          = document.getElementById('prenom');
-  const duplicateWarning     = document.getElementById('duplicateWarning');
-  const duplicateWarningText = document.getElementById('duplicateWarningText');
-  const goToDuplicateBtn     = document.getElementById('goToDuplicateBtn');
-  let pendingDuplicateId     = null;
-
-  // إعادة تفعيل التنبيه: كل مرة كيتبدل الاسم أو النسب، كنمسحو التأكيد السابق
-  // باش التكرار يتفحص من جديد عند الضغط على "إضافة" (شوف findDuplicateTeacher
-  // فـ submit listener تحت).
-  function checkDuplicateLive() {
-    pendingDuplicateId = null;
-    duplicateWarning.classList.add('hidden');
-  }
-
-  nomInput.addEventListener('input', checkDuplicateLive);
-  prenomInput.addEventListener('input', checkDuplicateLive);
-
-  goToDuplicateBtn.addEventListener('click', () => {
-    if (!pendingDuplicateId) return;
-    const editBtn = document.querySelector(`.editBtn[data-id="${pendingDuplicateId}"]`);
-    if (editBtn) editBtn.click();
-    duplicateWarning.classList.add('hidden');
-  });
-
-  async function loadTeachers() {
-    const snap = await getDocs(TEACHERS_COL);
-    loadedTeachersCache = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    return loadedTeachersCache;
-  }
-
-  function stripAccents(str) {
-    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  }
-
-  function slugPart(str) {
-    return stripAccents(str)
-      .toLowerCase()
-      .replace(/[^a-z]/g, '');
-  }
-
-  function normalizeName(str) {
-    return stripAccents(str || '').toLowerCase().trim().replace(/\s+/g, ' ');
-  }
-
-  function findDuplicateTeacher(nom, prenom, excludeId) {
-    const nNom = normalizeName(nom);
-    const nPrenom = normalizeName(prenom);
-    if (!nNom || !nPrenom) return null;
-    return loadedTeachersCache.find((t) =>
-      t.id !== excludeId &&
-      normalizeName(t.nom) === nNom &&
-      normalizeName(t.prenom) === nPrenom
-    ) || null;
-  }
-
-  function generateUsername(prenom, nom, existingUsernames) {
-    const base = slugPart(prenom) + slugPart(nom);
-    let username = base;
-    let counter = 1;
-    while (existingUsernames.includes(username)) {
-      counter += 1;
-      username = base + counter;
-    }
-    return username;
-  }
-
-  function levelBadgeClass(niveau) {
-    if (niveau.includes('primaire')) return 'badge-lvl-primaire';
-    if (niveau.includes('collège')) return 'badge-lvl-college';
-    return 'badge-lvl-lycee';
-  }
-
-  function groupBadgeClass(groupe) {
-    return 'badge-groupe';
-  }
-
-  function formatSalaire(salaire) {
-    const num = Number(salaire);
-    if (isNaN(num)) return '—';
-    return num.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' DH';
-  }
-
-  async function render() {
-    tableBody.innerHTML = `<tr><td colspan="12" class="text-center py-8 text-navy/50">Chargement des enseignants...</td></tr>`;
-    let teachers;
-    try {
-      teachers = await loadTeachers();
-    } catch (e) {
-      tableBody.innerHTML = `<tr><td colspan="12" class="text-center py-8 text-rose-600 font-bold">Erreur de connexion à Firestore.</td></tr>`;
-      return;
-    }
-    tableBody.innerHTML = '';
-
-    if (teachers.length === 0) {
-      emptyState.classList.remove('hidden');
-    } else {
-      emptyState.classList.add('hidden');
-    }
-
-    teachers.forEach((t) => {
-      const tr = document.createElement('tr');
-      tr.className = 'row-enter hover:bg-mist/50 transition-colors';
-      tr.innerHTML = `
-        <td class="px-6 sm:px-8 py-4 font-bold text-navy whitespace-nowrap">${t.nom}</td>
-        <td class="px-4 py-4 whitespace-nowrap">${t.prenom}</td>
-        <td class="px-4 py-4 whitespace-nowrap">${t.genre}</td>
-        <td class="px-4 py-4 text-ink/60 max-w-[180px] truncate" title="${t.adresse}">${t.adresse}</td>
-        <td class="px-4 py-4 whitespace-nowrap text-ink/60">${t.telephone}</td>
-        <td class="px-4 py-4 whitespace-nowrap"><div class="flex flex-wrap gap-1 max-w-[220px]">${t.niveaux.map((n) => `<span class="inline-block text-[10px] font-extrabold rounded-full px-2.5 py-1 ${levelBadgeClass(n)}">${n}</span>`).join('')}</div></td>
-        <td class="px-4 py-4 whitespace-nowrap"><span class="inline-block text-[11px] font-extrabold rounded-full px-3 py-1 bg-purple/10 text-purple">${t.matiere || '—'}</span></td>
-        <td class="px-4 py-4 whitespace-nowrap"><span class="inline-block text-[11px] font-extrabold rounded-full px-3 py-1 ${groupBadgeClass(t.groupe)}">${t.groupe}</span></td>
-        <td class="px-4 py-4 whitespace-nowrap font-bold text-emerald-600">${formatSalaire(t.salaire)}</td>
-        <td class="px-4 py-4 whitespace-nowrap">
-          <div class="flex items-center gap-3">
-            <span class="font-mono text-xs font-bold text-purple">${t.username}</span>
-          </div>
-        </td>
-        <td class="px-4 py-4 whitespace-nowrap">
-          <span class="font-mono text-xs font-bold text-navy/70">${t.password || '—'}</span>
-        </td>
-        <td class="px-4 sm:px-8 py-4 whitespace-nowrap text-right">
-          <div class="flex items-center justify-end gap-3.5">
-            <button data-id="${t.id}" class="viewBtn text-purple hover:text-navy transition-colors" title="Voir les identifiants">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            </button>
-            <button data-id="${t.id}" class="editBtn text-gold-dark hover:text-gold flex items-center gap-1 text-xs font-bold" title="Modifier">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-              Modifier
-            </button>
-            <button data-id="${t.id}" class="deleteBtn inline-flex items-center gap-1.5 text-xs font-bold text-rose-500 hover:text-rose-700 transition-colors">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              Supprimer
-            </button>
-          </div>
-        </td>
-      `;
-      tableBody.appendChild(tr);
-    });
-
-    countBadge.textContent = teachers.length + (teachers.length > 1 ? ' enseignants' : ' enseignant');
-
-    document.querySelectorAll('.viewBtn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-id');
-        const teacher = loadedTeachersCache.find(t => t.id === id);
-        if (teacher) {
-          showCredentialsModal(teacher.username, teacher.password || '—', false);
-        }
-      });
-    });
-
-    document.querySelectorAll('.editBtn').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-id');
-        const teacher = loadedTeachersCache.find(t => t.id === id);
-        if (teacher) {
-          document.getElementById('nom').value = teacher.nom;
-          document.getElementById('prenom').value = teacher.prenom;
-          document.getElementById('genre').value = teacher.genre;
-          document.getElementById('adresse').value = teacher.adresse;
-          document.getElementById('telephone').value = teacher.telephone;
-          document.getElementById('groupe').value = teacher.groupe;
-          document.getElementById('salaire').value = teacher.salaire;
-          
-          resetNiveauSelector();
-          if (teacher.niveaux) {
-            niveauOptions.forEach(cb => {
-              if (teacher.niveaux.includes(cb.value)) cb.checked = true;
-            });
-          }
-          updateNiveauBtnLabel();
-          refreshNiveauLocks();
-          updateMatiereOptions(teacher.matiere || '');
-
-          editTeacherId.value = teacher.id;
-          formTitle.textContent = "Modifier l'enseignant : " + teacher.prenom + " " + teacher.nom;
-          submitBtnText.textContent = "Enregistrer les modifications";
-          cancelEditBtn.classList.remove('hidden');
-          duplicateWarning.classList.add('hidden');
-          pendingDuplicateId = null;
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-      });
-    });
-
-    document.querySelectorAll('.deleteBtn').forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        if (!confirm('Voulez-vous vraiment supprimer cet enseignant ? (son accès sera aussi révoqué)')) return;
-        const id = btn.getAttribute('data-id');
-        btn.disabled = true;
-        btn.textContent = 'Suppression...';
-        try {
-          await deleteDoc(doc(db, 'teachers', id));
-          showToast('Enseignant supprimé avec succès');
-          render();
-        } catch (e) {
-          alert('Erreur lors de la suppression : ' + e.message);
-          render();
-        }
-      });
-    });
-  }
+  const groupBadgeClass = () => 'bg-navy/5 text-navy border border-navy/10';
 
   function showToast(message) {
+    const toastWrap = document.getElementById('toastWrap');
     const toast = document.createElement('div');
     toast.className = 'toast pointer-events-auto bg-navy text-white text-sm font-bold rounded-full px-6 py-3 shadow-lg flex items-center gap-2';
-    toast.innerHTML = `
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#F0A93C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      ${message}
-    `;
+    toast.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#F0A93C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>${message}`;
     toastWrap.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
+    setTimeout(() => toast.remove(), 2000);
   }
 
-  const credentialsModal = document.getElementById('credentialsModal');
-  const credUsername     = document.getElementById('credUsername');
-  const credPassword     = document.getElementById('credPassword');
-  const copyCredsBtn     = document.getElementById('copyCredsBtn');
-  const closeCredsBtn    = document.getElementById('closeCredsBtn');
-  const modalTitle       = document.getElementById('modalTitle');
-  const modalDesc        = document.getElementById('modalDesc');
-
-  function showCredentialsModal(username, password, isNew = true) {
-    credUsername.textContent = username;
-    credPassword.textContent = password;
-    copyCredsBtn.textContent = 'Copier identifiant + mot de passe';
-    
-    if (isNew) {
-      modalTitle.textContent = "Enseignant ajouté";
-      modalDesc.textContent = "Notez ces identifiants maintenant : le mot de passe ne sera plus jamais affiché.";
-    } else {
-      modalTitle.textContent = "Consultation des identifiants";
-      modalDesc.textContent = "Voici le nom d'utilisateur et le mot de passe enregistrés dans la base de données.";
+  // --- Génération des créneaux horaires (listes déroulantes "scroll") ------------------
+  function populateTimeSelect(selectEl, defaultValue) {
+    selectEl.innerHTML = '';
+    for (let h = 7; h <= 19; h++) {
+      for (let m = 0; m < 60; m += 15) {
+        if (h === 19 && m > 0) break;
+        const label = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        const opt = document.createElement('option');
+        opt.value = label;
+        opt.textContent = label;
+        selectEl.appendChild(opt);
+      }
     }
-    
-    credentialsModal.classList.remove('hidden');
+    selectEl.value = defaultValue;
+  }
+  const heureDebutSelect = document.getElementById('heureDebutSelect');
+  const heureFinSelect = document.getElementById('heureFinSelect');
+  populateTimeSelect(heureDebutSelect, '08:30');
+  populateTimeSelect(heureFinSelect, '09:30');
+
+  let currentTeacher = null;
+  let currentUser = null;
+  let currentStudents = []; // élèves du niveau+groupe actuellement sélectionnés
+  const attendanceState = {}; // studentId -> 'Présent' | 'Absent' | 'Retard'
+
+  const attNiveauSelect = document.getElementById('attNiveauSelect');
+  const attGroupeSelect = document.getElementById('attGroupeSelect');
+  const attendancePlaceholder = document.getElementById('attendancePlaceholder');
+  const attendanceListWrap = document.getElementById('attendanceListWrap');
+  const attendanceTableBody = document.getElementById('attendanceTableBody');
+
+  function pillHtml(studentId, statut) {
+    return `
+      <div class="inline-flex rounded-full border border-line overflow-hidden text-[11px] font-extrabold" data-pills="${studentId}">
+        <button type="button" data-statut="Présent" class="attendance-pill att-present px-3 py-2 border-r border-line ${statut === 'Présent' ? 'active' : ''}">Présent</button>
+        <button type="button" data-statut="Retard" class="attendance-pill att-late px-3 py-2 border-r border-line ${statut === 'Retard' ? 'active' : ''}">Retard</button>
+        <button type="button" data-statut="Absent" class="attendance-pill att-absent px-3 py-2 ${statut === 'Absent' ? 'active' : ''}">Absent</button>
+      </div>
+    `;
   }
 
-  copyCredsBtn.addEventListener('click', async () => {
-    const text = `Identifiant : ${credUsername.textContent}\nMot de passe : ${credPassword.textContent}`;
-    try {
-      await navigator.clipboard.writeText(text);
-      copyCredsBtn.textContent = 'Copié ✓';
-      setTimeout(() => { copyCredsBtn.textContent = 'Copier identifiant + mot de passe'; }, 1500);
-    } catch (e) {
-      alert(text);
-    }
+  function renderAttendanceList() {
+    attendanceTableBody.innerHTML = '';
+    currentStudents.forEach((s) => {
+      const tr = document.createElement('tr');
+      tr.className = 'row-enter';
+      tr.innerHTML = `
+        <td class="px-4 py-3 font-bold text-navy whitespace-nowrap">${s.prenom || ''} ${s.nom || ''}</td>
+        <td class="px-4 py-3 whitespace-nowrap font-mono text-xs font-bold text-purple">${s.id}</td>
+        <td class="px-4 py-3 text-center">${pillHtml(s.id, attendanceState[s.id] || 'Présent')}</td>
+      `;
+      attendanceTableBody.appendChild(tr);
+    });
+
+    attendanceTableBody.querySelectorAll('[data-pills]').forEach((group) => {
+      const studentId = group.dataset.pills;
+      group.querySelectorAll('.attendance-pill').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          attendanceState[studentId] = btn.dataset.statut;
+          group.querySelectorAll('.attendance-pill').forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+        });
+      });
+    });
+
+    document.getElementById('attendanceCount').textContent =
+      currentStudents.length + (currentStudents.length > 1 ? ' élèves' : ' élève');
+  }
+
+  document.getElementById('markAllPresentBtn').addEventListener('click', () => {
+    currentStudents.forEach((s) => { attendanceState[s.id] = 'Présent'; });
+    renderAttendanceList();
   });
 
-  closeCredsBtn.addEventListener('click', () => {
-    credentialsModal.classList.add('hidden');
-  });
+  async function loadGroupesForNiveau(niveau) {
+    attGroupeSelect.innerHTML = '<option value="">Chargement...</option>';
+    attGroupeSelect.disabled = true;
+    attendancePlaceholder.classList.remove('hidden');
+    attendanceListWrap.classList.add('hidden');
 
-  cancelEditBtn.addEventListener('click', () => {
-    form.reset();
-    resetNiveauSelector();
-    editTeacherId.value = "";
-    formTitle.textContent = "Ajouter un enseignant";
-    submitBtnText.textContent = "Ajouter l'enseignant";
-    cancelEditBtn.classList.add('hidden');
-    formError.classList.add('hidden');
-    duplicateWarning.classList.add('hidden');
-    pendingDuplicateId = null;
-  });
-
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const nom       = document.getElementById('nom').value.trim();
-    const prenom    = document.getElementById('prenom').value.trim();
-    const genre     = document.getElementById('genre').value;
-    const adresse   = document.getElementById('adresse').value.trim();
-    const telephone = document.getElementById('telephone').value.trim();
-    const niveaux   = getSelectedNiveaux();
-    const matiere   = document.getElementById('matiere').value;
-    const groupe    = document.getElementById('groupe').value;
-    const salaire   = document.getElementById('salaire').value;
-    const isEditMode = editTeacherId.value !== "";
-
-    if (!nom || !prenom || !genre || !adresse || !telephone || niveaux.length === 0 || !matiere || !groupe || salaire === '') {
-      formError.textContent = "Veuillez remplir tous les champs avant d'ajouter l'enseignant.";
-      formError.classList.remove('hidden');
+    if (!niveau) {
+      attGroupeSelect.innerHTML = '<option value="">Choisir d\'abord un niveau...</option>';
       return;
     }
-    formError.classList.add('hidden');
-
-    // Vérification anti-doublon : uniquement en mode "ajout" (pas en mode édition,
-    // où l'enseignant en cours d'édition ne doit pas se signaler lui-même).
-    if (!isEditMode) {
-      const duplicate = findDuplicateTeacher(nom, prenom, null);
-      if (duplicate && pendingDuplicateId !== duplicate.id) {
-        // Premher clic sur "Ajouter" avec ce nom/prénom : on bloque et on prévient,
-        // on ne soumet PAS encore (pas de compte Auth créé, pas d'écriture en base).
-        pendingDuplicateId = duplicate.id;
-        duplicateWarningText.textContent =
-          `Un enseignant nommé "${duplicate.prenom} ${duplicate.nom}" existe déjà (identifiant : ${duplicate.username}). ` +
-          `Si c'est intentionnel, cliquez à nouveau sur "Ajouter l'enseignant" pour confirmer.`;
-        duplicateWarning.classList.remove('hidden');
-        duplicateWarning.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        return;
-      }
-      // Sinon (pas de doublon, ou doublon déjà confirmé par un 2e clic) : on continue.
-    }
-
-    const submitBtn = form.querySelector('button[type="submit"]');
-    submitBtn.disabled = true;
-    const originalBtnHtml = submitBtn.innerHTML;
-    submitBtn.innerHTML = isEditMode ? 'Enregistrement...' : 'Ajout en cours...';
 
     try {
-      if (isEditMode) {
-        const currentId = editTeacherId.value;
-        await setDoc(doc(db, 'teachers', currentId), {
-          nom, prenom, genre, adresse, telephone, niveaux, matiere, groupe,
-          salaire: Number(salaire)
-        }, { merge: true });
+      const q = query(collection(db, 'students'), where('niveau', '==', niveau), where('statut', '==', 'Accepté'));
+      const snap = await getDocs(q);
+      const students = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      const groupes = [...new Set(students.map((s) => s.groupe).filter((g) => g && g !== 'Non assigné'))].sort();
 
-        showToast('Enseignant modifié avec succès');
-        cancelEditBtn.click();
-        render();
+      attGroupeSelect.innerHTML = '<option value="">Choisir un groupe...</option>' +
+        groupes.map((g) => `<option value="${g}">${g}</option>`).join('');
+      attGroupeSelect.disabled = groupes.length === 0;
+      if (groupes.length === 0) {
+        attGroupeSelect.innerHTML = '<option value="">Aucun groupe pour ce niveau</option>';
+      }
+    } catch (e) {
+      attGroupeSelect.innerHTML = '<option value="">Erreur de chargement</option>';
+    }
+  }
+
+  async function loadStudentsForNiveauGroupe(niveau, groupe) {
+    if (!niveau || !groupe) {
+      attendancePlaceholder.classList.remove('hidden');
+      attendanceListWrap.classList.add('hidden');
+      currentStudents = [];
+      return;
+    }
+    attendancePlaceholder.textContent = 'Chargement des élèves...';
+    attendancePlaceholder.classList.remove('hidden');
+    attendanceListWrap.classList.add('hidden');
+
+    try {
+      const q = query(
+        collection(db, 'students'),
+        where('niveau', '==', niveau),
+        where('groupe', '==', groupe),
+        where('statut', '==', 'Accepté')
+      );
+      const snap = await getDocs(q);
+      currentStudents = snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => `${a.nom}${a.prenom}`.localeCompare(`${b.nom}${b.prenom}`));
+
+      // Réinitialise l'état de présence (par défaut : Présent) pour la nouvelle liste.
+      Object.keys(attendanceState).forEach((k) => delete attendanceState[k]);
+      currentStudents.forEach((s) => { attendanceState[s.id] = 'Présent'; });
+
+      if (currentStudents.length === 0) {
+        attendancePlaceholder.textContent = 'Aucun élève dans ce groupe.';
+        attendancePlaceholder.classList.remove('hidden');
+        attendanceListWrap.classList.add('hidden');
       } else {
-        const teachersList = await loadTeachers();
-        const existingUsernames = teachersList.map((t) => t.username);
-        const username = generateUsername(prenom, nom, existingUsernames);
-        const password = generatePassword();
-        const email = usernameToEmail(username);
+        attendancePlaceholder.classList.add('hidden');
+        attendanceListWrap.classList.remove('hidden');
+        renderAttendanceList();
+      }
+    } catch (e) {
+      attendancePlaceholder.textContent = 'Erreur lors du chargement des élèves.';
+      attendancePlaceholder.classList.remove('hidden');
+      attendanceListWrap.classList.add('hidden');
+    }
+  }
 
-        const uid = await createTeacherAuthAccount(email, password);
+  attNiveauSelect.addEventListener('change', () => {
+    attendanceListWrap.classList.add('hidden');
+    loadGroupesForNiveau(attNiveauSelect.value);
+  });
+  attGroupeSelect.addEventListener('change', () => {
+    loadStudentsForNiveauGroupe(attNiveauSelect.value, attGroupeSelect.value);
+  });
 
-        await setDoc(doc(db, 'teachers', uid), {
-          nom, prenom, genre, adresse, telephone, niveaux, matiere, groupe,
-          salaire: Number(salaire), username, password, createdAt: new Date().toISOString()
+  document.getElementById('saveAttendanceBtn').addEventListener('click', async () => {
+    if (currentStudents.length === 0) return;
+    const heureDebut = heureDebutSelect.value;
+    const heureFin = heureFinSelect.value;
+
+    if (heureFin <= heureDebut) {
+      alert("L'heure de fin doit être après l'heure de début.");
+      return;
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const saveBtn = document.getElementById('saveAttendanceBtn');
+    saveBtn.disabled = true;
+    const originalHtml = saveBtn.innerHTML;
+    saveBtn.innerHTML = 'Enregistrement...';
+
+    try {
+      for (const s of currentStudents) {
+        const statut = attendanceState[s.id] || 'Présent';
+        const id = `${s.id}::${today}::${heureDebut}`;
+        await setDoc(doc(db, 'absences', id), {
+          studentId: s.id,
+          teacherId: currentUser.uid,
+          niveau: attNiveauSelect.value,
+          groupe: attGroupeSelect.value,
+          matiere: currentTeacher.matiere || null,
+          date: today,
+          heureDebut,
+          heureFin,
+          statut,
+          justifie: false,
+          justificatifURL: null,
         });
+      }
+      showToast('Appel enregistré avec succès');
+    } catch (e) {
+      alert("Erreur lors de l'enregistrement de l'appel.");
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = originalHtml;
+    }
+  });
 
-        render();
-        showCredentialsModal(username, password, true);
-        form.reset();
-        resetNiveauSelector();
-        duplicateWarning.classList.add('hidden');
-        pendingDuplicateId = null;
+  requireTeacher(async (user, teacher) => {
+    currentUser = user;
+    currentTeacher = teacher;
+
+    document.getElementById('welcomeTitle').textContent = `Bonjour, ${teacher.prenom} ${teacher.nom}`;
+    document.getElementById('infoGenre').textContent = teacher.genre || '—';
+    document.getElementById('infoTelephone').textContent = teacher.telephone || '—';
+    document.getElementById('infoAdresse').textContent = teacher.adresse || '—';
+    document.getElementById('infoGroupe').textContent = teacher.groupe || '—';
+
+    const classesWrap = document.getElementById('classesWrap');
+    const niveaux = teacher.niveaux || [];
+    const groupe = teacher.groupe;
+
+    if (niveaux.length) {
+      niveaux.forEach((niveau) => {
+        const span = document.createElement('span');
+        span.className = `inline-flex items-center gap-1.5 text-xs font-extrabold rounded-full px-3.5 py-2 ${levelBadgeClass(niveau)}`;
+        span.textContent = `${niveau} — ${groupe}`;
+        classesWrap.appendChild(span);
+      });
+    } else {
+      classesWrap.innerHTML = '<p class="text-ink/40 text-sm">Aucune classe assignée pour le moment.</p>';
+    }
+
+    // Remplit le filtre "Niveau" de la prise de présence à partir des niveaux de l'enseignant.
+    attNiveauSelect.innerHTML = '<option value="">Choisir un niveau...</option>' +
+      niveaux.map((n) => `<option value="${n}">${n}</option>`).join('');
+
+    const tbody = document.getElementById('studentsTableBody');
+    const emptyState = document.getElementById('emptyState');
+    tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-navy/50">Chargement des élèves...</td></tr>`;
+
+    try {
+      // Les Security Rules Firestore filtrent déjà côté serveur : seuls les élèves
+      // du même niveau ET du même groupe que l'enseignant sont lisibles.
+      const q = query(collection(db, 'students'), where('groupe', '==', groupe), where('statut', '==', 'Accepté'));
+      const snap = await getDocs(q);
+      const myStudents = snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .filter((s) => niveaux.includes(s.niveau));
+
+      tbody.innerHTML = '';
+      if (myStudents.length === 0) {
+        emptyState.classList.remove('hidden');
+        document.getElementById('studentCount').textContent = '0 élève';
+      } else {
+        emptyState.classList.add('hidden');
+        document.getElementById('studentCount').textContent = myStudents.length + (myStudents.length > 1 ? ' élèves' : ' élève');
+        myStudents.forEach((s) => {
+          const tr = document.createElement('tr');
+          tr.className = 'row-enter hover:bg-mist/50 transition-colors';
+          tr.innerHTML = `
+            <td class="px-6 sm:px-8 py-4 font-bold text-navy whitespace-nowrap">${s.nom}</td>
+            <td class="px-4 py-4 whitespace-nowrap">${s.prenom}</td>
+            <td class="px-4 py-4 whitespace-nowrap font-mono text-xs font-bold text-purple">${s.id}</td>
+            <td class="px-4 py-4 whitespace-nowrap"><span class="inline-block text-[11px] font-extrabold rounded-full px-3 py-1 ${levelBadgeClass(s.niveau)}">${s.niveau}</span></td>
+            <td class="px-4 sm:px-8 py-4 whitespace-nowrap"><span class="inline-block text-[11px] font-extrabold rounded-full px-3 py-1 ${groupBadgeClass()}">${s.groupe}</span></td>
+          `;
+          tbody.appendChild(tr);
+        });
       }
     } catch (err) {
-      alert("Erreur lors de l'opération : " + err.message);
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = originalBtnHtml;
+      tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-rose-600 font-bold">Erreur lors du chargement des élèves.</td></tr>`;
     }
   });
 
   document.getElementById('logoutBtn').addEventListener('click', async () => {
     await signOut(auth);
-    window.location.href = 'connexion.html';
+    window.location.href = 'connexion-enseignant.html';
   });
-
-  // ---------- Export Excel / PDF ----------
-  function exportFileName(ext) {
-    return `enseignants_${new Date().toISOString().slice(0, 10)}.${ext}`;
-  }
-
-  function teacherExportRows() {
-    return loadedTeachersCache.map((t) => ({
-      'Nom': t.nom || '',
-      'Prénom': t.prenom || '',
-      'Genre': t.genre || '',
-      'Adresse': t.adresse || '',
-      'Téléphone': t.telephone || '',
-      'Niveaux': (t.niveaux || []).join(', '),
-      'Matière': t.matiere || '',
-      'Groupe': t.groupe || '',
-      'Salaire (DH)': Number(t.salaire) || 0,
-      'Identifiant': t.username || '',
-      'Mot de passe': t.password || '',
-    }));
-  }
-
-  document.getElementById('exportExcelBtn').addEventListener('click', () => {
-    const rows = teacherExportRows();
-    if (rows.length === 0) { alert('Aucun enseignant à exporter.'); return; }
-    const ws = XLSX.utils.json_to_sheet(rows);
-    ws['!cols'] = [
-      { wch: 16 }, { wch: 14 }, { wch: 8 }, { wch: 26 }, { wch: 14 },
-      { wch: 34 }, { wch: 22 }, { wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 14 },
-    ];
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Enseignants');
-    XLSX.writeFile(wb, exportFileName('xlsx'));
-  });
-
-  document.getElementById('exportPdfBtn').addEventListener('click', () => {
-    const rows = loadedTeachersCache;
-    if (rows.length === 0) { alert('Aucun enseignant à exporter.'); return; }
-
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-    pdf.setFontSize(14);
-    pdf.setTextColor(27, 20, 100);
-    pdf.text('Diwan Al Maaref — Gestion des Enseignants', 14, 15);
-    pdf.setFontSize(9);
-    pdf.setTextColor(120, 120, 120);
-    pdf.text(`Généré le ${new Date().toLocaleDateString('fr-FR')}`, 14, 21);
-
-    pdf.autoTable({
-      head: [['Nom', 'Prénom', 'Genre', 'Téléphone', 'Niveaux', 'Matière', 'Groupe', 'Salaire', 'Identifiant', 'Mot de passe']],
-      body: rows.map((t) => [
-        t.nom || '', t.prenom || '', t.genre || '', t.telephone || '',
-        (t.niveaux || []).join(', '), t.matiere || '', t.groupe || '',
-        formatSalaire(t.salaire), t.username || '', t.password || '—',
-      ]),
-      startY: 26,
-      styles: { fontSize: 7.5, cellPadding: 2 },
-      headStyles: { fillColor: [27, 20, 100], textColor: 255, fontStyle: 'bold' },
-      alternateRowStyles: { fillColor: [246, 244, 252] },
-      columnStyles: { 4: { cellWidth: 55 } },
-    });
-
-    pdf.save(exportFileName('pdf'));
-  });
-
-  // ---------- Import Excel / CSV ----------
-  // Colonnes attendues (en-têtes, insensibles à la casse) : Nom, Prénom, Genre
-  // (Homme/Femme), Adresse, Téléphone, Niveaux (séparés par des virgules, 3 max),
-  // Matière, Groupe (Groupe A à F), Salaire. Un identifiant et un mot de passe sont
-  // générés automatiquement, comme lors d'un ajout manuel. Si le nom + prénom
-  // correspond déjà à un enseignant existant, sa fiche est mise à jour avec les
-  // nouvelles informations de la ligne (son identifiant et mot de passe existants
-  // sont conservés) ; sinon, un nouvel enseignant est créé.
-  const importBtn = document.getElementById('importBtn');
-  const importFileInput = document.getElementById('importFileInput');
-  const importSummary = document.getElementById('importSummary');
-  const NIVEAUX_VALIDES = niveauOptions.map((cb) => cb.value);
-  const GROUPES_VALIDES = ['Groupe A', 'Groupe B', 'Groupe C', 'Groupe D', 'Groupe E', 'Groupe F'];
-
-  importBtn.addEventListener('click', () => importFileInput.click());
-
-  function normalizeHeader(h) {
-    return (h || '').toString().trim().toLowerCase();
-  }
-
-  function matchNiveauValue(raw) {
-    const norm = normalizeName(raw);
-    return NIVEAUX_VALIDES.find((v) => normalizeName(v) === norm) || null;
-  }
-
-  importFileInput.addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    importSummary.classList.add('hidden');
-
-    try {
-      const buffer = await file.arrayBuffer();
-      const wb = XLSX.read(buffer, { type: 'array', cellDates: false });
-      const sheet = wb.Sheets[wb.SheetNames[0]];
-      const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-
-      let created = 0, updated = 0, skipped = 0;
-      for (const raw of rawRows) {
-        const map = {};
-        Object.keys(raw).forEach((k) => { map[normalizeHeader(k)] = raw[k]; });
-
-        const nom = String(map['nom'] || '').trim();
-        const prenom = String(map['prénom'] || map['prenom'] || '').trim();
-        const genre = String(map['genre'] || '').trim();
-        const adresse = String(map['adresse'] || '').trim();
-        const telephone = String(map['téléphone'] || map['telephone'] || '').trim();
-        const niveauxRaw = String(map['niveaux'] || map['niveau'] || '').split(/[,/]/).map((s) => s.trim()).filter(Boolean);
-        const matiere = String(map['matière'] || map['matiere'] || '').trim();
-        const groupe = String(map['groupe'] || '').trim();
-        const salaire = parseFloat(map['salaire'] || map['salaire (dh)']);
-
-        const niveaux = niveauxRaw.map(matchNiveauValue).filter(Boolean).slice(0, MAX_NIVEAUX);
-        const cycles = [...new Set(niveaux.map(mapNiveauToCycle))];
-        const validSubjects = [...new Set(cycles.flatMap((c) => SUBJECTS[c] || []))];
-
-        const isValid = nom && prenom && ['Homme', 'Femme'].includes(genre) && adresse && telephone &&
-          niveaux.length > 0 && validSubjects.includes(matiere) && GROUPES_VALIDES.includes(groupe) &&
-          !isNaN(salaire) && salaire >= 0;
-
-        if (!isValid) { skipped += 1; continue; }
-
-        const existing = findDuplicateTeacher(nom, prenom, null);
-
-        try {
-          if (existing) {
-            // Enseignant déjà enregistré (même nom + prénom) : on met à jour sa fiche
-            // avec les nouvelles informations de la ligne, sans toucher à son identifiant
-            // de connexion (username/password) ni à sa date de création.
-            const updateObj = { nom, prenom, genre, adresse, telephone, niveaux, matiere, groupe, salaire };
-            await setDoc(doc(db, 'teachers', existing.id), updateObj, { merge: true });
-            Object.assign(existing, updateObj);
-            updated += 1;
-          } else {
-            // Nouvel enseignant : création du compte de connexion comme lors d'un ajout manuel.
-            const existingUsernames = loadedTeachersCache.map((t) => t.username);
-            const username = generateUsername(prenom, nom, existingUsernames);
-            const password = generatePassword();
-            const email = usernameToEmail(username);
-            const uid = await createTeacherAuthAccount(email, password);
-
-            const dataObj = {
-              nom, prenom, genre, adresse, telephone, niveaux, matiere, groupe,
-              salaire, username, password, createdAt: new Date().toISOString(),
-            };
-            await setDoc(doc(db, 'teachers', uid), dataObj);
-            loadedTeachersCache.push({ id: uid, ...dataObj });
-            created += 1;
-          }
-        } catch (err) {
-          skipped += 1;
-        }
-      }
-
-      const parts = [];
-      if (created > 0) parts.push(`${created} enseignant(s) créé(s)`);
-      if (updated > 0) parts.push(`${updated} enseignant(s) mis à jour`);
-      if (skipped > 0) parts.push(`${skipped} ligne(s) ignorée(s) (champs invalides)`);
-      importSummary.textContent = parts.length ? parts.join(', ') + '.' : "Aucune ligne valide n'a été trouvée dans le fichier.";
-      importSummary.classList.remove('hidden');
-      render();
-      if (created > 0 || updated > 0) showToast('Import terminé');
-    } catch (err) {
-      importSummary.textContent = "Erreur lors de la lecture du fichier. Vérifiez qu'il s'agit bien d'un fichier Excel (.xlsx) ou CSV valide.";
-      importSummary.classList.remove('hidden');
-    } finally {
-      importFileInput.value = '';
-    }
-  });
-
-  render();
 </script>
 
 </body>
