@@ -813,6 +813,44 @@
   }, { threshold: 0.12 });
   revealEls.forEach(el => io.observe(el));
 
+  // Compteurs animés (0 -> valeur finale) pour la section "Pourquoi nous choisir"
+  const statEls = document.querySelectorAll('.stat-num');
+  function animateCount(el) {
+    const raw = el.textContent.trim();
+    const match = raw.match(/^([\d\s.,]+)(.*)$/); // ex: "1200" + "+", "95" + "%"
+    if (!match) return;
+    const target = parseInt(match[1].replace(/[^\d]/g, ''), 10);
+    const suffix = match[2] || '';
+    if (isNaN(target)) return;
+
+    const duration = 1600; // ms
+    const startTime = performance.now();
+    function easeOutExpo(t) { return t === 1 ? 1 : 1 - Math.pow(2, -10 * t); }
+
+    function tick(now) {
+      const progress = Math.min((now - startTime) / duration, 1);
+      const eased = easeOutExpo(progress);
+      const current = Math.round(target * eased);
+      el.textContent = current.toLocaleString('fr-FR') + suffix;
+      if (progress < 1) {
+        requestAnimationFrame(tick);
+      } else {
+        el.textContent = target.toLocaleString('fr-FR') + suffix; // valeur exacte finale
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+
+  const statIo = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        animateCount(entry.target);
+        statIo.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.4 });
+  statEls.forEach(el => statIo.observe(el));
+
   // Hero carousel
   document.addEventListener('DOMContentLoaded', () => {
     new Splide('.splide', {
