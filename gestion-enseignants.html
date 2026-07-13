@@ -222,6 +222,16 @@
         <input id="salaire" name="salaire" type="number" min="0" step="0.01" placeholder="Ex : 6500" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy placeholder:text-ink/30 outline-none">
       </div>
 
+      <div>
+        <label for="cnss" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">N° CNSS <span class="text-ink/30 normal-case font-semibold">(optionnel)</span></label>
+        <input id="cnss" name="cnss" type="text" placeholder="Ex : 1234567" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy placeholder:text-ink/30 outline-none">
+      </div>
+
+      <div>
+        <label for="rib" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">RIB Bancaire <span class="text-ink/30 normal-case font-semibold">(optionnel)</span></label>
+        <input id="rib" name="rib" type="text" placeholder="Ex : 007 780 0001234567890012 34" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy placeholder:text-ink/30 outline-none">
+      </div>
+
       <div id="duplicateWarning" class="hidden sm:col-span-2 lg:col-span-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs font-bold text-gold-dark bg-gold/10 border border-gold/30 rounded-xl px-4 py-3">
         <span id="duplicateWarningText" class="leading-relaxed"></span>
         <button type="button" id="goToDuplicateBtn" class="shrink-0 inline-flex items-center gap-1.5 bg-white border border-gold/40 text-gold-dark hover:bg-gold/10 rounded-full px-4 py-2 transition-colors">
@@ -283,6 +293,8 @@
             <th class="px-4 py-3.5 whitespace-nowrap">Matière</th>
             <th class="px-4 py-3.5 whitespace-nowrap">Groupe</th>
             <th class="px-4 py-3.5 whitespace-nowrap text-emerald-600">Salaire net</th>
+            <th class="px-4 py-3.5 whitespace-nowrap">N° CNSS</th>
+            <th class="px-4 py-3.5 whitespace-nowrap">RIB Bancaire</th>
             <th class="px-4 py-3.5 whitespace-nowrap text-purple">Identifiant (Nom d'utilisateur)</th>
             <th class="px-4 py-3.5 whitespace-nowrap text-purple">Mot de passe</th>
             <th class="px-4 sm:px-8 py-3.5 whitespace-nowrap text-right">Action</th>
@@ -573,6 +585,8 @@
         <td class="px-4 py-4 whitespace-nowrap"><span class="inline-block text-[11px] font-extrabold rounded-full px-3 py-1 bg-purple/10 text-purple">${t.matiere || '—'}</span></td>
         <td class="px-4 py-4 whitespace-nowrap"><span class="inline-block text-[11px] font-extrabold rounded-full px-3 py-1 ${groupBadgeClass(t.groupe)}">${t.groupe}</span></td>
         <td class="px-4 py-4 whitespace-nowrap font-bold text-emerald-600">${formatSalaire(t.salaire)}</td>
+        <td class="px-4 py-4 whitespace-nowrap text-ink/60 font-mono text-xs">${t.cnss || '—'}</td>
+        <td class="px-4 py-4 whitespace-nowrap text-ink/60 font-mono text-xs">${t.rib || '—'}</td>
         <td class="px-4 py-4 whitespace-nowrap">
           <div class="flex items-center gap-3">
             <span class="font-mono text-xs font-bold text-purple">${t.username}</span>
@@ -624,6 +638,8 @@
           document.getElementById('telephone').value = teacher.telephone;
           document.getElementById('groupe').value = teacher.groupe;
           document.getElementById('salaire').value = teacher.salaire;
+          document.getElementById('cnss').value = teacher.cnss || '';
+          document.getElementById('rib').value = teacher.rib || '';
           
           resetNiveauSelector();
           if (teacher.niveaux) {
@@ -738,6 +754,8 @@
     const matiere   = document.getElementById('matiere').value;
     const groupe    = document.getElementById('groupe').value;
     const salaire   = document.getElementById('salaire').value;
+    const cnss      = document.getElementById('cnss').value.trim();
+    const rib       = document.getElementById('rib').value.trim();
     const isEditMode = editTeacherId.value !== "";
 
     if (!nom || !prenom || !genre || !adresse || !telephone || niveaux.length === 0 || !matiere || !groupe || salaire === '') {
@@ -775,7 +793,7 @@
         const currentId = editTeacherId.value;
         await setDoc(doc(db, 'teachers', currentId), {
           nom, prenom, genre, adresse, telephone, niveaux, matiere, groupe,
-          salaire: Number(salaire)
+          salaire: Number(salaire), cnss, rib
         }, { merge: true });
 
         showToast('Enseignant modifié avec succès');
@@ -792,7 +810,7 @@
 
         await setDoc(doc(db, 'teachers', uid), {
           nom, prenom, genre, adresse, telephone, niveaux, matiere, groupe,
-          salaire: Number(salaire), username, password, createdAt: new Date().toISOString()
+          salaire: Number(salaire), cnss, rib, username, password, createdAt: new Date().toISOString()
         });
 
         render();
@@ -831,6 +849,8 @@
       'Matière': t.matiere || '',
       'Groupe': t.groupe || '',
       'Salaire (DH)': Number(t.salaire) || 0,
+      'N° CNSS': t.cnss || '',
+      'RIB Bancaire': t.rib || '',
       'Identifiant': t.username || '',
       'Mot de passe': t.password || '',
     }));
@@ -842,7 +862,7 @@
     const ws = XLSX.utils.json_to_sheet(rows);
     ws['!cols'] = [
       { wch: 16 }, { wch: 14 }, { wch: 8 }, { wch: 26 }, { wch: 14 },
-      { wch: 34 }, { wch: 22 }, { wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 14 },
+      { wch: 34 }, { wch: 22 }, { wch: 12 }, { wch: 12 }, { wch: 16 }, { wch: 22 }, { wch: 16 }, { wch: 14 },
     ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Enseignants');
@@ -863,17 +883,17 @@
     pdf.text(`Généré le ${new Date().toLocaleDateString('fr-FR')}`, 14, 21);
 
     pdf.autoTable({
-      head: [['Nom', 'Prénom', 'Genre', 'Téléphone', 'Niveaux', 'Matière', 'Groupe', 'Salaire', 'Identifiant', 'Mot de passe']],
+      head: [['Nom', 'Prénom', 'Genre', 'Téléphone', 'Niveaux', 'Matière', 'Groupe', 'Salaire', 'N° CNSS', 'RIB Bancaire', 'Identifiant', 'Mot de passe']],
       body: rows.map((t) => [
         t.nom || '', t.prenom || '', t.genre || '', t.telephone || '',
         (t.niveaux || []).join(', '), t.matiere || '', t.groupe || '',
-        formatSalaire(t.salaire), t.username || '', t.password || '—',
+        formatSalaire(t.salaire), t.cnss || '—', t.rib || '—', t.username || '', t.password || '—',
       ]),
       startY: 26,
-      styles: { fontSize: 7.5, cellPadding: 2 },
+      styles: { fontSize: 6.8, cellPadding: 1.8 },
       headStyles: { fillColor: [27, 20, 100], textColor: 255, fontStyle: 'bold' },
       alternateRowStyles: { fillColor: [246, 244, 252] },
-      columnStyles: { 4: { cellWidth: 55 } },
+      columnStyles: { 4: { cellWidth: 42 }, 9: { cellWidth: 32 } },
     });
 
     pdf.save(exportFileName('pdf'));
@@ -927,6 +947,8 @@
         const matiere = String(map['matière'] || map['matiere'] || '').trim();
         const groupe = String(map['groupe'] || '').trim();
         const salaire = parseFloat(map['salaire'] || map['salaire (dh)']);
+        const cnss = String(map['n° cnss'] || map['cnss'] || '').trim();
+        const rib = String(map['rib bancaire'] || map['rib'] || '').trim();
 
         const niveaux = niveauxRaw.map(matchNiveauValue).filter(Boolean).slice(0, MAX_NIVEAUX);
         const cycles = [...new Set(niveaux.map(mapNiveauToCycle))];
@@ -948,7 +970,7 @@
 
           const dataObj = {
             nom, prenom, genre, adresse, telephone, niveaux, matiere, groupe,
-            salaire, username, password, createdAt: new Date().toISOString(),
+            salaire, cnss, rib, username, password, createdAt: new Date().toISOString(),
           };
           await setDoc(doc(db, 'teachers', uid), dataObj);
           loadedTeachersCache.push({ id: uid, ...dataObj });
