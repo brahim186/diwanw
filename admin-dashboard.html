@@ -386,6 +386,30 @@
         <input id="editEmergencyPhone" type="text" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy outline-none">
       </div>
 
+      <div class="sm:col-span-2 border-t border-line pt-5 mt-1">
+        <p class="text-[11px] font-extrabold uppercase tracking-wide text-gold-dark mb-1">Documents Joints</p>
+        <p class="text-ink/40 text-xs mb-4">Laissez un champ vide pour conserver le document actuellement enregistré.</p>
+      </div>
+
+      <div>
+        <label for="editPhotoFile" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Photo de l'élève</label>
+        <input id="editPhotoFile" type="file" accept="image/*" class="field w-full rounded-2xl border border-line bg-mist px-4 py-2.5 text-xs text-navy outline-none">
+        <a id="editPhotoCurrentLink" href="#" target="_blank" rel="noopener" class="hidden text-[11px] font-bold text-purple hover:underline mt-1.5 inline-block">Voir le document actuel</a>
+        <span id="editPhotoNoneLabel" class="hidden text-[11px] text-ink/40 mt-1.5 inline-block">Aucun document enregistré</span>
+      </div>
+      <div>
+        <label for="editBirthFile" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Extrait de naissance</label>
+        <input id="editBirthFile" type="file" accept="application/pdf,image/*" class="field w-full rounded-2xl border border-line bg-mist px-4 py-2.5 text-xs text-navy outline-none">
+        <a id="editBirthCurrentLink" href="#" target="_blank" rel="noopener" class="hidden text-[11px] font-bold text-purple hover:underline mt-1.5 inline-block">Voir le document actuel</a>
+        <span id="editBirthNoneLabel" class="hidden text-[11px] text-ink/40 mt-1.5 inline-block">Aucun document enregistré</span>
+      </div>
+      <div class="sm:col-span-2">
+        <label for="editIdFile" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">CIN des parents (Recto-Verso)</label>
+        <input id="editIdFile" type="file" accept="application/pdf,image/*" class="field w-full rounded-2xl border border-line bg-mist px-4 py-2.5 text-xs text-navy outline-none">
+        <a id="editIdCurrentLink" href="#" target="_blank" rel="noopener" class="hidden text-[11px] font-bold text-purple hover:underline mt-1.5 inline-block">Voir le document actuel</a>
+        <span id="editIdNoneLabel" class="hidden text-[11px] text-ink/40 mt-1.5 inline-block">Aucun document enregistré</span>
+      </div>
+
       <p id="editFormError" class="hidden sm:col-span-2 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3"></p>
     </form>
 
@@ -401,7 +425,7 @@
 <script type="module">
 import {
   auth, db, signOut, collection, getDocs, doc, updateDoc, deleteDoc, requireAdmin,
-  generateStudentEmail, generatePassword, createStudentAuthAccount,
+  generateStudentEmail, generatePassword, createStudentAuthAccount, uploadToStorage,
   saveStudentCredentials, getStudentCredentialsByStudentId, listStudentCredentialEmails
 } from './supabase-config.js';
 
@@ -754,7 +778,27 @@ async function openEditModal(record, rowRoot) {
     loadedBusStops.map((s) => `<option value="${s.id}" data-nom="${s.nom || ''}" data-ligne="${s.ligne || ''}">${s.ligne ? `${s.nom} (${s.ligne})` : s.nom}</option>`).join('');
   editBusStopSelect.value = record.arretId || '';
 
+  document.getElementById('editPhotoFile').value = '';
+  document.getElementById('editBirthFile').value = '';
+  document.getElementById('editIdFile').value = '';
+  setCurrentDocLink('editPhotoCurrentLink', 'editPhotoNoneLabel', record.photoURL);
+  setCurrentDocLink('editBirthCurrentLink', 'editBirthNoneLabel', record.acteNaissanceURL);
+  setCurrentDocLink('editIdCurrentLink', 'editIdNoneLabel', record.cinParentsURL);
+
   editStudentModal.classList.remove('hidden');
+}
+
+function setCurrentDocLink(linkId, noneLabelId, url) {
+  const link = document.getElementById(linkId);
+  const noneLabel = document.getElementById(noneLabelId);
+  if (url) {
+    link.href = url;
+    link.classList.remove('hidden');
+    noneLabel.classList.add('hidden');
+  } else {
+    link.classList.add('hidden');
+    noneLabel.classList.remove('hidden');
+  }
 }
 
 function closeEditModal() {
@@ -784,6 +828,18 @@ editStudentForm.addEventListener('submit', async (e) => {
   const arretNom  = arretId ? (selectedStopOption.dataset.nom || selectedStopOption.textContent) : null;
   const ligneArret = arretId ? (selectedStopOption.dataset.ligne || null) : null;
 
+  const MAX_EDIT_FILE_MB = 5;
+  const photoFile = document.getElementById('editPhotoFile').files[0];
+  const birthFile = document.getElementById('editBirthFile').files[0];
+  const idFile    = document.getElementById('editIdFile').files[0];
+  for (const f of [photoFile, birthFile, idFile]) {
+    if (f && f.size > MAX_EDIT_FILE_MB * 1024 * 1024) {
+      editFormError.textContent = `Un des fichiers dépasse la taille maximale de ${MAX_EDIT_FILE_MB} Mo.`;
+      editFormError.classList.remove('hidden');
+      return;
+    }
+  }
+
   const updates = {
     prenom, nom,
     dateNaissance: document.getElementById('editDob').value,
@@ -811,6 +867,20 @@ editStudentForm.addEventListener('submit', async (e) => {
   saveEditBtnText.textContent = 'Enregistrement...';
 
   try {
+    if (photoFile || birthFile || idFile) {
+      saveEditBtnText.textContent = 'Envoi des documents...';
+      const matricule = currentEditRecord.id;
+      const [photoURL, birthCertURL, cinParentsURL] = await Promise.all([
+        photoFile ? uploadToStorage(`students/${matricule}/photo_${photoFile.name}`, photoFile) : null,
+        birthFile ? uploadToStorage(`students/${matricule}/acte_${birthFile.name}`, birthFile) : null,
+        idFile    ? uploadToStorage(`students/${matricule}/cin_${idFile.name}`, idFile) : null,
+      ]);
+      if (photoURL) updates.photoURL = photoURL;
+      if (birthCertURL) updates.acteNaissanceURL = birthCertURL;
+      if (cinParentsURL) updates.cinParentsURL = cinParentsURL;
+      saveEditBtnText.textContent = 'Enregistrement...';
+    }
+
     await updateDoc(doc(db, 'students', currentEditRecord.id), updates);
     Object.assign(currentEditRecord, updates);
 
@@ -831,6 +901,10 @@ editStudentForm.addEventListener('submit', async (e) => {
       currentEditRowRoot.querySelector('[data-field="motherPhone"]').textContent   = updates.telMere || '—';
       currentEditRowRoot.querySelector('[data-field="emergencyPhone"]').textContent = updates.telUrgence || '—';
 
+      if (updates.photoURL) refreshDocLink(currentEditRowRoot, 'photo', updates.photoURL, true);
+      if (updates.acteNaissanceURL) refreshDocLink(currentEditRowRoot, 'birthCert', updates.acteNaissanceURL, false);
+      if (updates.cinParentsURL) refreshDocLink(currentEditRowRoot, 'idCards', updates.cinParentsURL, false);
+
       currentEditRowRoot.style.transition = 'background-color 0.6s ease';
       currentEditRowRoot.style.backgroundColor = '#ECFDF5';
       setTimeout(() => { currentEditRowRoot.style.backgroundColor = ''; }, 900);
@@ -845,6 +919,23 @@ editStudentForm.addEventListener('submit', async (e) => {
     saveEditBtnText.textContent = originalText;
   }
 });
+
+function refreshDocLink(rowRoot, key, url, isImage) {
+  const link = rowRoot.querySelector('[data-doc="' + key + '"]');
+  if (!link || !url) return;
+  link.href = url;
+  link.classList.remove('opacity-40', 'pointer-events-none');
+
+  if (isImage) {
+    const img = rowRoot.querySelector('[data-doc-img="' + key + '"]');
+    const icon = rowRoot.querySelector('[data-doc-icon="' + key + '"]');
+    if (img) {
+      img.src = url;
+      img.classList.remove('hidden');
+      if (icon) icon.classList.add('hidden');
+    }
+  }
+}
 
 function wireDoc(node, key, url, isImage) {
   const link = node.querySelector('[data-doc="' + key + '"]');
