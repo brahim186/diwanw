@@ -45,6 +45,7 @@
 
   .menu-card {
     transition: transform .25s cubic-bezier(.2,.8,.25,1), box-shadow .25s ease, border-color .25s ease;
+    position: relative;
   }
   .menu-card:hover {
     transform: translateY(-4px);
@@ -54,6 +55,41 @@
     transform: translateX(4px);
   }
   .menu-arrow { transition: transform .25s ease; }
+
+  .pin-btn {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    width: 32px;
+    height: 32px;
+    border-radius: 9999px;
+    display: grid;
+    place-items: center;
+    background: #F6F4FC;
+    border: 1px solid #E7E2F3;
+    color: #9C93BE;
+    transition: background .2s ease, color .2s ease, border-color .2s ease, transform .2s ease;
+    z-index: 10;
+  }
+  .pin-btn:hover {
+    color: #D98F1F;
+    border-color: #F0A93C;
+    transform: scale(1.08);
+  }
+  .pin-btn.pinned {
+    background: #F0A93C;
+    color: #ffffff;
+    border-color: #D98F1F;
+  }
+  .pin-btn svg { pointer-events: none; }
+
+  .category-fade {
+    animation: fadeIn .35s ease both;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
 </style>
 </head>
 
@@ -91,239 +127,235 @@
 
   <div class="mb-10">
     <h2 class="font-display font-semibold text-navy text-3xl">Bienvenue dans l'Espace Administration</h2>
-    <p class="text-ink/50 text-sm mt-2">Sélectionnez une rubrique pour accéder à sa gestion.</p>
+    <p class="text-ink/50 text-sm mt-2">Sélectionnez une rubrique pour accéder à sa gestion. Cliquez sur l'épingle d'une carte pour la garder toujours en haut.</p>
   </div>
 
-  <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-
-    <!-- Suivi des Inscriptions -->
-    <a href="admin-dashboard.html" class="menu-card group bg-white border border-line rounded-3xl p-6 flex flex-col gap-5 shadow-sm">
-      <div class="w-14 h-14 rounded-2xl bg-navy/10 grid place-items-center">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M9 12h6M9 16h6M9 8h6" stroke="#1B1464" stroke-width="1.8" stroke-linecap="round"/><path d="M4 19V6a2 2 0 012-2h9l5 5v10a2 2 0 01-2 2H6a2 2 0 01-2-2z" stroke="#1B1464" stroke-width="1.8" stroke-linejoin="round"/></svg>
-      </div>
-      <div class="flex-1">
-        <h3 class="font-display font-semibold text-navy text-lg">Suivi des Inscriptions</h3>
-        <p class="text-ink/50 text-xs mt-1.5">Consulter et traiter les demandes d'inscription reçues.</p>
-      </div>
-      <span class="menu-arrow inline-flex items-center gap-1.5 text-xs font-extrabold text-navy">
-        Accéder
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
-    </a>
-
-    <!-- Gestion des Enseignants -->
-    <a href="gestion-enseignants.html" class="menu-card group bg-white border border-line rounded-3xl p-6 flex flex-col gap-5 shadow-sm">
-      <div class="w-14 h-14 rounded-2xl bg-purple/10 grid place-items-center">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" stroke="#5B3AA6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="7" r="4" stroke="#5B3AA6" stroke-width="1.8"/><path d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="#5B3AA6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div class="flex-1">
-        <h3 class="font-display font-semibold text-navy text-lg">Gestion des Enseignants</h3>
-        <p class="text-ink/50 text-xs mt-1.5">Gérer les profils, groupes et affectations des enseignants.</p>
-      </div>
-      <span class="menu-arrow inline-flex items-center gap-1.5 text-xs font-extrabold text-purple">
-        Accéder
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
-    </a>
-
-    <!-- Actualités & Annonces -->
-    <a href="gestion-annonces.html" class="menu-card group bg-white border border-line rounded-3xl p-6 flex flex-col gap-5 shadow-sm">
-      <div class="w-14 h-14 rounded-2xl bg-purple/10 grid place-items-center">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M4 4h16v12H7l-3 3V4z" stroke="#5B3AA6" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 9h8M8 12h5" stroke="#5B3AA6" stroke-width="1.8" stroke-linecap="round"/></svg>
-      </div>
-      <div class="flex-1">
-        <h3 class="font-display font-semibold text-navy text-lg">Actualités & Annonces</h3>
-        <p class="text-ink/50 text-xs mt-1.5">Publiez des annonces avec image ou texte sur la page d'accueil.</p>
-      </div>
-      <span class="menu-arrow inline-flex items-center gap-1.5 text-xs font-extrabold text-purple">
-        Accéder
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
-    </a>
-
-    <!-- Gestion du Transport Scolaire -->
-    <a href="gestion-transport.html" class="menu-card group bg-white border border-line rounded-3xl p-6 flex flex-col gap-5 shadow-sm">
-      <div class="w-14 h-14 rounded-2xl bg-navy/10 grid place-items-center">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M4 17h16M4 17a2 2 0 002 2h1a2 2 0 002-2M4 17V8a2 2 0 012-2h12a2 2 0 012 2v9m-4 0a2 2 0 002 2h1a2 2 0 002-2M7 17v.01M17 17v.01" stroke="#1B1464" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12h16" stroke="#1B1464" stroke-width="1.8" stroke-linecap="round"/></svg>
-      </div>
-      <div class="flex-1">
-        <h3 class="font-display font-semibold text-navy text-lg">Transport Scolaire</h3>
-        <p class="text-ink/50 text-xs mt-1.5">Bus, chauffeurs, lignes et affectation des élèves.</p>
-      </div>
-      <span class="menu-arrow inline-flex items-center gap-1.5 text-xs font-extrabold text-navy">
-        Accéder
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
-    </a>
-
-    <!-- Gestion du Personnel Administratif & Soutien -->
-    <a href="gestion-personnel-administratif.html" class="menu-card group bg-white border border-line rounded-3xl p-6 flex flex-col gap-5 shadow-sm">
-      <div class="w-14 h-14 rounded-2xl bg-gold/10 grid place-items-center">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M20.59 13.41L13.42 20.6a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" stroke="#D98F1F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="7" cy="7" r="1.2" fill="#D98F1F"/></svg>
-      </div>
-      <div class="flex-1">
-        <h3 class="font-display font-semibold text-navy text-lg">Personnel Administratif & Soutien</h3>
-        <p class="text-ink/50 text-xs mt-1.5">Chauffeurs, agents de sécurité, de propreté, de cantine et personnel de soutien.</p>
-      </div>
-      <span class="menu-arrow inline-flex items-center gap-1.5 text-xs font-extrabold text-gold-dark">
-        Accéder
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
-    </a>
-
-    <!-- Gestion des Salaires -->
-    <a href="gestion-salaires.html" class="menu-card group bg-white border border-line rounded-3xl p-6 flex flex-col gap-5 shadow-sm">
-      <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 grid place-items-center">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="#10B981" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div class="flex-1">
-        <h3 class="font-display font-semibold text-navy text-lg">Gestion des Salaires</h3>
-        <p class="text-ink/50 text-xs mt-1.5">Suivre et gérer les salaires du personnel enseignant et administratif.</p>
-      </div>
-      <span class="menu-arrow inline-flex items-center gap-1.5 text-xs font-extrabold text-emerald-600">
-        Accéder
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
-    </a>
-
-    <!-- Gestion des Paiements -->
-    <a href="gestion-paiements.html" class="menu-card group bg-white border border-line rounded-3xl p-6 flex flex-col gap-5 shadow-sm">
-      <div class="w-14 h-14 rounded-2xl bg-sky-500/10 grid place-items-center">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="2" y="5" width="20" height="14" rx="2.5" stroke="#0EA5E9" stroke-width="1.8"/><path d="M2 10h20" stroke="#0EA5E9" stroke-width="1.8"/><path d="M6 15h4" stroke="#0EA5E9" stroke-width="1.8" stroke-linecap="round"/></svg>
-      </div>
-      <div class="flex-1">
-        <h3 class="font-display font-semibold text-navy text-lg">Gestion des Paiements</h3>
-        <p class="text-ink/50 text-xs mt-1.5">Suivre les paiements des frais de scolarité des élèves.</p>
-      </div>
-      <span class="menu-arrow inline-flex items-center gap-1.5 text-xs font-extrabold text-sky-600">
-        Accéder
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
-    </a>
-
-    <!-- Dépenses Diverses -->
-    <a href="depenses-diverses.html" class="menu-card group bg-white border border-line rounded-3xl p-6 flex flex-col gap-5 shadow-sm">
-      <div class="w-14 h-14 rounded-2xl bg-rose-500/10 grid place-items-center">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="#F43F5E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" transform="rotate(180 12 12)"/></svg>
-      </div>
-      <div class="flex-1">
-        <h3 class="font-display font-semibold text-navy text-lg">Dépenses Diverses</h3>
-        <p class="text-ink/50 text-xs mt-1.5">Enregistrer les dépenses de fonctionnement par catégorie et sous-catégorie.</p>
-      </div>
-      <span class="menu-arrow inline-flex items-center gap-1.5 text-xs font-extrabold text-rose-600">
-        Accéder
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
-    </a>
-
-    <!-- Tableau de Bord Financier -->
-    <a href="tableau-financier.html" class="menu-card group bg-white border border-line rounded-3xl p-6 flex flex-col gap-5 shadow-sm">
-      <div class="w-14 h-14 rounded-2xl bg-amber-500/10 grid place-items-center">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M3 3v18h18" stroke="#D98F1F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 15l4-4 3 3 5-6" stroke="#D98F1F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div class="flex-1">
-        <h3 class="font-display font-semibold text-navy text-lg">Tableau de Bord Financier</h3>
-        <p class="text-ink/50 text-xs mt-1.5">Vue d'ensemble des recettes, dépenses et indicateurs financiers.</p>
-      </div>
-      <span class="menu-arrow inline-flex items-center gap-1.5 text-xs font-extrabold text-gold-dark">
-        Accéder
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
-    </a>
-
-    <!-- Gestion des Élèves -->
-    <a href="liste-eleves-admis.html" class="menu-card group bg-white border border-line rounded-3xl p-6 flex flex-col gap-5 shadow-sm">
-      <div class="w-14 h-14 rounded-2xl bg-rose-500/10 grid place-items-center">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M22 10v6M2 10l10-5 10 5-10 5-10-5z" stroke="#F43F5E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 12v5c0 1.5 3 3 6 3s6-1.5 6-3v-5" stroke="#F43F5E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div class="flex-1">
-        <h3 class="font-display font-semibold text-navy text-lg">Gestion des Élèves</h3>
-        <p class="text-ink/50 text-xs mt-1.5">Liste des élèves admis, informations et affectation aux groupes.</p>
-      </div>
-      <span class="menu-arrow inline-flex items-center gap-1.5 text-xs font-extrabold text-rose-600">
-        Accéder
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
-    </a>
-
-    <!-- Registre des Absences -->
-    <a href="gestion-absences.html" class="menu-card group bg-white border border-line rounded-3xl p-6 flex flex-col gap-5 shadow-sm">
-      <div class="w-14 h-14 rounded-2xl bg-orange-500/10 grid place-items-center">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="17" rx="2" stroke="#EA580C" stroke-width="1.8"/><path d="M3 9h18M8 2v4M16 2v4" stroke="#EA580C" stroke-width="1.8" stroke-linecap="round"/><path d="M9 14l2 2 4-4" stroke="#EA580C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div class="flex-1">
-        <h3 class="font-display font-semibold text-navy text-lg">Gestion des Absences</h3>
-        <p class="text-ink/50 text-xs mt-1.5">Registre des absences des élèves, jour par jour et par classe.</p>
-      </div>
-      <span class="menu-arrow inline-flex items-center gap-1.5 text-xs font-extrabold text-orange-600">
-        Accéder
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
-    </a>
-
-    <!-- Rapports & Statistiques -->
-    <a href="rapports-statistiques.html" class="menu-card group bg-white border border-line rounded-3xl p-6 flex flex-col gap-5 shadow-sm">
-      <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 grid place-items-center">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M4 19V5M4 19h16" stroke="#6366F1" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><rect x="7" y="12" width="3" height="7" rx="1" fill="#6366F1"/><rect x="12.5" y="8" width="3" height="11" rx="1" fill="#6366F1"/><rect x="18" y="14" width="3" height="5" rx="1" fill="#6366F1"/></svg>
-      </div>
-      <div class="flex-1">
-        <h3 class="font-display font-semibold text-navy text-lg">Rapports &amp; Statistiques</h3>
-        <p class="text-ink/50 text-xs mt-1.5">Analyses et statistiques globales sur l'établissement.</p>
-      </div>
-      <span class="menu-arrow inline-flex items-center gap-1.5 text-xs font-extrabold text-indigo-600">
-        Accéder
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
-    </a>
-
-    <!-- Coefficients -->
-    <a href="gestion-coefficients.html" class="menu-card group bg-white border border-line rounded-3xl p-6 flex flex-col gap-5 shadow-sm">
-      <div class="w-14 h-14 rounded-2xl bg-purple/10 grid place-items-center">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 12h10M4 18h6" stroke="#5B3AA6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="19" cy="18" r="2.5" stroke="#5B3AA6" stroke-width="1.8"/></svg>
-      </div>
-      <div class="flex-1">
-        <h3 class="font-display font-semibold text-navy text-lg">Coefficients</h3>
-        <p class="text-ink/50 text-xs mt-1.5">Fixer le coefficient de chaque matière, par cycle, utilisé dans l'espace élève.</p>
-      </div>
-      <span class="menu-arrow inline-flex items-center gap-1.5 text-xs font-extrabold text-purple">
-        Accéder
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
-    </a>
-
-    <!-- Emploi du Temps -->
-    <a href="gestion-emploi-du-temps.html" class="menu-card group bg-white border border-line rounded-3xl p-6 flex flex-col gap-5 shadow-sm">
-      <div class="w-14 h-14 rounded-2xl bg-cyan-500/10 grid place-items-center">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="17" rx="2" stroke="#0891B2" stroke-width="1.8"/><path d="M3 9h18M8 2v4M16 2v4" stroke="#0891B2" stroke-width="1.8" stroke-linecap="round"/><path d="M7.5 13h3M7.5 17h3M13.5 13h3M13.5 17h3" stroke="#0891B2" stroke-width="1.8" stroke-linecap="round"/></svg>
-      </div>
-      <div class="flex-1">
-        <h3 class="font-display font-semibold text-navy text-lg">Emploi du Temps</h3>
-        <p class="text-ink/50 text-xs mt-1.5">Générer et gérer l'emploi du temps par classe et par enseignant.</p>
-      </div>
-      <span class="menu-arrow inline-flex items-center gap-1.5 text-xs font-extrabold text-cyan-600">
-        Accéder
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
-    </a>
-
-    <!-- Espace Enseignant -->
-    <a href="connexion-enseignant.html" class="menu-card group bg-white border border-line rounded-3xl p-6 flex flex-col gap-5 shadow-sm">
-      <div class="w-14 h-14 rounded-2xl bg-teal-500/10 grid place-items-center">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 14l9-5-9-5-9 5 9 5z" stroke="#0D9488" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 14l6.16-3.42A9 9 0 0121 12v3M6 12v5c0 1.5 2.5 3 6 3s6-1.5 6-3v-5" stroke="#0D9488" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <div class="flex-1">
-        <h3 class="font-display font-semibold text-navy text-lg">Espace Enseignant</h3>
-        <p class="text-ink/50 text-xs mt-1.5">Accès des enseignants à leurs classes, élèves et saisie des notes.</p>
-      </div>
-      <span class="menu-arrow inline-flex items-center gap-1.5 text-xs font-extrabold text-teal-600">
-        Accéder
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
-    </a>
-
-  </div>
+  <div id="menu-root"></div>
 
 </main>
+
+<script>
+  // ------------------------------------------------------------------
+  // Données des rubriques : chaque item appartient à une catégorie.
+  // ------------------------------------------------------------------
+  const ITEMS = [
+    // --- Élèves & Scolarité ---
+    {
+      id: 'inscriptions', href: 'admin-dashboard.html', category: 'Élèves & Scolarité',
+      title: "Suivi des Inscriptions", desc: "Consulter et traiter les demandes d'inscription reçues.",
+      iconBg: 'bg-navy/10', accent: 'text-navy',
+      icon: `<path d="M9 12h6M9 16h6M9 8h6" stroke="#1B1464" stroke-width="1.8" stroke-linecap="round"/><path d="M4 19V6a2 2 0 012-2h9l5 5v10a2 2 0 01-2 2H6a2 2 0 01-2-2z" stroke="#1B1464" stroke-width="1.8" stroke-linejoin="round"/>`
+    },
+    {
+      id: 'eleves', href: 'liste-eleves-admis.html', category: 'Élèves & Scolarité',
+      title: "Gestion des Élèves", desc: "Liste des élèves admis, informations et affectation aux groupes.",
+      iconBg: 'bg-rose-500/10', accent: 'text-rose-600',
+      icon: `<path d="M22 10v6M2 10l10-5 10 5-10 5-10-5z" stroke="#F43F5E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 12v5c0 1.5 3 3 6 3s6-1.5 6-3v-5" stroke="#F43F5E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`
+    },
+    {
+      id: 'absences', href: 'gestion-absences.html', category: 'Élèves & Scolarité',
+      title: "Gestion des Absences", desc: "Registre des absences des élèves, jour par jour et par classe.",
+      iconBg: 'bg-orange-500/10', accent: 'text-orange-600',
+      icon: `<rect x="3" y="4" width="18" height="17" rx="2" stroke="#EA580C" stroke-width="1.8"/><path d="M3 9h18M8 2v4M16 2v4" stroke="#EA580C" stroke-width="1.8" stroke-linecap="round"/><path d="M9 14l2 2 4-4" stroke="#EA580C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`
+    },
+    {
+      id: 'coefficients', href: 'gestion-coefficients.html', category: 'Élèves & Scolarité',
+      title: "Coefficients", desc: "Fixer le coefficient de chaque matière, par cycle, utilisé dans l'espace élève.",
+      iconBg: 'bg-purple/10', accent: 'text-purple',
+      icon: `<path d="M4 6h16M4 12h10M4 18h6" stroke="#5B3AA6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="19" cy="18" r="2.5" stroke="#5B3AA6" stroke-width="1.8"/>`
+    },
+    {
+      id: 'emploi-temps', href: 'gestion-emploi-du-temps.html', category: 'Élèves & Scolarité',
+      title: "Emploi du Temps", desc: "Générer et gérer l'emploi du temps par classe et par enseignant.",
+      iconBg: 'bg-cyan-500/10', accent: 'text-cyan-600',
+      icon: `<rect x="3" y="4" width="18" height="17" rx="2" stroke="#0891B2" stroke-width="1.8"/><path d="M3 9h18M8 2v4M16 2v4" stroke="#0891B2" stroke-width="1.8" stroke-linecap="round"/><path d="M7.5 13h3M7.5 17h3M13.5 13h3M13.5 17h3" stroke="#0891B2" stroke-width="1.8" stroke-linecap="round"/>`
+    },
+
+    // --- Personnel ---
+    {
+      id: 'enseignants', href: 'gestion-enseignants.html', category: 'Personnel',
+      title: "Gestion des Enseignants", desc: "Gérer les profils, groupes et affectations des enseignants.",
+      iconBg: 'bg-purple/10', accent: 'text-purple',
+      icon: `<path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" stroke="#5B3AA6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="7" r="4" stroke="#5B3AA6" stroke-width="1.8"/><path d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="#5B3AA6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`
+    },
+    {
+      id: 'personnel-admin', href: 'gestion-personnel-administratif.html', category: 'Personnel',
+      title: "Personnel Administratif & Soutien", desc: "Chauffeurs, agents de sécurité, de propreté, de cantine et personnel de soutien.",
+      iconBg: 'bg-gold/10', accent: 'text-gold-dark',
+      icon: `<path d="M20.59 13.41L13.42 20.6a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" stroke="#D98F1F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="7" cy="7" r="1.2" fill="#D98F1F"/>`
+    },
+    {
+      id: 'espace-enseignant', href: 'connexion-enseignant.html', category: 'Personnel',
+      title: "Espace Enseignant", desc: "Accès des enseignants à leurs classes, élèves et saisie des notes.",
+      iconBg: 'bg-teal-500/10', accent: 'text-teal-600',
+      icon: `<path d="M12 14l9-5-9-5-9 5 9 5z" stroke="#0D9488" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 14l6.16-3.42A9 9 0 0121 12v3M6 12v5c0 1.5 2.5 3 6 3s6-1.5 6-3v-5" stroke="#0D9488" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`
+    },
+
+    // --- Finance ---
+    {
+      id: 'salaires', href: 'gestion-salaires.html', category: 'Finance',
+      title: "Gestion des Salaires", desc: "Suivre et gérer les salaires du personnel enseignant et administratif.",
+      iconBg: 'bg-emerald-500/10', accent: 'text-emerald-600',
+      icon: `<path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="#10B981" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`
+    },
+    {
+      id: 'paiements', href: 'gestion-paiements.html', category: 'Finance',
+      title: "Gestion des Paiements", desc: "Suivre les paiements des frais de scolarité des élèves.",
+      iconBg: 'bg-sky-500/10', accent: 'text-sky-600',
+      icon: `<rect x="2" y="5" width="20" height="14" rx="2.5" stroke="#0EA5E9" stroke-width="1.8"/><path d="M2 10h20" stroke="#0EA5E9" stroke-width="1.8"/><path d="M6 15h4" stroke="#0EA5E9" stroke-width="1.8" stroke-linecap="round"/>`
+    },
+    {
+      id: 'depenses', href: 'depenses-diverses.html', category: 'Finance',
+      title: "Dépenses Diverses", desc: "Enregistrer les dépenses de fonctionnement par catégorie et sous-catégorie.",
+      iconBg: 'bg-rose-500/10', accent: 'text-rose-600',
+      icon: `<path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="#F43F5E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" transform="rotate(180 12 12)"/>`
+    },
+    {
+      id: 'tableau-financier', href: 'tableau-financier.html', category: 'Finance',
+      title: "Tableau de Bord Financier", desc: "Vue d'ensemble des recettes, dépenses et indicateurs financiers.",
+      iconBg: 'bg-amber-500/10', accent: 'text-gold-dark',
+      icon: `<path d="M3 3v18h18" stroke="#D98F1F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 15l4-4 3 3 5-6" stroke="#D98F1F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>`
+    },
+
+    // --- Communication & Services ---
+    {
+      id: 'annonces', href: 'gestion-annonces.html', category: 'Communication & Services',
+      title: "Actualités & Annonces", desc: "Publiez des annonces avec image ou texte sur la page d'accueil.",
+      iconBg: 'bg-purple/10', accent: 'text-purple',
+      icon: `<path d="M4 4h16v12H7l-3 3V4z" stroke="#5B3AA6" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 9h8M8 12h5" stroke="#5B3AA6" stroke-width="1.8" stroke-linecap="round"/>`
+    },
+    {
+      id: 'transport', href: 'gestion-transport.html', category: 'Communication & Services',
+      title: "Transport Scolaire", desc: "Bus, chauffeurs, lignes et affectation des élèves.",
+      iconBg: 'bg-navy/10', accent: 'text-navy',
+      icon: `<path d="M4 17h16M4 17a2 2 0 002 2h1a2 2 0 002-2M4 17V8a2 2 0 012-2h12a2 2 0 012 2v9m-4 0a2 2 0 002 2h1a2 2 0 002-2M7 17v.01M17 17v.01" stroke="#1B1464" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12h16" stroke="#1B1464" stroke-width="1.8" stroke-linecap="round"/>`
+    },
+
+    // --- Rapports ---
+    {
+      id: 'rapports', href: 'rapports-statistiques.html', category: 'Rapports & Statistiques',
+      title: "Rapports & Statistiques", desc: "Analyses et statistiques globales sur l'établissement.",
+      iconBg: 'bg-indigo-500/10', accent: 'text-indigo-600',
+      icon: `<path d="M4 19V5M4 19h16" stroke="#6366F1" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><rect x="7" y="12" width="3" height="7" rx="1" fill="#6366F1"/><rect x="12.5" y="8" width="3" height="11" rx="1" fill="#6366F1"/><rect x="18" y="14" width="3" height="5" rx="1" fill="#6366F1"/>`
+    },
+  ];
+
+  const CATEGORY_ORDER = [
+    'Élèves & Scolarité',
+    'Personnel',
+    'Finance',
+    'Communication & Services',
+    'Rapports & Statistiques'
+  ];
+
+  const PIN_KEY = 'diwan_admin_pinned_items';
+
+  function getPinned() {
+    try {
+      const raw = localStorage.getItem(PIN_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function setPinned(list) {
+    localStorage.setItem(PIN_KEY, JSON.stringify(list));
+  }
+
+  function togglePin(id) {
+    let pinned = getPinned();
+    if (pinned.includes(id)) {
+      pinned = pinned.filter(p => p !== id);
+    } else {
+      pinned.push(id);
+    }
+    setPinned(pinned);
+    render();
+  }
+
+  function pinButton(item, isPinned) {
+    return `
+      <button type="button" class="pin-btn ${isPinned ? 'pinned' : ''}" data-pin-id="${item.id}"
+        title="${isPinned ? 'Désépingler' : 'Épingler en haut'}" aria-pressed="${isPinned}">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="${isPinned ? 'currentColor' : 'none'}">
+          <path d="M12 2l1.5 5.5L19 9l-4 3.5L16 18l-4-2.5L8 18l1-5.5L5 9l5.5-1.5L12 2z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    `;
+  }
+
+  function cardHTML(item, isPinned) {
+    return `
+      <a href="${item.href}" class="menu-card group bg-white border border-line rounded-3xl p-6 flex flex-col gap-5 shadow-sm">
+        ${pinButton(item, isPinned)}
+        <div class="w-14 h-14 rounded-2xl ${item.iconBg} grid place-items-center">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none">${item.icon}</svg>
+        </div>
+        <div class="flex-1">
+          <h3 class="font-display font-semibold text-navy text-lg">${item.title}</h3>
+          <p class="text-ink/50 text-xs mt-1.5">${item.desc}</p>
+        </div>
+        <span class="menu-arrow inline-flex items-center gap-1.5 text-xs font-extrabold ${item.accent}">
+          Accéder
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </a>
+    `;
+  }
+
+  function render() {
+    const pinned = getPinned();
+    const root = document.getElementById('menu-root');
+    let html = '';
+
+    // --- Section épinglée (toujours en haut) ---
+    const pinnedItems = pinned
+      .map(id => ITEMS.find(i => i.id === id))
+      .filter(Boolean);
+
+    if (pinnedItems.length) {
+      html += `
+        <section class="mb-10 category-fade">
+          <div class="flex items-center gap-2 mb-4">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="#D98F1F"><path d="M12 2l1.5 5.5L19 9l-4 3.5L16 18l-4-2.5L8 18l1-5.5L5 9l5.5-1.5L12 2z" stroke="#D98F1F" stroke-width="1.6" stroke-linejoin="round"/></svg>
+            <h3 class="font-display font-semibold text-navy text-lg">Épinglé</h3>
+          </div>
+          <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            ${pinnedItems.map(item => cardHTML(item, true)).join('')}
+          </div>
+        </section>
+      `;
+    }
+
+    // --- Sections par catégorie (sans les items déjà épinglés) ---
+    CATEGORY_ORDER.forEach(category => {
+      const items = ITEMS.filter(i => i.category === category && !pinned.includes(i.id));
+      if (!items.length) return;
+      html += `
+        <section class="mb-10 category-fade">
+          <h3 class="font-display font-semibold text-navy/70 text-sm uppercase tracking-wide mb-4">${category}</h3>
+          <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            ${items.map(item => cardHTML(item, false)).join('')}
+          </div>
+        </section>
+      `;
+    });
+
+    root.innerHTML = html;
+
+    // Attacher les écouteurs sur les boutons d'épingle
+    root.querySelectorAll('[data-pin-id]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        togglePin(btn.getAttribute('data-pin-id'));
+      });
+    });
+  }
+
+  render();
+</script>
 
 <script type="module">
   import { auth, signOut } from './supabase-config.js';
