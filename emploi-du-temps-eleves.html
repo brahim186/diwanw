@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Emplois du Temps — Élèves | DiwanE Al Maaref</title>
+<meta name="description" content="Consultez l'emploi du temps de votre classe — DiwanE Al Maaref.">
+<link rel="icon" type="image/png" href="logo.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          navy:  { DEFAULT:'#1B1464', 700:'#170F52', 900:'#100B3B' },
+          purple:{ DEFAULT:'#5B3AA6' },
+          gold:  { DEFAULT:'#F0A93C', light:'#FBC873', dark:'#D98F1F' },
+          ink:   '#221D3D',
+          mist:  '#F6F4FC',
+          line:  '#E7E2F3',
+        },
+        fontFamily: { display: ['Fraunces','serif'], body: ['Manrope','sans-serif'] }
+      }
+    }
+  }
+</script>
+
+<style>
+  body { font-family:'Manrope', sans-serif; color:#221D3D; background:#F6F4FC; }
+  .font-display { font-family:'Fraunces', serif; }
+  ::selection { background:#F0A93C; color:#1B1464; }
+  a:focus-visible, button:focus-visible, select:focus-visible {
+    outline: 2px solid #F0A93C; outline-offset: 2px; border-radius: 6px;
+  }
+  @media (prefers-reduced-motion: reduce) { * { animation-duration:.01ms !important; transition-duration:.01ms !important; } }
+  .edt-cell { min-height:64px; }
+  @media print {
+    header, footer, .no-print { display:none !important; }
+    body { background:#fff; }
+    .print-area { box-shadow:none !important; border:none !important; }
+  }
+</style>
+</head>
+
+<body class="antialiased min-h-screen flex flex-col">
+
+<!-- ================= HEADER ================= -->
+<header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-line no-print">
+  <div class="max-w-6xl mx-auto px-5 sm:px-8 h-20 flex items-center justify-between gap-4">
+    <a href="index.html#accueil" class="flex items-center gap-3">
+      <img src="logo.png" alt="Logo DiwanE Al Maaref" class="h-11 w-11 object-contain">
+      <div class="hidden sm:flex flex-col leading-tight">
+        <span class="font-display font-semibold text-navy text-base">DIWANE AL MAAREF</span>
+        <span class="text-[11px] uppercase tracking-[0.12em] text-gold-dark font-bold">Emploi du Temps — Élèves</span>
+      </div>
+    </a>
+    <div class="flex items-center gap-3">
+      <a href="emploi-du-temps-enseignants.html" class="hidden sm:inline-flex items-center gap-2 text-xs font-bold text-navy/70 hover:text-gold-dark border border-line rounded-full px-4 py-2.5 transition-colors bg-white">
+        Espace Enseignants
+      </a>
+      <a href="index.html#accueil" class="inline-flex items-center gap-2 text-xs font-bold text-navy/70 hover:text-gold-dark border border-line rounded-full px-4 py-2.5 transition-colors bg-white">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="hidden sm:inline">Retour au site</span>
+      </a>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-5 sm:px-8 py-12 flex-1 w-full flex flex-col gap-8">
+
+  <div>
+    <span class="text-gold-dark text-xs font-extrabold uppercase tracking-[0.18em]">Élèves</span>
+    <h1 class="font-display font-semibold text-navy text-3xl sm:text-4xl mt-2">Emploi du Temps par Classe</h1>
+    <p class="text-ink/60 text-sm mt-2 leading-relaxed">Sélectionnez votre classe pour consulter son emploi du temps hebdomadaire.</p>
+  </div>
+
+  <!-- Chargement -->
+  <div id="loadingState" class="flex flex-col items-center justify-center py-20 gap-3">
+    <div class="w-8 h-8 border-[3px] border-navy/20 border-t-navy rounded-full animate-spin"></div>
+    <p class="text-ink/40 text-sm font-semibold">Chargement…</p>
+  </div>
+
+  <!-- Non publié -->
+  <div id="notPublishedState" class="hidden bg-white border border-line rounded-3xl shadow-sm p-10 sm:p-14 text-center">
+    <div class="w-16 h-16 rounded-full bg-mist grid place-items-center mx-auto mb-5">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#1B1464" stroke-width="1.6"/><path d="M8 2v4M16 2v4M3 10h18" stroke="#1B1464" stroke-width="1.6" stroke-linecap="round"/></svg>
+    </div>
+    <h2 class="font-display font-semibold text-navy text-xl mb-2">Emplois du temps pas encore publiés</h2>
+    <p class="text-ink/50 text-sm max-w-md mx-auto">Nos équipes finalisent actuellement les emplois du temps. Revenez un peu plus tard.</p>
+  </div>
+
+  <!-- Contenu publié -->
+  <div id="publishedState" class="hidden flex flex-col gap-6">
+    <div class="bg-white border border-line rounded-3xl shadow-sm p-5 sm:p-6 flex flex-wrap items-center gap-3 no-print">
+      <label for="classeSelect" class="text-xs font-extrabold uppercase tracking-wide text-navy/70">Classe :</label>
+      <select id="classeSelect" class="flex-1 min-w-[220px] rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy outline-none"></select>
+      <button id="downloadPdfBtn" class="inline-flex items-center gap-1.5 text-xs font-extrabold text-rose-700 bg-rose-50 hover:bg-rose-600 hover:text-white border border-rose-200 rounded-full px-4 py-2.5 transition-colors">
+        Télécharger en PDF
+      </button>
+      <button id="printBtn" class="inline-flex items-center gap-1.5 text-xs font-extrabold text-navy bg-mist hover:bg-line border border-line rounded-full px-4 py-2.5 transition-colors">
+        Imprimer
+      </button>
+    </div>
+
+    <section class="bg-white border border-line rounded-3xl shadow-sm p-6 sm:p-8 print-area">
+      <div class="mb-5 text-center">
+        <p class="font-display font-semibold text-navy text-lg">INSTITUT DIWANE AL MAAREF</p>
+        <h2 id="entityTitle" class="font-display font-semibold text-navy text-2xl mt-1">—</h2>
+        <p id="entitySubtitle" class="text-ink/50 text-xs mt-1 font-bold uppercase tracking-wide"></p>
+      </div>
+      <div class="overflow-x-auto rounded-2xl border border-line">
+        <table class="w-full text-xs sm:text-sm border-collapse">
+          <thead id="gridHead" class="bg-mist/60"></thead>
+          <tbody id="gridBody" class="divide-y divide-line"></tbody>
+        </table>
+        <p id="gridEmpty" class="hidden px-5 py-10 text-center text-ink/40 text-sm">Aucune séance programmée pour cette classe.</p>
+      </div>
+    </section>
+  </div>
+
+</main>
+
+<!-- ================= FOOTER ================= -->
+<footer class="bg-navy-900 text-white py-8 no-print">
+  <div class="max-w-6xl mx-auto px-5 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-white/50">
+    <p>© <span id="year"></span> DiwanE Al Maaref — Institution de Soutien Scolaire.</p>
+    <a href="index.html#accueil" class="hover:text-gold transition-colors">Retour au site</a>
+  </div>
+</footer>
+
+<script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+
+<script type="module">
+import { db, supabase, collection, getDocs } from './supabase-config.js';
+
+const JOURS_ALL = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+const JOURS_DEFAULT = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi'];
+
+let CONFIG = null;
+let CLASSES = [];
+let TEACHERS = [];
+let SCHEDULE = [];
+
+function timeToMin(t) { const [h,m] = t.split(':').map(Number); return h*60+m; }
+function minToTime(min) { const h=Math.floor(min/60), m=min%60; return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`; }
+
+function generateSlotsForPeriod(debut, fin, duree, periode) {
+  const slots = [];
+  let t = timeToMin(debut);
+  const end = timeToMin(fin);
+  while (t + duree <= end) {
+    const s = minToTime(t), e = minToTime(t + duree);
+    slots.push({ id: `${periode}_${s}`, debut: s, fin: e, periode });
+    t += duree;
+  }
+  return slots;
+}
+
+function allSlots() {
+  if (!CONFIG) return [];
+  const duree = Number(CONFIG.duree_seance);
+  let slots = [
+    ...generateSlotsForPeriod(CONFIG.matin_debut, CONFIG.matin_fin, duree, 'matin'),
+    ...generateSlotsForPeriod(CONFIG.apresmidi_debut, CONFIG.apresmidi_fin, duree, 'apres_midi'),
+  ];
+  if (CONFIG.soir_actif) slots = slots.concat(generateSlotsForPeriod(CONFIG.soir_debut, CONFIG.soir_fin, duree, 'soir'));
+  return slots;
+}
+
+function dayHasPeriode(day, periode) {
+  return !!(CONFIG && CONFIG.periodes && CONFIG.periodes[day] && CONFIG.periodes[day][periode]);
+}
+
+function activeDaysOrdered() {
+  const activeDays = CONFIG.jours && CONFIG.jours.length ? CONFIG.jours : JOURS_DEFAULT;
+  return JOURS_ALL.filter(j => activeDays.includes(j));
+}
+
+function renderGrid(classeId) {
+  const head = document.getElementById('gridHead');
+  const body = document.getElementById('gridBody');
+  const empty = document.getElementById('gridEmpty');
+  const classe = CLASSES.find(c => c.id === classeId);
+
+  document.getElementById('entityTitle').textContent = classe ? classe.nom : '—';
+  document.getElementById('entitySubtitle').textContent = classe
+    ? `Niveau : ${classe.niveau || '—'}  •  Groupe : ${classe.groupe || '—'}  •  Cycle : ${classe.cycle || '—'}`
+    : '';
+
+  const days = activeDaysOrdered();
+  const slots = allSlots();
+  const rows = SCHEDULE.filter(s => s.classe_id === classeId);
+  empty.classList.toggle('hidden', rows.length !== 0);
+
+  let lastPeriode = null;
+  const headCells = slots.map(slot => {
+    const newGroup = slot.periode !== lastPeriode;
+    lastPeriode = slot.periode;
+    return `<th class="bg-navy text-white px-3 py-3 text-center text-xs font-extrabold uppercase tracking-wide border border-navy ${newGroup ? 'border-l-4 border-l-gold' : ''}">${slot.debut}-${slot.fin}</th>`;
+  }).join('');
+  head.innerHTML = `<tr>
+    <th class="bg-navy text-white px-4 py-3 text-center text-xs font-extrabold uppercase tracking-wide border border-navy">Jour</th>
+    ${headCells}
+  </tr>`;
+
+  body.innerHTML = days.map(day => {
+    lastPeriode = null;
+    const cells = slots.map(slot => {
+      const newGroup = slot.periode !== lastPeriode;
+      lastPeriode = slot.periode;
+      const borderExtra = newGroup ? 'border-l-4 border-l-gold/60' : '';
+      if (!dayHasPeriode(day, slot.periode)) {
+        return `<td class="edt-cell px-3 py-2 text-center border border-line bg-line/50 ${borderExtra}"></td>`;
+      }
+      const entry = rows.find(r => r.jour === day && r.periode === slot.periode && r.heure_debut === slot.debut);
+      if (!entry) return `<td class="edt-cell px-3 py-2 text-center align-middle border border-line bg-mist/50 text-ink/20 ${borderExtra}">—</td>`;
+      const teacher = TEACHERS.find(t => t.id === entry.teacher_id);
+      return `<td class="edt-cell px-3 py-2 text-center align-middle border border-line bg-mist ${borderExtra}">
+        <p class="font-extrabold text-navy text-xs uppercase">${entry.matiere}</p>
+        <p class="text-[11px] text-ink/50 mt-0.5">${teacher ? 'Pr.' + teacher.nom : '—'}</p>
+      </td>`;
+    }).join('');
+    return `<tr>
+      <td class="px-4 py-3 text-center text-xs font-extrabold text-navy uppercase bg-mist border border-line whitespace-nowrap">${day}</td>
+      ${cells}
+    </tr>`;
+  }).join('');
+}
+
+function buildRowsForPdf(classeId) {
+  const days = activeDaysOrdered();
+  const slots = allSlots();
+  const rows = SCHEDULE.filter(s => s.classe_id === classeId);
+  return days.map(day => {
+    const line = { 'Jour': day };
+    slots.forEach(slot => {
+      const label = `${slot.debut}-${slot.fin}`;
+      if (!dayHasPeriode(day, slot.periode)) { line[label] = ''; return; }
+      const entry = rows.find(r => r.jour === day && r.periode === slot.periode && r.heure_debut === slot.debut);
+      if (!entry) { line[label] = ''; return; }
+      const teacher = TEACHERS.find(t => t.id === entry.teacher_id);
+      line[label] = `${entry.matiere} (${teacher ? teacher.prenom + ' ' + teacher.nom : '—'})`;
+    });
+    return line;
+  });
+}
+
+document.getElementById('downloadPdfBtn').addEventListener('click', () => {
+  const classeId = document.getElementById('classeSelect').value;
+  const classe = CLASSES.find(c => c.id === classeId);
+  if (!classe) return;
+  const rows = buildRowsForPdf(classeId);
+  const slots = allSlots();
+  const columns = ['Jour', ...slots.map(s => `${s.debut}-${s.fin}`)];
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  pdf.setFontSize(13); pdf.setTextColor(27, 20, 100); pdf.setFont(undefined, 'bold');
+  pdf.text('DIWANE AL MAAREF — Institution de Soutien Scolaire', 14, 14);
+  pdf.setFont(undefined, 'normal');
+  pdf.setFontSize(10.5); pdf.setTextColor(34, 29, 61);
+  pdf.text(`Classe : ${classe.nom || '—'}`, 14, 22);
+  pdf.text(`Niveau : ${classe.niveau || '—'}     Groupe : ${classe.groupe || '—'}     Cycle : ${classe.cycle || '—'}`, 14, 28);
+  pdf.autoTable({
+    head: [columns],
+    body: rows.map(r => columns.map(c => r[c] || '—')),
+    startY: 34,
+    styles: { fontSize: 8, cellPadding: 2 },
+    headStyles: { fillColor: [27, 20, 100], textColor: 255, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [246, 244, 252] },
+  });
+  pdf.save(`emploi_du_temps_${(classe.nom || 'classe').replace(/\s+/g, '_')}.pdf`);
+});
+
+document.getElementById('printBtn').addEventListener('click', () => window.print());
+
+async function init() {
+  const loading = document.getElementById('loadingState');
+  const notPublished = document.getElementById('notPublishedState');
+  const published = document.getElementById('publishedState');
+
+  try {
+    const { data: config } = await supabase.from('emploi_du_temps_config').select('*').eq('id', 'default').maybeSingle();
+    CONFIG = config;
+
+    if (!CONFIG || !CONFIG.publie) {
+      loading.classList.add('hidden');
+      notPublished.classList.remove('hidden');
+      return;
+    }
+
+    const [classesSnap, teachersSnap, scheduleSnap] = await Promise.all([
+      getDocs(collection(db, 'classes')),
+      getDocs(collection(db, 'teachers')),
+      getDocs(collection(db, 'emploi_du_temps')),
+    ]);
+    CLASSES = classesSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    TEACHERS = teachersSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    SCHEDULE = scheduleSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    loading.classList.add('hidden');
+
+    if (CLASSES.length === 0) {
+      notPublished.classList.remove('hidden');
+      return;
+    }
+
+    published.classList.remove('hidden');
+    const sel = document.getElementById('classeSelect');
+    sel.innerHTML = CLASSES.map(c => `<option value="${c.id}">${c.nom}</option>`).join('');
+    sel.addEventListener('change', () => renderGrid(sel.value));
+    renderGrid(sel.value);
+  } catch (e) {
+    loading.classList.add('hidden');
+    notPublished.classList.remove('hidden');
+  }
+}
+
+init();
+</script>
+
+</body>
+</html>
