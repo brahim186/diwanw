@@ -261,6 +261,19 @@
 
     <!-- ============ 4. CONSULTATION ============ -->
     <section class="bg-white border border-line rounded-3xl shadow-sm p-6 sm:p-8 print-area">
+      <div class="no-print flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-6 border-b border-line">
+        <div>
+          <h3 class="font-display font-semibold text-navy text-lg">Publication sur le site</h3>
+          <p class="text-ink/50 text-xs mt-1">Rendez les emplois du temps consultables par les élèves et enseignants sur le site public (2 pages : Élèves / Enseignants).</p>
+        </div>
+        <div class="flex items-center gap-2.5 shrink-0">
+          <span id="publishBadge" class="text-xs font-extrabold rounded-full px-4 py-2 border bg-mist text-ink/50 border-line">Non publié</span>
+          <button id="publishToggleBtn" type="button" class="inline-flex items-center gap-1.5 text-xs font-extrabold rounded-full px-4 py-2.5 transition-colors border text-white bg-navy hover:bg-navy-700 border-navy">
+            Publier sur le site
+          </button>
+        </div>
+      </div>
+
       <div class="flex flex-wrap items-center justify-between gap-4 mb-6 no-print">
         <div class="flex flex-wrap gap-2">
           <button data-view="classe" class="view-tab tab-btn active text-xs font-extrabold rounded-full px-4 py-2.5 border border-line bg-white">Par Classe</button>
@@ -272,6 +285,16 @@
           <button id="exportPdfBtn" class="inline-flex items-center gap-1.5 text-xs font-extrabold text-rose-700 bg-rose-50 hover:bg-rose-600 hover:text-white border border-rose-200 rounded-full px-4 py-2.5 transition-colors">PDF</button>
           <button id="printBtn" class="inline-flex items-center gap-1.5 text-xs font-extrabold text-navy bg-mist hover:bg-line border border-line rounded-full px-4 py-2.5 transition-colors">Imprimer</button>
         </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2 mb-6 no-print">
+        <span class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mr-1">Télécharger tout (1 PDF, une page par emploi du temps) :</span>
+        <button id="exportAllClassesPdfBtn" class="inline-flex items-center gap-1.5 text-xs font-extrabold text-navy bg-gold/15 hover:bg-gold-dark hover:text-white border border-gold/40 rounded-full px-4 py-2.5 transition-colors">
+          PDF — Toutes les classes
+        </button>
+        <button id="exportAllTeachersPdfBtn" class="inline-flex items-center gap-1.5 text-xs font-extrabold text-navy bg-gold/15 hover:bg-gold-dark hover:text-white border border-gold/40 rounded-full px-4 py-2.5 transition-colors">
+          PDF — Tous les enseignants
+        </button>
       </div>
 
       <h4 id="viewTitle" class="font-display font-semibold text-navy text-lg mb-4">—</h4>
@@ -448,6 +471,7 @@ async function loadConfig() {
     matin_debut: '08:00', matin_fin: '12:00',
     apresmidi_debut: '14:00', apresmidi_fin: '18:00',
     soir_actif: false, soir_debut: '18:30', soir_fin: '20:00',
+    publie: false,
   };
   if (!CONFIG.periodes) {
     // Migration depuis une ancienne configuration ne connaissant que la liste des jours actifs.
@@ -468,6 +492,7 @@ async function loadConfig() {
   document.getElementById('soirFin').value = CONFIG.soir_fin || '20:00';
   renderPeriodesMatrix(CONFIG.periodes);
   toggleSoirFields();
+  renderPublishState();
 }
 
 function toggleSoirFields() {
@@ -502,6 +527,37 @@ document.getElementById('saveConfigBtn').addEventListener('click', async () => {
     renderVolumeTable();
   } catch (e) {
     showToast("Erreur lors de l'enregistrement (table emploi_du_temps_config existe-t-elle ?).", 'error');
+  }
+});
+
+/* ===================== Publication sur le site ===================== */
+function renderPublishState() {
+  const badge = document.getElementById('publishBadge');
+  const btn = document.getElementById('publishToggleBtn');
+  if (!badge || !btn) return;
+  const publie = !!(CONFIG && CONFIG.publie);
+  badge.textContent = publie ? 'Publié sur le site' : 'Non publié';
+  badge.className = `text-xs font-extrabold rounded-full px-4 py-2 border ${publie ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-mist text-ink/50 border-line'}`;
+  btn.textContent = publie ? 'Dépublier du site' : 'Publier sur le site';
+  btn.className = `inline-flex items-center gap-1.5 text-xs font-extrabold rounded-full px-4 py-2.5 transition-colors border ${publie ? 'text-rose-700 bg-rose-50 hover:bg-rose-600 hover:text-white border-rose-200' : 'text-white bg-navy hover:bg-navy-700 border-navy'}`;
+}
+
+document.getElementById('publishToggleBtn').addEventListener('click', async () => {
+  if (!CONFIG) return;
+  const btn = document.getElementById('publishToggleBtn');
+  const newState = !CONFIG.publie;
+  btn.disabled = true;
+  try {
+    CONFIG = { ...CONFIG, publie: newState };
+    await setDoc(doc(db, 'emploi_du_temps_config', 'default'), CONFIG);
+    renderPublishState();
+    showToast(newState
+      ? 'Emplois du temps publiés — visibles sur les pages publiques Élèves & Enseignants.'
+      : 'Emplois du temps dépubliés du site.');
+  } catch (e) {
+    showToast("Erreur lors de la publication (table emploi_du_temps_config existe-t-elle ?).", 'error');
+  } finally {
+    btn.disabled = false;
   }
 });
 
@@ -919,14 +975,13 @@ function renderGrid() {
 }
 
 /* ===================== Export Excel / PDF / Impression ===================== */
-function currentGridRows() {
-  const selId = document.getElementById('viewSelect').value;
+function buildScheduleRowsForEntity(view, entityId) {
   const activeDays = CONFIG.jours && CONFIG.jours.length ? CONFIG.jours : JOURS_DEFAULT;
   const days = JOURS_ALL.filter(j => activeDays.includes(j));
   const slots = allSlots();
-  const rows = currentView === 'classe'
-    ? SCHEDULE.filter(s => s.classe_id === selId)
-    : SCHEDULE.filter(s => s.teacher_id === selId);
+  const rows = view === 'classe'
+    ? SCHEDULE.filter(s => s.classe_id === entityId)
+    : SCHEDULE.filter(s => s.teacher_id === entityId);
 
   return days.map(day => {
     const line = { 'Jour': day };
@@ -935,7 +990,7 @@ function currentGridRows() {
       if (!dayHasPeriode(day, slot.periode)) { line[label] = ''; return; }
       const entry = rows.find(r => r.jour === day && r.periode === slot.periode && r.heure_debut === slot.debut);
       if (!entry) { line[label] = ''; return; }
-      if (currentView === 'classe') {
+      if (view === 'classe') {
         const teacher = TEACHERS.find(t => t.id === entry.teacher_id);
         line[label] = `${entry.matiere} (${teacher ? teacher.prenom + ' ' + teacher.nom : '—'})`;
       } else {
@@ -945,6 +1000,11 @@ function currentGridRows() {
     });
     return line;
   });
+}
+
+function currentGridRows() {
+  const selId = document.getElementById('viewSelect').value;
+  return buildScheduleRowsForEntity(currentView, selId);
 }
 
 document.getElementById('exportExcelBtn').addEventListener('click', () => {
@@ -977,6 +1037,57 @@ document.getElementById('exportPdfBtn').addEventListener('click', () => {
 });
 
 document.getElementById('printBtn').addEventListener('click', () => window.print());
+
+/* ===================== Export global : 1 PDF, une page par emploi du temps ===================== */
+function generateAllSchedulesPdf(view) {
+  if (!CONFIG) { showToast("Enregistrez la configuration horaire d'abord.", 'error'); return; }
+  const list = view === 'classe' ? CLASSES : TEACHERS;
+  if (list.length === 0) {
+    showToast(view === 'classe' ? 'Aucune classe à exporter.' : 'Aucun enseignant à exporter.', 'error');
+    return;
+  }
+
+  const slots = allSlots();
+  if (slots.length === 0) { showToast('Aucun créneau disponible avec ces horaires.', 'error'); return; }
+  const columns = ['Jour', ...slots.map(s => `${s.debut}-${s.fin}`)];
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+
+  list.forEach((entity, idx) => {
+    if (idx > 0) pdf.addPage();
+    const rows = buildScheduleRowsForEntity(view, entity.id);
+
+    pdf.setFontSize(13); pdf.setTextColor(27, 20, 100); pdf.setFont(undefined, 'bold');
+    pdf.text('DIWANE AL MAAREF — Institution de Soutien Scolaire', 14, 14);
+    pdf.setFont(undefined, 'normal');
+
+    pdf.setFontSize(10.5); pdf.setTextColor(34, 29, 61);
+    if (view === 'classe') {
+      pdf.text(`Classe : ${entity.nom || '—'}`, 14, 22);
+      pdf.text(`Niveau : ${entity.niveau || '—'}     Groupe : ${entity.groupe || '—'}     Cycle : ${entity.cycle || '—'}`, 14, 28);
+    } else {
+      const matieres = [...new Set(TEACHERS.filter(t => t.id === entity.id).map(t => t.matiere).filter(Boolean))];
+      pdf.text(`Enseignant : ${entity.prenom || ''} ${entity.nom || ''}`, 14, 22);
+      pdf.text(`Matière(s) : ${matieres.length ? matieres.join(', ') : (entity.matiere || '—')}`, 14, 28);
+    }
+
+    pdf.autoTable({
+      head: [columns],
+      body: rows.map(r => columns.map(c => r[c] || '—')),
+      startY: 34,
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [27, 20, 100], textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [246, 244, 252] },
+    });
+  });
+
+  const suffix = view === 'classe' ? 'classes' : 'enseignants';
+  pdf.save(`emplois_du_temps_${suffix}_${new Date().toISOString().slice(0, 10)}.pdf`);
+  showToast(`PDF généré : ${list.length} ${view === 'classe' ? 'classe(s)' : 'enseignant(s)'}.`);
+}
+
+document.getElementById('exportAllClassesPdfBtn').addEventListener('click', () => generateAllSchedulesPdf('classe'));
+document.getElementById('exportAllTeachersPdfBtn').addEventListener('click', () => generateAllSchedulesPdf('enseignant'));
 
 /* ===================== Init ===================== */
 async function init() {
