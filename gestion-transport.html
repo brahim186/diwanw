@@ -205,6 +205,60 @@
     </form>
   </section>
 
+  <!-- Arrêts de ramassage (paradas) -->
+  <section class="bg-white border border-line rounded-3xl shadow-sm overflow-hidden">
+    <div class="px-6 sm:px-8 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-line">
+      <div class="flex items-center gap-3">
+        <h3 class="font-display font-semibold text-navy text-lg">Arrêts de ramassage</h3>
+        <span id="stopsCountBadge" class="text-xs font-extrabold text-navy/60 bg-mist rounded-full px-3 py-1.5">0 arrêt</span>
+      </div>
+      <button id="toggleStopFormBtn" type="button" class="btn-primary inline-flex items-center gap-2 bg-navy text-white font-extrabold text-xs rounded-full px-5 py-2.5">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+        Ajouter un arrêt
+      </button>
+    </div>
+
+    <div id="stopFormSection" class="hidden px-6 sm:px-8 py-6 border-b border-line bg-mist/30">
+      <form id="stopForm" novalidate class="grid sm:grid-cols-3 gap-4 items-end">
+        <input type="hidden" id="editStopId" value="">
+        <div>
+          <label for="stopNom" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Nom de l'arrêt</label>
+          <input id="stopNom" name="stopNom" type="text" placeholder="Ex : Place Al Wahda" class="field w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-navy placeholder:text-ink/30 outline-none">
+        </div>
+        <div>
+          <label for="stopLigne" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Ligne associée</label>
+          <input id="stopLigne" name="stopLigne" list="lignesList" type="text" placeholder="Ex : Centre-ville — Hay Al Wafae" class="field w-full rounded-2xl border border-line bg-white px-4 py-3 text-sm text-navy placeholder:text-ink/30 outline-none">
+          <datalist id="lignesList"></datalist>
+        </div>
+        <div class="flex gap-2">
+          <button type="submit" id="stopSubmitBtn" class="btn-primary flex-1 inline-flex items-center justify-center gap-2 bg-navy text-white font-extrabold text-sm rounded-full px-5 py-3">
+            <span id="stopSubmitBtnText">Ajouter</span>
+          </button>
+          <button type="button" id="cancelStopFormBtn" class="rounded-full border border-line px-5 py-3 text-sm font-bold text-navy/60 hover:text-rose-600 transition-colors">Annuler</button>
+        </div>
+        <p id="stopFormError" class="hidden sm:col-span-3 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3"></p>
+      </form>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-[11px] font-extrabold uppercase tracking-wide text-ink/40 bg-mist/60">
+            <th class="px-6 sm:px-8 py-3.5 whitespace-nowrap">Nom de l'arrêt</th>
+            <th class="px-4 py-3.5 whitespace-nowrap">Ligne associée</th>
+            <th class="px-4 py-3.5 whitespace-nowrap text-center">Élèves inscrits sur cet arrêt</th>
+            <th class="px-4 sm:px-8 py-3.5 whitespace-nowrap text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="stopsTableBody" class="divide-y divide-line"></tbody>
+      </table>
+    </div>
+
+    <div id="stopsEmptyState" class="px-8 py-10 text-center">
+      <p class="text-ink/40 text-sm">Aucun arrêt enregistré pour le moment. Ajoutez les arrêts que vos bus desservent afin que les élèves puissent choisir le plus proche lors de l'inscription.</p>
+    </div>
+  </section>
+
   <!-- Liste des bus -->
   <section class="bg-white border border-line rounded-3xl shadow-sm overflow-hidden">
     <div class="px-6 sm:px-8 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-line">
@@ -290,10 +344,12 @@
   const BUSES_COL = collection(db, 'buses');
   const STAFF_COL = collection(db, 'staff');
   const STUDENTS_COL = collection(db, 'students');
+  const STOPS_COL = collection(db, 'bus_stops');
 
   let loadedBuses = [];
   let loadedStaff = [];
   let loadedStudents = []; // élèves acceptés uniquement
+  let loadedStops = [];
 
   // ---------- Toast ----------
   function showToast(message) {
@@ -389,6 +445,214 @@
     return loadedBuses;
   }
 
+  function genStopId() {
+    if (window.crypto && crypto.randomUUID) return 'stop_' + crypto.randomUUID();
+    return 'stop_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
+  }
+
+  // ---------- Chargement des arrêts de ramassage ----------
+  async function loadStops() {
+    const snap = await getDocs(STOPS_COL);
+    loadedStops = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    return loadedStops;
+  }
+
+  function populateLignesDatalist() {
+    const lignesList = document.getElementById('lignesList');
+    if (!lignesList) return;
+    const lignes = [...new Set(loadedBuses.map((b) => b.ligne).filter(Boolean))].sort();
+    lignesList.innerHTML = lignes.map((l) => `<option value="${l}"></option>`).join('');
+  }
+
+  function renderStops() {
+    const tableBody = document.getElementById('stopsTableBody');
+    const emptyState = document.getElementById('stopsEmptyState');
+    const countBadge = document.getElementById('stopsCountBadge');
+
+    populateLignesDatalist();
+
+    const sorted = [...loadedStops].sort((a, b) => (a.nom || '').localeCompare(b.nom || ''));
+    countBadge.textContent = loadedStops.length + (loadedStops.length > 1 ? ' arrêts' : ' arrêt');
+
+    if (sorted.length === 0) {
+      tableBody.innerHTML = '';
+      emptyState.classList.remove('hidden');
+      return;
+    }
+    emptyState.classList.add('hidden');
+
+    tableBody.innerHTML = sorted.map((s) => {
+      const studentCount = loadedStudents.filter((st) => st.arretId === s.id).length;
+      return `
+        <tr class="row-enter hover:bg-mist/50 transition-colors">
+          <td class="px-6 sm:px-8 py-3.5 font-bold text-navy whitespace-nowrap">${s.nom || '—'}</td>
+          <td class="px-4 py-3.5 text-ink/70 whitespace-nowrap">${s.ligne || '—'}</td>
+          <td class="px-4 py-3.5 text-center num font-bold text-purple">${studentCount}</td>
+          <td class="px-4 sm:px-8 py-3.5 whitespace-nowrap text-right">
+            <div class="flex items-center justify-end gap-3.5">
+              <button data-id="${s.id}" class="editStopBtn text-gold-dark hover:text-gold text-xs font-bold">Modifier</button>
+              <button data-id="${s.id}" class="deleteStopBtn text-xs font-bold text-rose-500 hover:text-rose-700 transition-colors">Supprimer</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    tableBody.querySelectorAll('.editStopBtn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        const s = loadedStops.find((x) => x.id === id);
+        if (!s) return;
+        document.getElementById('stopNom').value = s.nom || '';
+        document.getElementById('stopLigne').value = s.ligne || '';
+        editStopId.value = s.id;
+        stopFormTitle('Modifier l\'arrêt', 'Enregistrer');
+        openStopForm();
+      });
+    });
+
+    tableBody.querySelectorAll('.deleteStopBtn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const id = btn.getAttribute('data-id');
+        const studentCount = loadedStudents.filter((st) => st.arretId === id).length;
+        const warn = studentCount > 0
+          ? `Cet arrêt est choisi par ${studentCount} élève(s) inscrit(s). `
+          : '';
+        if (!confirm(warn + 'Voulez-vous vraiment supprimer cet arrêt ?')) return;
+        btn.disabled = true;
+        try {
+          await deleteDoc(doc(db, 'bus_stops', id));
+          showToast('Arrêt supprimé avec succès');
+          await loadStops();
+          renderStops();
+        } catch (e) {
+          alert("Erreur lors de la suppression : " + e.message);
+        }
+      });
+    });
+  }
+
+  // ---------- Formulaire des arrêts ----------
+  const stopForm = document.getElementById('stopForm');
+  const stopFormError = document.getElementById('stopFormError');
+  const editStopId = document.getElementById('editStopId');
+  const stopFormSection = document.getElementById('stopFormSection');
+  const toggleStopFormBtn = document.getElementById('toggleStopFormBtn');
+  const cancelStopFormBtn = document.getElementById('cancelStopFormBtn');
+  const stopSubmitBtnText = document.getElementById('stopSubmitBtnText');
+
+  function stopFormTitle(_label, submitLabel) {
+    stopSubmitBtnText.textContent = submitLabel;
+  }
+
+  function openStopForm() {
+    stopFormSection.classList.remove('hidden');
+    stopFormSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  function closeStopForm() {
+    stopForm.reset();
+    editStopId.value = '';
+    stopFormError.classList.add('hidden');
+    stopFormTitle('Ajouter un arrêt', 'Ajouter');
+    stopFormSection.classList.add('hidden');
+  }
+  toggleStopFormBtn.addEventListener('click', () => {
+    if (stopFormSection.classList.contains('hidden')) { closeStopForm(); openStopForm(); }
+    else closeStopForm();
+  });
+  cancelStopFormBtn.addEventListener('click', closeStopForm);
+
+  stopForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const nom = document.getElementById('stopNom').value.trim();
+    const ligne = document.getElementById('stopLigne').value.trim();
+    const isEditMode = editStopId.value !== '';
+
+    if (!nom) {
+      stopFormError.textContent = "Veuillez indiquer le nom de l'arrêt.";
+      stopFormError.classList.remove('hidden');
+      return;
+    }
+    const norm = nom.toLowerCase();
+    const duplicate = loadedStops.find((s) => s.id !== editStopId.value && (s.nom || '').trim().toLowerCase() === norm);
+    if (duplicate) {
+      stopFormError.textContent = "Un arrêt porte déjà ce nom.";
+      stopFormError.classList.remove('hidden');
+      return;
+    }
+    stopFormError.classList.add('hidden');
+
+    const submitBtn = document.getElementById('stopSubmitBtn');
+    submitBtn.disabled = true;
+    try {
+      const id = isEditMode ? editStopId.value : genStopId();
+      await setDoc(doc(db, 'bus_stops', id), {
+        nom, ligne,
+        createdAt: isEditMode ? undefined : new Date().toISOString()
+      });
+      showToast(isEditMode ? 'Arrêt modifié avec succès' : 'Arrêt ajouté avec succès');
+      closeStopForm();
+      await loadStops();
+      renderStops();
+    } catch (err) {
+      stopFormError.textContent = "Erreur lors de l'enregistrement : " + err.message;
+      stopFormError.classList.remove('hidden');
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+
+  // ---------- Liste imprimable du chauffeur (PDF), groupée par arrêt ----------
+  function generateDriverListPdf(bus) {
+    const assigned = loadedStudents.filter((s) => s.busId === bus.id);
+    if (assigned.length === 0) {
+      alert("Aucun élève n'est affecté à ce bus pour le moment.");
+      return;
+    }
+
+    const sorted = [...assigned].sort((a, b) => {
+      const arretA = a.arretNom || 'zzz_Aucun arrêt renseigné';
+      const arretB = b.arretNom || 'zzz_Aucun arrêt renseigné';
+      const cmp = arretA.localeCompare(arretB);
+      if (cmp !== 0) return cmp;
+      return (a.nom || '').localeCompare(b.nom || '');
+    });
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    pdf.setFontSize(14);
+    pdf.setTextColor(27, 20, 100);
+    pdf.text('Diwan Al Maaref — Liste du chauffeur', 14, 15);
+    pdf.setFontSize(9);
+    pdf.setTextColor(120, 120, 120);
+    const chauffeurLabel = staffName(bus.chauffeurId) || 'Chauffeur non assigné';
+    pdf.text(
+      `Bus : ${bus.numBus || bus.immatriculation}   •   Ligne : ${bus.ligne || '—'}   •   Chauffeur : ${chauffeurLabel}   •   Généré le ${new Date().toLocaleDateString('fr-FR')}`,
+      14, 21
+    );
+
+    pdf.autoTable({
+      head: [['Arrêt', 'Nom', 'Prénom', 'Matricule', 'Niveau', 'Groupe', 'Tél. parent']],
+      body: sorted.map((s) => [
+        s.arretNom || 'Aucun arrêt renseigné',
+        s.nom || '', s.prenom || '', s.id || '', s.niveau || '', s.groupe || '',
+        s.telPere || s.telMere || '—',
+      ]),
+      startY: 26,
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [27, 20, 100], textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [246, 244, 252] },
+      didParseCell: (data) => {
+        if (data.section === 'body' && data.column.index === 0) {
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.textColor = [91, 58, 166];
+        }
+      },
+    });
+
+    pdf.save(`liste_chauffeur_${(bus.numBus || bus.immatriculation || 'bus').replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.pdf`);
+  }
+
   function statusBadgeHtml(statut) {
     const cls = statut === 'Active' ? 'badge-active' : statut === 'En maintenance' ? 'badge-maintenance' : 'badge-stopped';
     return `<span class="inline-block text-[11px] font-extrabold rounded-full px-3 py-1 ${cls}">${statut}</span>`;
@@ -410,13 +674,14 @@
     tableBody.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-navy/50">Chargement des bus...</td></tr>`;
 
     try {
-      await Promise.all([loadStaff(), loadStudents(), loadBuses()]);
+      await Promise.all([loadStaff(), loadStudents(), loadBuses(), loadStops()]);
     } catch (e) {
       tableBody.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-rose-600 font-bold">Erreur de connexion à la base de données.</td></tr>`;
       return;
     }
 
     populateStaffSelects();
+    renderStops();
     loadedBuses.sort((a, b) => (a.numBus || '').localeCompare(b.numBus || ''));
     tableBody.innerHTML = '';
 
@@ -449,6 +714,10 @@
         <td class="px-4 py-4 whitespace-nowrap text-center">${statusBadgeHtml(b.statut || 'Active')}</td>
         <td class="px-4 sm:px-8 py-4 whitespace-nowrap text-right">
           <div class="flex items-center justify-end gap-3.5">
+            <button data-id="${b.id}" class="driverListBtn text-purple hover:text-navy flex items-center gap-1 text-xs font-bold" title="Liste du chauffeur (PDF)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 19V6a2 2 0 012-2h9l5 5v10a2 2 0 01-2 2H6a2 2 0 01-2-2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              Liste chauffeur
+            </button>
             <button data-id="${b.id}" class="editBtn text-gold-dark hover:text-gold flex items-center gap-1 text-xs font-bold" title="Modifier">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               Modifier
@@ -511,6 +780,14 @@
         const id = btn.getAttribute('data-id');
         const b = loadedBuses.find((x) => x.id === id);
         if (b) openStudentsModal(b);
+      });
+    });
+
+    document.querySelectorAll('.driverListBtn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        const b = loadedBuses.find((x) => x.id === id);
+        if (b) generateDriverListPdf(b);
       });
     });
   }
@@ -625,7 +902,7 @@
           <input type="checkbox" data-student="${s.id}" ${assignedHere ? 'checked' : ''} class="studentAssignCheckbox accent-navy w-4 h-4 shrink-0">
           <span class="flex-1 min-w-0">
             <span class="block font-bold text-navy text-sm truncate">${s.prenom || ''} ${s.nom || ''} <span class="font-mono text-[11px] text-purple font-bold ml-1">${s.id}</span></span>
-            <span class="block text-xs text-ink/45">${s.niveau || '—'}${assignedElsewhere ? ` · déjà affecté à ${otherBus ? (otherBus.numBus || otherBus.immatriculation) : 'un autre bus'}` : ''}</span>
+            <span class="block text-xs text-ink/45">${s.niveau || '—'}${s.arretNom ? ` · Arrêt : ${s.arretNom}` : ' · Aucun arrêt renseigné'}${assignedElsewhere ? ` · déjà affecté à ${otherBus ? (otherBus.numBus || otherBus.immatriculation) : 'un autre bus'}` : ''}</span>
           </span>
         </label>
       `;
