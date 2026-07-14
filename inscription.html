@@ -197,6 +197,14 @@
       </div>
 
       <div class="mt-6">
+        <label for="busStop" class="field-label block mb-2">Transport scolaire — arrêt le plus proche de chez vous</label>
+        <select id="busStop" name="busStop" class="w-full rounded-xl border border-line bg-mist/50 px-4 py-3 text-sm focus:border-gold outline-none appearance-none cursor-pointer">
+          <option value="">Je n'utilise pas le transport scolaire</option>
+        </select>
+        <p class="field-hint mt-1">Si vous souhaitez que votre enfant soit pris en charge par le bus scolaire, sélectionnez l'arrêt le plus proche. L'administration vous affectera ensuite au bus correspondant.</p>
+      </div>
+
+      <div class="mt-6">
         <label class="field-label block mb-2">Photo d'identité de l'élève <span class="text-red-500">*</span></label>
         <div id="dropPhoto" class="file-drop rounded-2xl p-5 flex items-center gap-4 cursor-pointer">
           <div class="w-16 h-16 rounded-xl bg-mist grid place-items-center overflow-hidden shrink-0">
@@ -343,9 +351,32 @@
 </footer>
 
 <script type="module">
-import { db, doc, setDoc, uploadToStorage, generateMatricule } from './supabase-config.js';
+import { db, doc, setDoc, collection, getDocs, uploadToStorage, generateMatricule } from './supabase-config.js';
 
 document.getElementById('year').textContent = new Date().getFullYear();
+
+// ---------- Chargement des arrêts de bus disponibles (transport scolaire) ----------
+async function loadBusStops() {
+  const busStopSelect = document.getElementById('busStop');
+  try {
+    const snap = await getDocs(collection(db, 'bus_stops'));
+    const stops = snap.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (a.nom || '').localeCompare(b.nom || ''));
+
+    stops.forEach((s) => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = s.ligne ? `${s.nom} (${s.ligne})` : s.nom;
+      opt.dataset.nom = s.nom || '';
+      opt.dataset.ligne = s.ligne || '';
+      busStopSelect.appendChild(opt);
+    });
+  } catch (e) {
+    // Si le chargement échoue, le champ reste sur "Je n'utilise pas le transport scolaire".
+  }
+}
+loadBusStops();
 
 const MAX_FILE_MB = 5;
 
@@ -471,6 +502,13 @@ form.addEventListener('submit', async (e) => {
     // 1) Génère un matricule unique (compteur transactionnel Firestore)
     const matricule = await generateMatricule();
 
+    // Arrêt de ramassage choisi (transport scolaire), le cas échéant
+    const busStopSelect = document.getElementById('busStop');
+    const selectedStopOption = busStopSelect.options[busStopSelect.selectedIndex];
+    const arretId = busStopSelect.value || null;
+    const arretNom = arretId ? (selectedStopOption.dataset.nom || selectedStopOption.textContent) : null;
+    const ligneArret = arretId ? (selectedStopOption.dataset.ligne || null) : null;
+
     // 2) Upload des documents vers Firebase Storage (en parallèle)
     const [photoURL, birthCertURL, cinParentsURL] = await Promise.all([
       photoFile ? uploadToStorage(`students/${matricule}/photo_${photoFile.name}`, photoFile) : '',
@@ -496,6 +534,8 @@ form.addEventListener('submit', async (e) => {
       photoURL, acteNaissanceURL: birthCertURL, cinParentsURL,
       statut: 'En attente',
       groupe: 'Non assigné',
+      arretId, arretNom, ligneArret,
+      busId: null,
       horodatage: new Date().toISOString()
     });
 
