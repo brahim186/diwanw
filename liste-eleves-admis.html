@@ -185,12 +185,13 @@
     </div>
 
     <div id="tableWrap" class="hidden bg-white border border-line rounded-3xl overflow-hidden shadow-sm">
-      <div class="grid grid-cols-[90px_1fr_1fr_120px_110px_170px] gap-2 px-5 sm:px-7 py-4 bg-navy text-white text-[11px] sm:text-xs font-extrabold uppercase tracking-wide">
+      <div class="grid grid-cols-[90px_1fr_1fr_100px_100px_150px_150px] gap-2 px-5 sm:px-7 py-4 bg-navy text-white text-[11px] sm:text-xs font-extrabold uppercase tracking-wide">
         <span>Matricule</span>
         <span>Prénom</span>
         <span>Nom</span>
         <span>Naissance</span>
         <span>Niveau</span>
+        <span>Arrêt</span>
         <span>Groupe</span>
       </div>
       <div id="rowsContainer" class="divide-y divide-line"></div>
@@ -200,12 +201,13 @@
 </div>
 
 <template id="rowTemplate">
-  <div class="row-card grid grid-cols-[90px_1fr_1fr_120px_110px_170px] gap-2 items-center px-5 sm:px-7 py-4">
+  <div class="row-card grid grid-cols-[90px_1fr_1fr_100px_100px_150px_150px] gap-2 items-center px-5 sm:px-7 py-4">
     <span class="num font-bold text-navy text-sm" data-field="id"></span>
     <span class="font-semibold text-ink text-sm truncate" data-field="firstName"></span>
     <span class="font-semibold text-ink text-sm truncate" data-field="lastName"></span>
     <span class="text-ink/60 text-xs sm:text-sm num" data-field="dob"></span>
     <span class="text-xs sm:text-sm font-bold text-purple" data-field="level"></span>
+    <span class="text-xs sm:text-sm text-ink/70 truncate" data-field="arret"></span>
     <select data-field="groupSelect" class="group-select w-full rounded-full border border-line bg-mist/60 pl-7 pr-3 py-2 text-xs font-bold text-navy focus:border-gold outline-none cursor-pointer"></select>
   </div>
 </template>
@@ -244,11 +246,12 @@ document.getElementById('exportExcelBtn').addEventListener('click', () => {
     'Nom': r.nom || '',
     'Naissance': r.dateNaissance || '',
     'Niveau': r.niveau || '',
+    'Arrêt': r.arretNom || '',
     'Groupe': studentGroupLabel(r),
   }));
   if (rows.length === 0) { alert('Aucune donnée à exporter avec ces filtres.'); return; }
   const ws = XLSX.utils.json_to_sheet(rows);
-  ws['!cols'] = [{ wch: 12 }, { wch: 20 }, { wch: 20 }, { wch: 14 }, { wch: 14 }, { wch: 14 }];
+  ws['!cols'] = [{ wch: 12 }, { wch: 20 }, { wch: 20 }, { wch: 14 }, { wch: 14 }, { wch: 18 }, { wch: 14 }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Élèves admis');
   XLSX.writeFile(wb, exportFileName('xlsx'));
@@ -268,8 +271,8 @@ document.getElementById('exportPdfBtn').addEventListener('click', () => {
   pdf.text(`Généré le ${new Date().toLocaleDateString('fr-FR')}`, 14, 21);
 
   pdf.autoTable({
-    head: [['Matricule', 'Prénom', 'Nom', 'Naissance', 'Niveau', 'Groupe']],
-    body: rows.map((r) => [r.id || '', r.prenom || '', r.nom || '', r.dateNaissance || '', r.niveau || '', studentGroupLabel(r) || '—']),
+    head: [['Matricule', 'Prénom', 'Nom', 'Naissance', 'Niveau', 'Arrêt', 'Groupe']],
+    body: rows.map((r) => [r.id || '', r.prenom || '', r.nom || '', r.dateNaissance || '', r.niveau || '', r.arretNom || '—', studentGroupLabel(r) || '—']),
     startY: 26,
     styles: { fontSize: 8, cellPadding: 2 },
     headStyles: { fillColor: [27, 20, 100], textColor: 255, fontStyle: 'bold' },
@@ -593,6 +596,7 @@ function renderRecords(records) {
     node.querySelector('[data-field="lastName"]').textContent = r.nom || '—';
     node.querySelector('[data-field="dob"]').textContent = r.dateNaissance || '—';
     node.querySelector('[data-field="level"]').textContent = r.niveau || '—';
+    node.querySelector('[data-field="arret"]').textContent = r.arretNom || '—';
 
     const select = node.querySelector('[data-field="groupSelect"]');
     select.innerHTML = '<option value="">— Choisir —</option>' +
