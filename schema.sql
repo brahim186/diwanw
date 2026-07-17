@@ -1,5 +1,5 @@
 -- =====================================================================================
--- Diwan Al Maaref — schéma Supabase (remplace Firebase Firestore + Google Sheets)
+-- RIHANIO — schéma Supabase (remplace Firebase Firestore + Google Sheets)
 -- À exécuter dans Supabase Dashboard > SQL Editor > New query, une seule fois.
 -- =====================================================================================
 

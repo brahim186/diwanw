@@ -1,5 +1,5 @@
 -- =====================================================================================
--- Diwan Al Maaref — MIGRATION PERSONNEL ADMINISTRATIF & SOUTIEN + SALAIRES LIÉS
+-- RIHANIO — MIGRATION PERSONNEL ADMINISTRATIF & SOUTIEN + SALAIRES LIÉS
 -- (gestion-personnel-administratif.html + volet "Administratif" de gestion-salaires.html)
 -- À exécuter UNE SEULE FOIS dans Supabase Dashboard > SQL Editor > New query,
 -- APRÈS schema.sql (nécessite public.admins, réutilisé côté client via requireAdmin).

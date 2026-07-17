@@ -1,5 +1,5 @@
 // =====================================================================================
-// supabase-config.js — Couche d'accès aux données pour Diwan Al Maaref (Supabase)
+// supabase-config.js — Couche d'accès aux données pour RIHANIO (Supabase)
 // Remplace firebase-config.js. Ce fichier expose volontairement des fonctions au nom
 // et à la signature proches de celles de Firebase (doc, getDoc, setDoc, collection,
 // query, where, requireAdmin, requireTeacher...) afin que les pages HTML existantes
@@ -55,7 +55,7 @@ export function usernameToEmail(username) {
 }
 
 // --- Domaine utilisé pour générer l'email de connexion d'un élève admis --------------
-const STUDENT_EMAIL_DOMAIN = 'diwan-almaaref.ma';
+const STUDENT_EMAIL_DOMAIN = 'rihanio.ma';
 
 function stripAccents(str) {
   return (str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -66,8 +66,8 @@ function slugPart(str) {
   return stripAccents(str).toLowerCase().replace(/[^a-z]/g, '');
 }
 
-// Construit prenom.nom@diwan-almaaref.ma (avec un suffixe numérique si ce préfixe
-// existe déjà parmi les emails fournis, ex: mohamed.alami2@diwan-almaaref.ma)
+// Construit prenom.nom@rihanio.ma (avec un suffixe numérique si ce préfixe
+// existe déjà parmi les emails fournis, ex: mohamed.alami2@rihanio.ma)
 export function generateStudentEmail(prenom, nom, existingEmails = []) {
   const base = `${slugPart(prenom)}.${slugPart(nom)}`;
   let local = base;

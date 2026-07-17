@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Saisie des Notes | Diwan Al Maaref</title>
+<title>Saisie des Notes | RIHANIO</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/png" href="logo.png">
 
@@ -75,10 +75,10 @@
 <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-line">
   <div class="max-w-6xl mx-auto px-5 sm:px-8 h-20 flex items-center justify-between gap-4">
     <div class="flex items-center gap-3">
-      <img src="logo.png" alt="Logo Diwan Al Maaref" class="h-11 w-11 object-contain">
+      <img src="logo.png" alt="Logo RIHANIO" class="h-11 w-11 object-contain">
       <div class="hidden sm:flex flex-col leading-tight">
         <span class="font-display font-semibold text-navy text-base">Saisie des Notes</span>
-        <span class="text-[11px] text-gold-dark font-bold">Diwan Al Maaref</span>
+        <span class="text-[11px] text-gold-dark font-bold">RIHANIO</span>
       </div>
     </div>
     <div class="flex items-center gap-3">
@@ -381,7 +381,7 @@
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
       pdf.setFontSize(14);
       pdf.setTextColor(27, 20, 100);
-      pdf.text('Diwan Al Maaref — Saisie des Notes', 14, 15);
+      pdf.text('RIHANIO — Saisie des Notes', 14, 15);
       pdf.setFontSize(9);
       pdf.setTextColor(120, 120, 120);
       pdf.text(`Matière : ${teacher.matiere || '—'}   •   Généré le ${new Date().toLocaleDateString('fr-FR')}`, 14, 21);

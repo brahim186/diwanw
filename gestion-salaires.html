@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gestion des Salaires | Diwan Al Maaref</title>
+<title>Gestion des Salaires | RIHANIO</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/png" href="logo.png">
 
@@ -85,7 +85,7 @@
 <!-- Écran affiché si aucune session admin active -->
 <div id="noSessionGate" class="hidden min-h-screen flex items-center justify-center px-5">
   <div class="w-full max-w-sm bg-white border border-line rounded-3xl shadow-xl p-8 sm:p-10 text-center">
-    <img src="logo.png" alt="Logo Diwan Al Maaref" class="h-16 w-16 object-contain mb-5 mx-auto">
+    <img src="logo.png" alt="Logo RIHANIO" class="h-16 w-16 object-contain mb-5 mx-auto">
     <h1 class="font-display font-semibold text-navy text-lg mb-2">Session requise</h1>
     <p class="text-ink/50 text-sm mb-6">Veuillez vous connecter depuis le tableau de bord administratif principal pour accéder à cette page.</p>
     <a href="admin-dashboard.html" class="inline-flex items-center justify-center gap-2 bg-navy hover:bg-navy-700 text-white font-extrabold px-6 py-3 rounded-full transition-colors text-sm">
@@ -99,10 +99,10 @@
   <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-line">
     <div class="max-w-6xl mx-auto px-5 sm:px-8 h-20 flex items-center justify-between gap-4">
       <div class="flex items-center gap-3">
-        <img src="logo.png" alt="Logo Diwan Al Maaref" class="h-11 w-11 object-contain">
+        <img src="logo.png" alt="Logo RIHANIO" class="h-11 w-11 object-contain">
         <div class="hidden sm:flex flex-col leading-tight">
           <span class="font-display font-semibold text-navy text-base">Gestion des Salaires</span>
-          <span class="text-[11px] text-gold-dark font-bold">Diwan Al Maaref — Administration</span>
+          <span class="text-[11px] text-gold-dark font-bold">RIHANIO — Administration</span>
         </div>
       </div>
       <div class="flex items-center gap-3">
@@ -269,7 +269,7 @@ function generateBulletin(teacher, montantBrut, annee, mois, datePaiement) {
   pdf.setFont(undefined, 'bold');
   pdf.setFontSize(16);
   pdf.setTextColor(27, 20, 100);
-  pdf.text('DIWAN AL MAAREF', 14, 18);
+  pdf.text('RIHANIO', 14, 18);
   pdf.setFont(undefined, 'normal');
   pdf.setFontSize(9);
   pdf.setTextColor(120, 120, 120);
@@ -545,7 +545,7 @@ document.getElementById('exportPdfBtn').addEventListener('click', () => {
   const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   pdf.setFontSize(14);
   pdf.setTextColor(27, 20, 100);
-  pdf.text('Diwan Al Maaref — Salaires des Enseignants', 14, 15);
+  pdf.text('RIHANIO — Salaires des Enseignants', 14, 15);
   pdf.setFontSize(9);
   pdf.setTextColor(120, 120, 120);
   pdf.text(`${MONTHS[parseInt(monthSelect.value, 10) - 1]} ${yearSelect.value}   •   Généré le ${new Date().toLocaleDateString('fr-FR')}`, 14, 21);

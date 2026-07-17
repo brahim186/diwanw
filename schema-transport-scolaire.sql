@@ -1,5 +1,5 @@
 -- =====================================================================================
--- Diwan Al Maaref — MIGRATION TRANSPORT SCOLAIRE (gestion-transport.html)
+-- RIHANIO — MIGRATION TRANSPORT SCOLAIRE (gestion-transport.html)
 -- À exécuter UNE SEULE FOIS dans Supabase Dashboard > SQL Editor > New query,
 -- APRÈS schema.sql ET APRÈS schema-personnel-administratif.sql (nécessite public.staff,
 -- pour lier chauffeur/accompagnatrice).

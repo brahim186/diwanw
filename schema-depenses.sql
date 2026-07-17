@@ -1,5 +1,5 @@
 -- =====================================================================================
--- Diwan Al Maaref — MIGRATION DÉPENSES DIVERSES (depenses-diverses.html)
+-- RIHANIO — MIGRATION DÉPENSES DIVERSES (depenses-diverses.html)
 -- À exécuter UNE SEULE FOIS dans Supabase Dashboard > SQL Editor > New query,
 -- APRÈS schema.sql et schema-finances.sql.
 -- =====================================================================================

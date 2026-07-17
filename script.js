@@ -1,5 +1,5 @@
 // دالة للبحث واستبدال النص في جميع عناصر الصفحة دون التأثير على الأكواد التأسيسية
-function replaceNameInPage(Diwan Al Maaref, Rihanio) {
+function replaceNameInPage(RIHANIO, Rihanio) {
     const walk = document.createTreeWalker(
         document.body,
         NodeFilter.SHOW_TEXT,
@@ -15,5 +15,5 @@ function replaceNameInPage(Diwan Al Maaref, Rihanio) {
 
 // تشغيل الدالة بمجرد تحميل الصفحة بالكامل
 window.addEventListener('DOMContentLoaded', () => {
-    replaceNameInPage('Diwan Al Maaref', 'Rihanio');
+    replaceNameInPage('RIHANIO', 'Rihanio');
 });
