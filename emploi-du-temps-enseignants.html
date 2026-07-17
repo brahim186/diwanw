@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Emplois du Temps — Enseignants | DiwanE Al Maaref</title>
-<meta name="description" content="Consultez l'emploi du temps d'un enseignant — DiwanE Al Maaref.">
+<title>Emplois du Temps — Enseignants | RIHANIO</title>
+<meta name="description" content="Consultez l'emploi du temps d'un enseignant — RIHANIO.">
 <link rel="icon" type="image/png" href="logo.png">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -56,9 +56,9 @@
 <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-line no-print">
   <div class="max-w-6xl mx-auto px-5 sm:px-8 h-20 flex items-center justify-between gap-4">
     <a href="index.html#accueil" class="flex items-center gap-3">
-      <img src="logo.png" alt="Logo DiwanE Al Maaref" class="h-11 w-11 object-contain">
+      <img src="logo.png" alt="Logo RIHANIO" class="h-11 w-11 object-contain">
       <div class="hidden sm:flex flex-col leading-tight">
-        <span class="font-display font-semibold text-navy text-base">DIWANE AL MAAREF</span>
+        <span class="font-display font-semibold text-navy text-base">RIHANIO</span>
         <span class="text-[11px] uppercase tracking-[0.12em] text-gold-dark font-bold">Emploi du Temps — Enseignants</span>
       </div>
     </a>
@@ -112,7 +112,7 @@
 
     <section class="bg-white border border-line rounded-3xl shadow-sm p-6 sm:p-8 print-area">
       <div class="mb-5 text-center">
-        <p class="font-display font-semibold text-navy text-lg">INSTITUT DIWANE AL MAAREF</p>
+        <p class="font-display font-semibold text-navy text-lg">INSTITUT RIHANIO</p>
         <h2 id="entityTitle" class="font-display font-semibold text-navy text-2xl mt-1">—</h2>
         <p id="entitySubtitle" class="text-ink/50 text-xs mt-1 font-bold uppercase tracking-wide"></p>
       </div>
@@ -131,7 +131,7 @@
 <!-- ================= FOOTER ================= -->
 <footer class="bg-navy-900 text-white py-8 no-print">
   <div class="max-w-6xl mx-auto px-5 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-white/50">
-    <p>© <span id="year"></span> DiwanE Al Maaref — Institution de Soutien Scolaire.</p>
+    <p>© <span id="year"></span> RIHANIO — Institution de Soutien Scolaire.</p>
     <a href="index.html#accueil" class="hover:text-gold transition-colors">Retour au site</a>
   </div>
 </footer>
@@ -265,7 +265,7 @@ document.getElementById('downloadPdfBtn').addEventListener('click', () => {
   const { jsPDF } = window.jspdf;
   const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   pdf.setFontSize(13); pdf.setTextColor(27, 20, 100); pdf.setFont(undefined, 'bold');
-  pdf.text('DIWANE AL MAAREF — Institution de Soutien Scolaire', 14, 14);
+  pdf.text('RIHANIO — Institution de Soutien Scolaire', 14, 14);
   pdf.setFont(undefined, 'normal');
   pdf.setFontSize(10.5); pdf.setTextColor(34, 29, 61);
   pdf.text(`Enseignant : ${teacher.prenom || ''} ${teacher.nom || ''}`, 14, 22);
