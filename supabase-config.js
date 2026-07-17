@@ -55,6 +55,7 @@ export function usernameToEmail(username) {
 }
 
 // --- Domaine utilisé pour générer l'email de connexion d'un élève admis --------------
+// تم تعديل النطاق هنا ليصبح rihanio.ma بشكل تلقائي وثابت لحسابات الطلاب
 const STUDENT_EMAIL_DOMAIN = 'rihanio.ma';
 
 function stripAccents(str) {
@@ -263,7 +264,7 @@ export async function generateMatricule() {
 //  - error === null, data === null  -> la ligne n'existe vraiment pas (compte non autorisé)
 //  - error !== null                 -> problème passager (réseau, session pas encore propagée...)
 // C'est cette distinction qui manquait avant et qui causait des déconnexions intempestives :
-// le code traitait auparavant toute erreur de requête comme "compte invalide" et forçait un
+// le code traitait auparavant toute erreur de requête comme "compte invalide" et forçاح un
 // signOut(), y compris pour un simple hoquet réseau juste après la connexion.
 async function selectOwnRow(table, uid, retries = 1) {
   for (let attempt = 0; ; attempt++) {
