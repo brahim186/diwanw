@@ -304,17 +304,19 @@
 
 <!-- Modal détails actualité -->
 <div id="actualiteModal" class="hidden fixed inset-0 z-[70] bg-navy-900/70 backdrop-blur-sm flex items-center justify-center px-5 py-8">
-  <div class="w-full max-w-xl max-h-[88vh] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden">
-    <div class="relative shrink-0 bg-mist">
-      <img id="modalActuImage" src="" alt="" class="hidden w-full max-h-[60vh] object-contain mx-auto">
-      <button type="button" id="closeActuModalBtn" aria-label="Fermer" class="absolute top-4 right-4 w-9 h-9 grid place-items-center rounded-full bg-white/90 hover:bg-white text-navy shadow-lg transition-colors">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </button>
-    </div>
-    <div class="px-7 sm:px-9 py-7 sm:py-8 overflow-y-auto">
-      <p id="modalActuDate" class="text-[11px] font-extrabold uppercase tracking-wide text-gold-dark mb-2">—</p>
-      <h3 id="modalActuTitre" class="font-display font-semibold text-navy text-2xl leading-tight">—</h3>
-      <p id="modalActuContenu" class="text-ink/70 leading-relaxed mt-5 text-[15px] whitespace-pre-line">—</p>
+  <div class="relative w-full max-w-xl max-h-[88vh] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden">
+    <button type="button" id="closeActuModalBtn" aria-label="Fermer" class="absolute top-4 right-4 w-9 h-9 grid place-items-center rounded-full bg-white/90 hover:bg-white text-navy shadow-lg transition-colors z-10">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <div class="overflow-y-auto">
+      <div class="relative bg-mist">
+        <img id="modalActuImage" src="" alt="" class="hidden w-full max-h-[60vh] object-contain mx-auto">
+      </div>
+      <div class="px-7 sm:px-9 py-7 sm:py-8">
+        <p id="modalActuDate" class="text-[11px] font-extrabold uppercase tracking-wide text-gold-dark mb-2">—</p>
+        <h3 id="modalActuTitre" class="font-display font-semibold text-navy text-2xl leading-tight">—</h3>
+        <p id="modalActuContenu" class="text-ink/70 leading-relaxed mt-5 text-[15px] whitespace-pre-line">—</p>
+      </div>
     </div>
   </div>
 </div>
@@ -1149,11 +1151,14 @@
     listEl.addEventListener('dragstart', (e) => e.preventDefault());
 
     viewportEl.addEventListener('wheel', (e) => {
-      if (Math.abs(e.deltaX) < Math.abs(e.deltaY) && e.deltaY === 0) return;
+      // Si le geste est principalement vertical (molette de souris classique),
+      // on laisse la page défiler normalement (pas de preventDefault).
+      if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+      // Geste horizontal réel (trackpad, souris avec molette latérale) :
+      // on fait défiler le strip d'annonces à la place.
       e.preventDefault();
       stopMomentum();
-      const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-      viewportEl.scrollLeft = clamp(viewportEl.scrollLeft + delta, 0, maxScroll());
+      viewportEl.scrollLeft = clamp(viewportEl.scrollLeft + e.deltaX, 0, maxScroll());
       updateProgress();
     }, { passive: false });
 
