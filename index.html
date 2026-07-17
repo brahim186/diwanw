@@ -1057,6 +1057,7 @@
     let velocity              = 0;
     let momentumFrame          = null;
     let dragMoved                = false; // distingue un clic d'un glissement
+    let pressedCard               = null; // carte pressée, pour ouvrir la modale au relâchement
 
     const FRICTION = 0.94;
     const MIN_VELOCITY = 0.02;
@@ -1079,6 +1080,7 @@
       lastMoveX          = e.clientX;
       lastMoveTime        = performance.now();
       velocity             = 0;
+      pressedCard         = e.target.closest('.actu-card');
       listEl.setPointerCapture(e.pointerId);
     }
 
@@ -1109,6 +1111,13 @@
       listEl.classList.remove('cursor-grabbing');
       listEl.classList.add('cursor-grab');
       try { listEl.releasePointerCapture(e.pointerId); } catch (err) {}
+
+      if (!dragMoved && pressedCard) {
+        const idx = Number(pressedCard.getAttribute('data-index'));
+        openActuModal(currentItems[idx]);
+      }
+      pressedCard = null;
+
       startMomentum();
     }
 
@@ -1159,13 +1168,12 @@
       setTimeout(updateProgress, 350);
     });
 
-    // Un clic n'ouvre le modal que si la carte n'a pas été glissée
+    // Sécurité : empêche le comportement par défaut du bouton au clic
+    // (l'ouverture de la modale est désormais gérée dans onPointerUp,
+    // ce qui évite les soucis de "click" supprimé par setPointerCapture
+    // sur certains navigateurs comme Safari/iOS).
     listEl.querySelectorAll('.actu-card').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        if (dragMoved) { dragMoved = false; return; }
-        const idx = Number(btn.getAttribute('data-index'));
-        openActuModal(currentItems[idx]);
-      });
+      btn.addEventListener('click', (e) => e.preventDefault());
     });
   }
 
