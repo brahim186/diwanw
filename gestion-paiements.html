@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Gestion des Paiements | RIHANIO</title>
+<title>Personnel Administratif & Soutien | RIHANIO</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/png" href="logo.png">
 
@@ -12,9 +12,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Fraunces:wght@500;600&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 
 <script>
   tailwind.config = {
@@ -47,625 +44,548 @@
     * { animation-duration:.01ms !important; transition-duration:.01ms !important; }
   }
 
-  .spinner {
-    width: 20px; height: 20px; border-radius: 50%;
-    border: 3px solid rgba(27,20,100,.15); border-top-color:#1B1464;
-    animation: spin .7s linear infinite;
+  .field { transition: border-color .2s ease, box-shadow .2s ease; }
+  .field:focus {
+    border-color: #5B3AA6;
+    box-shadow: 0 0 0 4px rgba(91,58,166,.12);
   }
-  @keyframes spin { to { transform: rotate(360deg); } }
 
-  .row-enter { animation: rowEnter .3s cubic-bezier(.2,.8,.25,1) both; }
-  @keyframes rowEnter { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+  .btn-primary { transition: transform .2s cubic-bezier(.2,.8,.25,1), box-shadow .2s ease, background-color .2s ease; }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 14px 28px -12px rgba(27,20,100,.45); background-color:#170F52; }
+  .btn-primary:active { transform: translateY(0); }
 
-  .amount-field { transition: border-color .2s ease, box-shadow .2s ease; }
-  .amount-field:focus { border-color:#5B3AA6; box-shadow:0 0 0 4px rgba(91,58,166,.12); }
-  .amount-field.saved { border-color:#10B981; }
+  .row-enter { animation: rowEnter .35s cubic-bezier(.2,.8,.25,1) both; }
+  @keyframes rowEnter { from { opacity:0; transform: translateY(-6px); } to { opacity:1; transform: translateY(0); } }
 
-  .status-pill { transition: background-color .2s ease, color .2s ease, border-color .2s ease; }
-  .status-paid { background:#D1FAE5; color:#047857; border-color:#A7F3D0; }
-  .status-unpaid { background:#FDECEE; color:#BE123C; border-color:#FBD5DA; }
+  .toast { animation: toastIn .3s ease both, toastOut .3s ease 2.7s both; }
+  @keyframes toastIn { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
+  @keyframes toastOut { from { opacity:1; } to { opacity:0; transform: translateY(-6px); } }
 
-  .saved-flash { animation: flash 1s ease; }
-  @keyframes flash { 0%{background-color:#D1FAE5} 100%{background-color:transparent} }
+  .badge-poste { background:#EEF2FF; color:#4338CA; }
 
-  .toast { animation: toastIn .3s ease both, toastOut .3s ease 1.7s both; }
-  @keyframes toastIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
-  @keyframes toastOut { from{opacity:1} to{opacity:0;transform:translateY(-6px)} }
+  /* ---------- Barre latérale rétractable ---------- */
+  .side-nav {
+    position: fixed; top: 0; left: 0; height: 100vh; width: 72px;
+    background: #ffffff; border-right: 1px solid #E7E2F3; z-index: 50;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    transition: width .25s cubic-bezier(.2,.8,.25,1), box-shadow .25s ease;
+  }
+  .side-nav:hover {
+    width: 264px;
+    box-shadow: 16px 0 34px -20px rgba(27,20,100,.35);
+  }
+  .side-nav-logo {
+    height: 80px; flex-shrink: 0; display: flex; align-items: center; gap: 12px;
+    padding: 0 17px; border-bottom: 1px solid #E7E2F3;
+  }
+  .side-nav-logo img { width: 34px; height: 34px; object-fit: contain; flex-shrink: 0; }
+  .side-nav-logo span {
+    font-family: 'Fraunces', serif; font-weight: 600; color: #1B1464; font-size: 13px;
+    white-space: nowrap; opacity: 0; transform: translateX(-6px);
+    transition: opacity .2s ease .05s, transform .2s ease .05s;
+  }
+  .side-nav:hover .side-nav-logo span { opacity: 1; transform: translateX(0); }
+  .side-nav-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 10px 10px 16px; }
+  .side-nav-scroll::-webkit-scrollbar { width: 4px; }
+  .side-nav-scroll::-webkit-scrollbar-thumb { background: #E7E2F3; border-radius: 4px; }
+  .side-cat-label {
+    font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em;
+    color: #9C93BE; padding: 14px 10px 6px; white-space: nowrap;
+    opacity: 0; transition: opacity .2s ease .05s;
+  }
+  .side-nav:hover .side-cat-label { opacity: 1; }
+  .side-item {
+    display: flex; align-items: center; gap: 14px; padding: 10px 11px; border-radius: 14px;
+    margin-bottom: 2px; color: #221D3D; text-decoration: none; white-space: nowrap;
+    transition: background .2s ease;
+  }
+  .side-item:hover { background: #F6F4FC; }
+  .side-item.active { background: #1B1464; }
+  .side-item.active .side-item-label { color: #ffffff; }
+  .side-item.active .side-item-icon svg path,
+  .side-item.active .side-item-icon svg rect,
+  .side-item.active .side-item-icon svg circle { stroke: #ffffff !important; }
+  .side-item-icon {
+    width: 24px; height: 24px; flex-shrink: 0; display: grid; place-items: center;
+  }
+  .side-item-label {
+    font-size: 13px; font-weight: 700; color: #221D3D;
+    opacity: 0; transform: translateX(-6px);
+    transition: opacity .2s ease .05s, transform .2s ease .05s, color .2s ease;
+  }
+  .side-nav:hover .side-item-label { opacity: 1; transform: translateX(0); }
 
-  .month-select, .plain-select {
-    appearance: none; -webkit-appearance: none;
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none'><path d='M6 9l6 6 6-6' stroke='%235B3AA6' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
-    background-repeat: no-repeat; background-position: right .8rem center;
+  body.has-sidenav { padding-left: 72px; }
+  @media (max-width: 767px) {
+    .side-nav { display: none; }
+    body.has-sidenav { padding-left: 0; }
   }
 </style>
 </head>
 
-<body class="antialiased min-h-screen">
+<body class="antialiased min-h-screen has-sidenav">
 
-<!-- Écran affiché si aucune session admin active -->
-<div id="noSessionGate" class="hidden min-h-screen flex items-center justify-center px-5">
-  <div class="w-full max-w-sm bg-white border border-line rounded-3xl shadow-xl p-8 sm:p-10 text-center">
-    <img src="logo.png" alt="Logo RIHANIO" class="h-16 w-16 object-contain mb-5 mx-auto">
-    <h1 class="font-display font-semibold text-navy text-lg mb-2">Session requise</h1>
-    <p class="text-ink/50 text-sm mb-6">Veuillez vous connecter depuis le tableau de bord administratif principal pour accéder à cette page.</p>
-    <a href="admin-dashboard.html" class="inline-flex items-center justify-center gap-2 bg-navy hover:bg-navy-700 text-white font-extrabold px-6 py-3 rounded-full transition-colors text-sm">
-      Aller au Tableau de Bord
-    </a>
+<!-- ===== Barre latérale (icônes -> se déplie au survol) ===== -->
+<nav class="side-nav" id="sideNav" aria-label="Menu Administration">
+  <a href="espace-administration.html" class="side-nav-logo">
+    <img src="logo.png" alt="Logo RIHANIO">
+    <span>RIHANIO</span>
+  </a>
+  <div class="side-nav-scroll" id="sideNavScroll"></div>
+</nav>
+
+
+<script type="module">
+  import { requireAdmin } from './supabase-config.js';
+  requireAdmin(() => { /* accès autorisé */ });
+</script>
+
+<header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-line">
+  <div class="max-w-6xl mx-auto px-5 sm:px-8 h-20 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <img src="logo.png" alt="Logo RIHANIO" class="h-11 w-11 object-contain">
+      <div class="hidden sm:flex flex-col leading-tight">
+        <span class="font-display font-semibold text-navy text-base">Personnel Administratif & Soutien</span>
+        <span class="text-[11px] text-gold-dark font-bold">RIHANIO</span>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <a href="espace-administration.html" class="inline-flex items-center gap-2 text-xs font-bold text-navy/70 hover:text-gold-dark border border-line rounded-full px-4 py-2.5 transition-colors bg-white">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="hidden sm:inline">Espace Administration</span>
+      </a>
+      <button id="logoutBtn" type="button" class="inline-flex items-center gap-2 text-xs font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 rounded-full px-4 py-2.5 transition-colors bg-rose-50">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="hidden sm:inline">Déconnexion</span>
+      </button>
+    </div>
   </div>
-</div>
+</header>
 
-<div id="dashboard" class="hidden">
+<main class="max-w-6xl mx-auto px-5 sm:px-8 py-12 flex flex-col gap-10">
 
-  <header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-line">
-    <div class="max-w-6xl mx-auto px-5 sm:px-8 h-20 flex items-center justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <img src="logo.png" alt="Logo RIHANIO" class="h-11 w-11 object-contain">
-        <div class="hidden sm:flex flex-col leading-tight">
-          <span class="font-display font-semibold text-navy text-base">Gestion des Paiements</span>
-          <span class="text-[11px] text-gold-dark font-bold">RIHANIO — Administration</span>
-        </div>
-      </div>
-      <div class="flex items-center gap-3">
-        <a href="espace-administration.html" class="inline-flex items-center gap-2 text-xs font-bold text-navy/70 hover:text-gold-dark border border-line rounded-full px-4 py-2.5 transition-colors bg-white">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span class="hidden sm:inline">Espace Administration</span>
-        </a>
-        <button id="logoutBtn" class="text-sm font-bold text-navy/60 hover:text-red-500 transition-colors">Déconnexion</button>
-      </div>
+  <div>
+    <h2 class="font-display font-semibold text-navy text-3xl">Gestion du Personnel Administratif & Soutien</h2>
+    <p class="text-ink/50 text-sm mt-2">Ajoutez un membre du personnel (chauffeur, agent de sécurité, agent de propreté, etc.) et gérez ses informations professionnelles et financières.</p>
+  </div>
+
+  <div id="addToggleWrap">
+    <button id="toggleFormBtn" type="button" class="btn-primary inline-flex items-center gap-2 bg-navy text-white font-extrabold text-sm rounded-full px-7 py-3.5">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+      Ajouter le membre du personnel
+    </button>
+  </div>
+
+  <section id="formSection" class="hidden bg-white border border-line rounded-3xl p-6 sm:p-8 shadow-sm">
+    <div class="flex items-center justify-between mb-6">
+      <h3 id="formTitle" class="font-display font-semibold text-navy text-lg">Ajouter un membre du personnel</h3>
+      <button type="button" id="closeFormBtn" aria-label="Fermer le formulaire" class="w-9 h-9 grid place-items-center rounded-full border border-line text-navy/50 hover:text-rose-600 hover:border-rose-200 transition-colors">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
     </div>
-  </header>
 
-  <main class="max-w-6xl mx-auto px-5 sm:px-8 py-10 flex flex-col gap-6">
+    <form id="staffForm" novalidate class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      <input type="hidden" id="editStaffId" value="">
 
-    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+      <!-- Informations personnelles et professionnelles -->
+      <div class="sm:col-span-2 lg:col-span-3">
+        <p class="text-[11px] font-extrabold uppercase tracking-wide text-purple mb-1">Informations personnelles et professionnelles</p>
+      </div>
+
       <div>
-        <h2 class="font-display font-semibold text-navy text-2xl">Frais de Scolarité</h2>
-        <p class="text-ink/50 text-sm mt-1">Suivez les paiements mensuels des élèves admis.</p>
+        <label for="nomComplet" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Nom & Prénom</label>
+        <input id="nomComplet" name="nomComplet" type="text" placeholder="Ex : Karim Benali" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy placeholder:text-ink/30 outline-none">
       </div>
-      <div class="flex items-center gap-2">
-        <select id="monthSelect" class="month-select rounded-full border border-line bg-white pl-4 pr-9 py-2.5 text-xs font-extrabold text-navy focus:border-gold outline-none cursor-pointer"></select>
-        <select id="yearSelect" class="month-select rounded-full border border-line bg-white pl-4 pr-9 py-2.5 text-xs font-extrabold text-navy focus:border-gold outline-none cursor-pointer"></select>
+
+      <div>
+        <label for="cnie" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Numéro CNIE</label>
+        <input id="cnie" name="cnie" type="text" placeholder="Ex : AB123456" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy placeholder:text-ink/30 outline-none">
       </div>
+
+      <div>
+        <label for="telephone" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Téléphone</label>
+        <input id="telephone" name="telephone" type="tel" placeholder="Ex : 06 12 34 56 78" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy placeholder:text-ink/30 outline-none">
+      </div>
+
+      <div>
+        <label for="dateEmbauche" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Date d'Embauche</label>
+        <input id="dateEmbauche" name="dateEmbauche" type="date" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy outline-none">
+      </div>
+
+      <div>
+        <label for="poste" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Sélection du Poste</label>
+        <select id="poste" name="poste" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy outline-none">
+          <option value="" disabled selected>Sélectionner un poste</option>
+          <option value="Chauffeur de Transport Scolaire">Chauffeur de Transport Scolaire</option>
+          <option value="Surveillant(e) Général(e) de l'Externat">Surveillant(e) Général(e) de l'Externat</option>
+          <option value="Accompagnatrice de Transport">Accompagnatrice de Transport</option>
+          <option value="Agent de Propreté / Femme de Ménage">Agent de Propreté / Femme de Ménage</option>
+          <option value="Agent de Sécurité / Gardien">Agent de Sécurité / Gardien</option>
+          <option value="Chargé(e) d'Accueil / Réceptionniste">Chargé(e) d'Accueil / Réceptionniste</option>
+          <option value="Assistant(e) Administratif(ve)">Assistant(e) Administratif(ve)</option>
+          <option value="Technicien de Maintenance / Agent Technique">Technicien de Maintenance / Agent Technique</option>
+          <option value="Cuisinier / Agent de Cantine">Cuisinier / Agent de Cantine</option>
+        </select>
+      </div>
+
+      <!-- Volet financier -->
+      <div class="sm:col-span-2 lg:col-span-3 mt-2">
+        <p class="text-[11px] font-extrabold uppercase tracking-wide text-emerald-600 mb-1">Volet financier</p>
+      </div>
+
+      <div>
+        <label for="salaire" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Salaire Mensuel de Base (DH)</label>
+        <input id="salaire" name="salaire" type="number" min="0" step="0.01" placeholder="Ex : 3500" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy placeholder:text-ink/30 outline-none">
+      </div>
+
+      <div class="sm:col-span-2">
+        <label for="rib" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Numéro de Compte Bancaire / RIB</label>
+        <input id="rib" name="rib" type="text" placeholder="Ex : 007 780 0001234567890012 34" class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy placeholder:text-ink/30 outline-none">
+        <p class="text-[11px] text-ink/40 mt-1.5 px-1">Facultatif — utile pour faciliter le virement bancaire.</p>
+      </div>
+
+      <p id="formError" class="hidden sm:col-span-2 lg:col-span-3 text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3">
+        Veuillez remplir tous les champs obligatoires avant d'ajouter le membre du personnel.
+      </p>
+
+      <div class="sm:col-span-2 lg:col-span-3 flex justify-end gap-3">
+        <button type="button" id="cancelEditBtn" class="hidden inline-flex items-center gap-2 bg-line text-navy font-extrabold text-sm rounded-full px-6 py-3.5 transition-all">
+          Annuler
+        </button>
+        <button type="submit" id="submitBtn" class="btn-primary inline-flex items-center gap-2 bg-navy text-white font-extrabold text-sm rounded-full px-7 py-3.5">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+          <span id="submitBtnText">Ajouter le membre du personnel</span>
+        </button>
+      </div>
+
+    </form>
+  </section>
+
+  <section class="bg-white border border-line rounded-3xl shadow-sm overflow-hidden">
+    <div class="px-6 sm:px-8 py-6 flex items-center justify-between border-b border-line">
+      <h3 class="font-display font-semibold text-navy text-lg">Liste du personnel</h3>
+      <span id="countBadge" class="text-xs font-extrabold text-navy/60 bg-mist rounded-full px-3 py-1.5">0 membre</span>
     </div>
 
-    <!-- KPI -->
-    <section class="grid sm:grid-cols-3 gap-4">
-      <div class="bg-white border border-line rounded-2xl p-5">
-        <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Total attendu</p>
-        <p id="kpiTotal" class="font-display font-semibold text-navy text-2xl num">0 DH</p>
-      </div>
-      <div class="bg-white border border-line rounded-2xl p-5">
-        <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Total encaissé</p>
-        <p id="kpiPaid" class="font-display font-semibold text-emerald-600 text-2xl num">0 DH</p>
-      </div>
-      <div class="bg-white border border-line rounded-2xl p-5">
-        <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Taux de recouvrement</p>
-        <p id="kpiRate" class="font-display font-semibold text-purple text-2xl num">0%</p>
-      </div>
-    </section>
-
-    <div class="flex flex-wrap items-center gap-3">
-      <div class="relative w-full sm:w-72">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" class="absolute left-4 top-1/2 -translate-y-1/2 text-ink/30"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-        <input id="searchInput" type="text" placeholder="Rechercher par nom ou matricule..." class="w-full rounded-full border border-line bg-white pl-11 pr-4 py-2.5 text-sm focus:border-gold outline-none">
-      </div>
-      <select id="levelFilter" class="plain-select rounded-full border border-line bg-white pl-4 pr-9 py-2 text-xs font-bold text-navy focus:border-gold outline-none cursor-pointer">
-        <option value="">Tous les niveaux</option>
-      </select>
-      <select id="statusFilter" class="plain-select rounded-full border border-line bg-white pl-4 pr-9 py-2 text-xs font-bold text-navy focus:border-gold outline-none cursor-pointer">
-        <option value="">Tous les statuts</option>
-        <option value="Payé">Payé</option>
-        <option value="Non payé">Non payé</option>
-      </select>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-left text-[11px] font-extrabold uppercase tracking-wide text-ink/40 bg-mist/60">
+            <th class="px-6 sm:px-8 py-3.5 whitespace-nowrap">Nom & Prénom</th>
+            <th class="px-4 py-3.5 whitespace-nowrap">CNIE</th>
+            <th class="px-4 py-3.5 whitespace-nowrap">Téléphone</th>
+            <th class="px-4 py-3.5 whitespace-nowrap">Date d'Embauche</th>
+            <th class="px-4 py-3.5 whitespace-nowrap">Poste</th>
+            <th class="px-4 py-3.5 whitespace-nowrap text-emerald-600">Salaire de Base</th>
+            <th class="px-4 py-3.5 whitespace-nowrap text-purple">RIB</th>
+            <th class="px-4 sm:px-8 py-3.5 whitespace-nowrap text-right">Action</th>
+          </tr>
+        </thead>
+        <tbody id="staffTableBody" class="divide-y divide-line"></tbody>
+      </table>
     </div>
 
-    <section class="bg-white border border-line rounded-3xl shadow-sm overflow-hidden">
-      <div class="px-6 sm:px-8 py-6 flex items-center justify-between border-b border-line">
-        <h3 class="font-display font-semibold text-navy text-lg">Liste des élèves</h3>
-        <div class="flex flex-wrap items-center gap-2">
-          <span id="countBadge" class="text-xs font-extrabold text-navy/60 bg-mist rounded-full px-3 py-1.5">0 élève</span>
-          <input type="file" id="importFileInput" accept=".xlsx,.xls,.csv" class="hidden">
-          <button type="button" id="importBtn" class="inline-flex items-center gap-1.5 text-xs font-extrabold text-purple bg-purple/10 hover:bg-purple hover:text-white border border-purple/20 rounded-full px-4 py-2.5 transition-colors">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0-12l4 4m-4-4L8 7M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="rotate(180 12 12)"/></svg>
-            Importer
-          </button>
-          <button type="button" id="exportExcelBtn" class="inline-flex items-center gap-1.5 text-xs font-extrabold text-emerald-700 bg-emerald-50 hover:bg-emerald-600 hover:text-white border border-emerald-200 rounded-full px-4 py-2.5 transition-colors">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 19V6a2 2 0 012-2h9l5 5v10a2 2 0 01-2 2H6a2 2 0 01-2-2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-            Excel
-          </button>
-          <button type="button" id="exportPdfBtn" class="inline-flex items-center gap-1.5 text-xs font-extrabold text-rose-700 bg-rose-50 hover:bg-rose-600 hover:text-white border border-rose-200 rounded-full px-4 py-2.5 transition-colors">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 19V6a2 2 0 012-2h9l5 5v10a2 2 0 01-2 2H6a2 2 0 01-2-2z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 12h8M8 16h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-            PDF
-          </button>
-        </div>
-      </div>
-      <p id="importSummary" class="hidden mx-6 sm:mx-8 mt-4 text-xs font-bold text-navy bg-mist border border-line rounded-xl px-4 py-3"></p>
+    <div id="emptyState" class="px-8 py-14 text-center">
+      <p class="text-ink/40 text-sm">Aucun membre du personnel ajouté pour le moment.</p>
+    </div>
+  </section>
 
-      <div id="loadingState" class="flex flex-col items-center justify-center py-16 gap-4">
-        <span class="spinner" style="width:28px;height:28px;border-width:4px;"></span>
-        <p class="text-ink/50 text-sm">Chargement des données...</p>
-      </div>
-
-      <div class="overflow-x-auto">
-        <table id="dataTable" class="hidden w-full text-sm">
-          <thead>
-            <tr class="text-left text-[11px] font-extrabold uppercase tracking-wide text-ink/40 bg-mist/60">
-              <th class="px-6 sm:px-8 py-3.5 whitespace-nowrap">Matricule</th>
-              <th class="px-4 py-3.5 whitespace-nowrap">Nom</th>
-              <th class="px-4 py-3.5 whitespace-nowrap">Niveau</th>
-              <th class="px-4 py-3.5 whitespace-nowrap text-center">Montant</th>
-              <th class="px-4 py-3.5 whitespace-nowrap text-center">Méthode</th>
-              <th class="px-4 py-3.5 whitespace-nowrap text-center">Statut</th>
-              <th class="px-4 sm:px-8 py-3.5 whitespace-nowrap text-center">Date de paiement</th>
-            </tr>
-          </thead>
-          <tbody id="tableBody" class="divide-y divide-line"></tbody>
-        </table>
-      </div>
-
-      <div id="emptyState" class="hidden px-8 py-14 text-center">
-        <p class="text-ink/40 text-sm">Aucun élève admis pour le moment.</p>
-      </div>
-    </section>
-
-  </main>
-</div>
+</main>
 
 <div id="toastWrap" class="fixed bottom-6 inset-x-0 flex justify-center pointer-events-none z-50"></div>
 
 <script type="module">
-import { auth, db, signOut, collection, getDocs, doc, getDoc, setDoc, requireAdmin } from './supabase-config.js';
+  import {
+    db, auth, signOut, doc, setDoc, deleteDoc, collection, getDocs
+  } from './supabase-config.js';
 
-const MONTHS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-const METHODS = ['Espèces', 'Chèque', 'Virement'];
+  // Collection "staff" : regroupe tout le personnel administratif et de soutien
+  // (chauffeurs, surveillants, agents de sécurité, de propreté, de cantine, etc.).
+  // Le champ "salaire" est réutilisable tel quel par la page Gestion des Salaires
+  // (gestion-salaires.html) pour afficher/suivre les paiements de ce personnel,
+  // au même titre que la collection "teachers".
+  const STAFF_COL = collection(db, 'staff');
+  let loadedStaffCache = [];
 
-const monthSelect = document.getElementById('monthSelect');
-const yearSelect = document.getElementById('yearSelect');
-const now = new Date();
+  const form           = document.getElementById('staffForm');
+  const formError      = document.getElementById('formError');
+  const tableBody      = document.getElementById('staffTableBody');
+  const emptyState     = document.getElementById('emptyState');
+  const countBadge     = document.getElementById('countBadge');
+  const toastWrap      = document.getElementById('toastWrap');
 
-MONTHS.forEach((m, i) => {
-  const opt = document.createElement('option');
-  opt.value = i + 1;
-  opt.textContent = m;
-  monthSelect.appendChild(opt);
-});
-monthSelect.value = now.getMonth() + 1;
+  const editStaffId    = document.getElementById('editStaffId');
+  const formTitle      = document.getElementById('formTitle');
+  const submitBtnText  = document.getElementById('submitBtnText');
+  const cancelEditBtn  = document.getElementById('cancelEditBtn');
 
-const currentYear = now.getFullYear();
-for (let y = currentYear - 1; y <= currentYear + 1; y++) {
-  const opt = document.createElement('option');
-  opt.value = y;
-  opt.textContent = y;
-  yearSelect.appendChild(opt);
-}
-yearSelect.value = currentYear;
+  const addToggleWrap  = document.getElementById('addToggleWrap');
+  const toggleFormBtn  = document.getElementById('toggleFormBtn');
+  const formSection    = document.getElementById('formSection');
+  const closeFormBtn   = document.getElementById('closeFormBtn');
 
-let allStudents = [];       // élèves admis
-let paymentsByStudent = {}; // studentId -> {montant, methode, statut, datePaiement}
-
-function fmtDH(n) {
-  const num = Number(n) || 0;
-  const parts = num.toFixed(2).split('.');
-  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
-  return parts.join('.') + ' DH';
-}
-
-function slugify(str) {
-  return (str || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9]+/g, '_');
-}
-
-// --- Génération du reçu de paiement (PDF) déclenchée au passage en "Payé" -----------
-function generateReceipt(student, payment, annee, mois) {
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  const pageWidth = pdf.internal.pageSize.getWidth();
-
-  pdf.setFont(undefined, 'bold');
-  pdf.setFontSize(16);
-  pdf.setTextColor(27, 20, 100);
-  pdf.text('RIHANIO', 14, 18);
-  pdf.setFont(undefined, 'normal');
-  pdf.setFontSize(9);
-  pdf.setTextColor(120, 120, 120);
-  pdf.text('Établissement scolaire privé', 14, 24);
-
-  pdf.setDrawColor(27, 20, 100);
-  pdf.setLineWidth(0.6);
-  pdf.line(14, 28, pageWidth - 14, 28);
-
-  pdf.setFont(undefined, 'bold');
-  pdf.setFontSize(15);
-  pdf.setTextColor(27, 20, 100);
-  pdf.text('REÇU DE PAIEMENT — FRAIS DE SCOLARITÉ', pageWidth / 2, 40, { align: 'center' });
-
-  const numero = `${student.id}-${annee}${String(mois).padStart(2, '0')}`;
-  pdf.setFont(undefined, 'normal');
-  pdf.setFontSize(10);
-  pdf.setTextColor(90, 90, 90);
-  pdf.text(`Reçu N° : ${numero}`, 14, 50);
-  pdf.text(`Date d'émission : ${new Date().toLocaleDateString('fr-FR')}`, pageWidth - 14, 50, { align: 'right' });
-
-  pdf.autoTable({
-    startY: 58,
-    theme: 'plain',
-    styles: { fontSize: 10, cellPadding: 1.5, textColor: [40, 40, 40] },
-    body: [
-      ['Élève', `${student.prenom || ''} ${student.nom || ''}`.trim() || '—'],
-      ['Matricule', student.id || '—'],
-      ['Niveau', student.niveau || '—'],
-      ['Période concernée', `${MONTHS[mois - 1]} ${annee}`],
-    ],
-    columnStyles: { 0: { fontStyle: 'bold', textColor: [27, 20, 100], cellWidth: 55 } },
-  });
-
-  const afterInfoY = pdf.lastAutoTable.finalY + 8;
-
-  pdf.autoTable({
-    startY: afterInfoY,
-    head: [['Description', 'Montant']],
-    body: [[`Frais de scolarité — ${MONTHS[mois - 1]} ${annee}`, fmtDH(payment.montant)]],
-    styles: { fontSize: 10, cellPadding: 3 },
-    headStyles: { fillColor: [27, 20, 100], textColor: 255, fontStyle: 'bold' },
-    columnStyles: { 1: { halign: 'right', fontStyle: 'bold' } },
-  });
-
-  const afterAmountY = pdf.lastAutoTable.finalY + 8;
-  pdf.setFontSize(10);
-  pdf.setTextColor(70, 70, 70);
-  pdf.text(`Méthode de paiement : ${payment.methode || 'Espèces'}`, 14, afterAmountY);
-  pdf.text(`Date de paiement : ${payment.datePaiement ? new Date(payment.datePaiement).toLocaleDateString('fr-FR') : '—'}`, 14, afterAmountY + 6);
-
-  pdf.setFont(undefined, 'bold');
-  pdf.setFontSize(11);
-  pdf.setTextColor(4, 120, 87);
-  pdf.text('STATUT : PAYÉ', 14, afterAmountY + 18);
-
-  pdf.setFont(undefined, 'normal');
-  pdf.setFontSize(8.5);
-  pdf.setTextColor(150, 150, 150);
-  pdf.text("Ce reçu atteste du paiement des frais de scolarité mentionnés ci-dessus.", 14, afterAmountY + 32);
-  pdf.text("Signature et cachet de l'établissement :", pageWidth - 14, afterAmountY + 32, { align: 'right' });
-
-  pdf.save(`recu_${slugify(student.id)}_${MONTHS[mois - 1]}_${annee}.pdf`);
-}
-
-function paymentId(studentId, annee, mois) {
-  return `${studentId}::${annee}-${String(mois).padStart(2, '0')}`;
-}
-
-function showToast(message) {
-  const toastWrap = document.getElementById('toastWrap');
-  const toast = document.createElement('div');
-  toast.className = 'toast pointer-events-auto bg-navy text-white text-sm font-bold rounded-full px-6 py-3 shadow-lg flex items-center gap-2';
-  toast.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#F0A93C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>${message}`;
-  toastWrap.appendChild(toast);
-  setTimeout(() => toast.remove(), 2000);
-}
-
-function populateLevelFilter() {
-  const select = document.getElementById('levelFilter');
-  const levels = [...new Set(allStudents.map(s => s.niveau).filter(Boolean))].sort();
-  select.innerHTML = '<option value="">Tous les niveaux</option>' +
-    levels.map(l => `<option value="${l}">${l}</option>`).join('');
-}
-
-function statusPillHtml(statut) {
-  const cls = statut === 'Payé' ? 'status-paid' : 'status-unpaid';
-  return `<button type="button" class="status-pill status-toggle border text-[11px] font-extrabold rounded-full px-3.5 py-2 ${cls}">${statut}</button>`;
-}
-
-function methodSelectHtml(current) {
-  return `<select class="method-select plain-select rounded-full border border-line bg-mist pl-3 pr-7 py-2 text-xs font-bold text-navy outline-none cursor-pointer">
-    ${METHODS.map(m => `<option value="${m}" ${m === current ? 'selected' : ''}>${m}</option>`).join('')}
-  </select>`;
-}
-
-async function loadPayments(annee, mois) {
-  paymentsByStudent = {};
-  for (const s of allStudents) {
-    const pid = paymentId(s.id, annee, mois);
-    try {
-      const snap = await getDoc(doc(db, 'student_payments', pid));
-      if (snap.exists()) paymentsByStudent[s.id] = snap.data();
-    } catch (e) { /* pas encore de paiement pour cet élève ce mois */ }
+  function openForm() {
+    formSection.classList.remove('hidden');
+    addToggleWrap.classList.add('hidden');
+    formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
-}
 
-function updateKpis(rows) {
-  let total = 0, paid = 0;
-  rows.forEach((r) => {
-    total += r.montant;
-    if (r.statut === 'Payé') paid += r.montant;
-  });
-  document.getElementById('kpiTotal').textContent = fmtDH(total);
-  document.getElementById('kpiPaid').textContent = fmtDH(paid);
-  document.getElementById('kpiRate').textContent = total > 0 ? Math.round((paid / total) * 100) + '%' : '0%';
-}
-
-function getFilteredStudents() {
-  const q = document.getElementById('searchInput').value.trim().toLowerCase();
-  const level = document.getElementById('levelFilter').value;
-  const status = document.getElementById('statusFilter').value;
-
-  return allStudents.filter((s) => {
-    const matchesQuery = !q ||
-      (s.prenom || '').toLowerCase().includes(q) ||
-      (s.nom || '').toLowerCase().includes(q) ||
-      (s.id || '').toLowerCase().includes(q);
-    const matchesLevel = !level || s.niveau === level;
-    const p = paymentsByStudent[s.id] || {};
-    const statut = p.statut || 'Non payé';
-    const matchesStatus = !status || statut === status;
-    return matchesQuery && matchesLevel && matchesStatus;
-  });
-}
-
-function renderRows(annee, mois) {
-  const tbody = document.getElementById('tableBody');
-  const table = document.getElementById('dataTable');
-  const emptyState = document.getElementById('emptyState');
-  tbody.innerHTML = '';
-
-  const filtered = getFilteredStudents();
-  document.getElementById('countBadge').textContent =
-    filtered.length + (filtered.length > 1 ? ' élèves' : ' élève');
-
-  if (filtered.length === 0) {
-    table.classList.add('hidden');
-    emptyState.classList.remove('hidden');
-    return;
+  function closeForm() {
+    form.reset();
+    editStaffId.value = "";
+    formTitle.textContent = "Ajouter un membre du personnel";
+    submitBtnText.textContent = "Ajouter le membre du personnel";
+    cancelEditBtn.classList.add('hidden');
+    formError.classList.add('hidden');
+    formSection.classList.add('hidden');
+    addToggleWrap.classList.remove('hidden');
   }
-  emptyState.classList.add('hidden');
-  table.classList.remove('hidden');
 
-  const summaryRows = [];
+  toggleFormBtn.addEventListener('click', openForm);
+  closeFormBtn.addEventListener('click', closeForm);
 
-  filtered.forEach((s) => {
-    const p = paymentsByStudent[s.id] || {};
-    const montant = p.montant ?? 0;
-    const methode = p.methode || 'Espèces';
-    const statut = p.statut || 'Non payé';
-    const datePaiement = p.datePaiement || '';
-    summaryRows.push({ montant: Number(montant) || 0, statut });
-
-    const tr = document.createElement('tr');
-    tr.className = 'row-enter hover:bg-mist/40 transition-colors';
-    tr.dataset.student = s.id;
-    tr.dataset.statut = statut;
-    tr.innerHTML = `
-      <td class="px-6 sm:px-8 py-3.5 whitespace-nowrap font-mono text-xs font-bold text-purple">${s.id}</td>
-      <td class="px-4 py-3.5 whitespace-nowrap font-bold text-navy">${s.prenom || ''} ${s.nom || ''}</td>
-      <td class="px-4 py-3.5 whitespace-nowrap text-ink/70">${s.niveau || '—'}</td>
-      <td class="px-4 py-3.5 text-center">
-        <input type="number" min="0" step="50" value="${montant}" data-student="${s.id}"
-          class="amount-field w-24 rounded-xl border border-line bg-mist px-2 py-2 text-sm text-center text-navy font-bold outline-none num">
-      </td>
-      <td class="px-4 py-3.5 text-center">${methodSelectHtml(methode)}</td>
-      <td class="px-4 py-3.5 text-center">${statusPillHtml(statut)}</td>
-      <td class="px-4 sm:px-8 py-3.5 text-center">
-        <input type="date" value="${datePaiement}" class="date-field rounded-xl border border-line bg-mist px-2 py-2 text-xs text-center text-ink/70 outline-none">
-      </td>
+  function showToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'toast pointer-events-auto bg-navy text-white text-sm font-bold rounded-full px-6 py-3 shadow-lg flex items-center gap-2';
+    toast.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#F0A93C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      ${message}
     `;
-    tbody.appendChild(tr);
+    toastWrap.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  }
 
-    const amountInput = tr.querySelector('.amount-field');
-    const methodSelect = tr.querySelector('.method-select');
-    const statusBtn = tr.querySelector('.status-toggle');
-    const dateInput = tr.querySelector('.date-field');
+  async function loadStaff() {
+    const snap = await getDocs(STAFF_COL);
+    loadedStaffCache = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    return loadedStaffCache;
+  }
 
-    async function persist() {
-      const pid = paymentId(s.id, annee, mois);
-      const montantVal = Math.max(0, parseFloat(amountInput.value) || 0);
-      amountInput.value = montantVal;
-      const dataObj = {
-        studentId: s.id, annee, mois,
-        montant: montantVal,
-        methode: methodSelect.value,
-        statut: tr.dataset.statut,
-        datePaiement: dateInput.value || null,
-      };
-      try {
-        await setDoc(doc(db, 'student_payments', pid), dataObj);
-        paymentsByStudent[s.id] = dataObj;
-        amountInput.classList.add('saved');
-        setTimeout(() => amountInput.classList.remove('saved'), 1000);
-        tr.classList.add('saved-flash');
-        setTimeout(() => tr.classList.remove('saved-flash'), 1000);
-        showToast('Enregistré');
-        updateKpis(getFilteredStudents().map(st => {
-          const pp = paymentsByStudent[st.id] || {};
-          return { montant: Number(pp.montant) || 0, statut: pp.statut || 'Non payé' };
-        }));
-      } catch (e) {
-        alert("Erreur lors de l'enregistrement du paiement.");
-      }
+  function formatDate(dateStr) {
+    if (!dateStr) return '—';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+
+  function formatSalaire(salaire) {
+    const num = Number(salaire);
+    if (isNaN(num)) return '—';
+    return num.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' DH';
+  }
+
+  function genStaffId() {
+    if (window.crypto && crypto.randomUUID) return 'staff_' + crypto.randomUUID();
+    return 'staff_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
+  }
+
+  async function render() {
+    tableBody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-navy/50">Chargement du personnel...</td></tr>`;
+    let staffList;
+    try {
+      staffList = await loadStaff();
+    } catch (e) {
+      tableBody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-rose-600 font-bold">Erreur de connexion à la base de données.</td></tr>`;
+      return;
+    }
+    tableBody.innerHTML = '';
+
+    staffList.sort((a, b) => (a.nomComplet || '').localeCompare(b.nomComplet || ''));
+
+    if (staffList.length === 0) {
+      emptyState.classList.remove('hidden');
+    } else {
+      emptyState.classList.add('hidden');
     }
 
-    amountInput.addEventListener('change', persist);
-    methodSelect.addEventListener('change', persist);
-    dateInput.addEventListener('change', persist);
-
-    statusBtn.addEventListener('click', async () => {
-      const next = tr.dataset.statut === 'Payé' ? 'Non payé' : 'Payé';
-      tr.dataset.statut = next;
-      statusBtn.textContent = next;
-      statusBtn.classList.remove('status-paid', 'status-unpaid');
-      statusBtn.classList.add(next === 'Payé' ? 'status-paid' : 'status-unpaid');
-      if (next === 'Payé' && !dateInput.value) {
-        dateInput.value = new Date().toISOString().slice(0, 10);
-      }
-      await persist();
-      if (next === 'Payé') {
-        generateReceipt(s, paymentsByStudent[s.id] || {
-          montant: amountInput.value, methode: methodSelect.value, datePaiement: dateInput.value,
-        }, annee, mois);
-      }
+    staffList.forEach((s) => {
+      const tr = document.createElement('tr');
+      tr.className = 'row-enter hover:bg-mist/50 transition-colors';
+      tr.innerHTML = `
+        <td class="px-6 sm:px-8 py-4 font-bold text-navy whitespace-nowrap">${s.nomComplet || '—'}</td>
+        <td class="px-4 py-4 whitespace-nowrap font-mono text-xs text-ink/60">${s.cnie || '—'}</td>
+        <td class="px-4 py-4 whitespace-nowrap text-ink/60">${s.telephone || '—'}</td>
+        <td class="px-4 py-4 whitespace-nowrap text-ink/60 num">${formatDate(s.dateEmbauche)}</td>
+        <td class="px-4 py-4 whitespace-nowrap"><span class="inline-block text-[11px] font-extrabold rounded-full px-3 py-1 badge-poste">${s.poste || '—'}</span></td>
+        <td class="px-4 py-4 whitespace-nowrap font-bold text-emerald-600 num">${formatSalaire(s.salaire)}</td>
+        <td class="px-4 py-4 whitespace-nowrap font-mono text-xs text-purple">${s.rib || '—'}</td>
+        <td class="px-4 sm:px-8 py-4 whitespace-nowrap text-right">
+          <div class="flex items-center justify-end gap-3.5">
+            <button data-id="${s.id}" class="editBtn text-gold-dark hover:text-gold flex items-center gap-1 text-xs font-bold" title="Modifier">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Modifier
+            </button>
+            <button data-id="${s.id}" class="deleteBtn inline-flex items-center gap-1.5 text-xs font-bold text-rose-500 hover:text-rose-700 transition-colors">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6h14z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Supprimer
+            </button>
+          </div>
+        </td>
+      `;
+      tableBody.appendChild(tr);
     });
-  });
 
-  updateKpis(summaryRows);
-}
+    countBadge.textContent = staffList.length + (staffList.length > 1 ? ' membres' : ' membre');
 
-async function reload() {
-  const loadingState = document.getElementById('loadingState');
-  const table = document.getElementById('dataTable');
-  loadingState.classList.remove('hidden');
-  table.classList.add('hidden');
+    document.querySelectorAll('.editBtn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        const s = loadedStaffCache.find(x => x.id === id);
+        if (!s) return;
 
-  const annee = parseInt(yearSelect.value, 10);
-  const mois = parseInt(monthSelect.value, 10);
-  await loadPayments(annee, mois);
+        document.getElementById('nomComplet').value  = s.nomComplet || '';
+        document.getElementById('cnie').value         = s.cnie || '';
+        document.getElementById('telephone').value    = s.telephone || '';
+        document.getElementById('dateEmbauche').value = s.dateEmbauche || '';
+        document.getElementById('poste').value        = s.poste || '';
+        document.getElementById('salaire').value      = s.salaire ?? '';
+        document.getElementById('rib').value           = s.rib || '';
 
-  loadingState.classList.add('hidden');
-  renderRows(annee, mois);
-}
+        editStaffId.value = s.id;
+        formTitle.textContent = "Modifier : " + (s.nomComplet || '');
+        submitBtnText.textContent = "Enregistrer les modifications";
+        cancelEditBtn.classList.remove('hidden');
+        formError.classList.add('hidden');
+        openForm();
+      });
+    });
 
-monthSelect.addEventListener('change', reload);
-yearSelect.addEventListener('change', reload);
-document.getElementById('searchInput').addEventListener('input', () => renderRows(parseInt(yearSelect.value, 10), parseInt(monthSelect.value, 10)));
-document.getElementById('levelFilter').addEventListener('change', () => renderRows(parseInt(yearSelect.value, 10), parseInt(monthSelect.value, 10)));
-document.getElementById('statusFilter').addEventListener('change', () => renderRows(parseInt(yearSelect.value, 10), parseInt(monthSelect.value, 10)));
+    document.querySelectorAll('.deleteBtn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Voulez-vous vraiment supprimer ce membre du personnel ?')) return;
+        const id = btn.getAttribute('data-id');
+        btn.disabled = true;
+        btn.textContent = 'Suppression...';
+        try {
+          await deleteDoc(doc(db, 'staff', id));
+          showToast('Membre du personnel supprimé avec succès');
+          render();
+        } catch (e) {
+          alert('Erreur lors de la suppression : ' + e.message);
+          render();
+        }
+      });
+    });
+  }
 
-// --- Export Excel / PDF (mois/année + filtres actuels) --------------------------------
-function exportFileName(ext) {
-  const mois = MONTHS[parseInt(monthSelect.value, 10) - 1];
-  return `paiements_${mois}_${yearSelect.value}.${ext}`;
-}
+  cancelEditBtn.addEventListener('click', closeForm);
 
-document.getElementById('exportExcelBtn').addEventListener('click', () => {
-  const rows = getFilteredStudents().map((s) => {
-    const p = paymentsByStudent[s.id] || {};
-    return {
-      'Matricule': s.id, 'Nom': `${s.prenom || ''} ${s.nom || ''}`.trim(), 'Niveau': s.niveau || '',
-      'Montant (DH)': Number(p.montant) || 0, 'Méthode': p.methode || 'Espèces',
-      'Statut': p.statut || 'Non payé', 'Date de paiement': p.datePaiement || '',
-    };
-  });
-  if (rows.length === 0) { alert('Aucune donnée à exporter avec ces filtres.'); return; }
-  const ws = XLSX.utils.json_to_sheet(rows);
-  ws['!cols'] = [{ wch: 14 }, { wch: 22 }, { wch: 16 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 14 }];
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Paiements');
-  XLSX.writeFile(wb, exportFileName('xlsx'));
-});
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-document.getElementById('exportPdfBtn').addEventListener('click', () => {
-  const rows = getFilteredStudents().map((s) => {
-    const p = paymentsByStudent[s.id] || {};
-    return [s.id, `${s.prenom || ''} ${s.nom || ''}`.trim(), s.niveau || '', fmtDH(p.montant), p.methode || 'Espèces', p.statut || 'Non payé', p.datePaiement || '—'];
-  });
-  if (rows.length === 0) { alert('Aucune donnée à exporter avec ces filtres.'); return; }
+    const nomComplet   = document.getElementById('nomComplet').value.trim();
+    const cnie         = document.getElementById('cnie').value.trim();
+    const telephone    = document.getElementById('telephone').value.trim();
+    const dateEmbauche = document.getElementById('dateEmbauche').value;
+    const poste        = document.getElementById('poste').value;
+    const salaire      = document.getElementById('salaire').value;
+    const rib          = document.getElementById('rib').value.trim();
+    const isEditMode   = editStaffId.value !== "";
 
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-  pdf.setFontSize(14);
-  pdf.setTextColor(27, 20, 100);
-  pdf.text('RIHANIO — Frais de Scolarité', 14, 15);
-  pdf.setFontSize(9);
-  pdf.setTextColor(120, 120, 120);
-  pdf.text(`${MONTHS[parseInt(monthSelect.value, 10) - 1]} ${yearSelect.value}   •   Généré le ${new Date().toLocaleDateString('fr-FR')}`, 14, 21);
-
-  pdf.autoTable({
-    head: [['Matricule', 'Nom', 'Niveau', 'Montant', 'Méthode', 'Statut', 'Date de paiement']],
-    body: rows,
-    startY: 26,
-    styles: { fontSize: 8, cellPadding: 2 },
-    headStyles: { fillColor: [27, 20, 100], textColor: 255, fontStyle: 'bold' },
-    alternateRowStyles: { fillColor: [246, 244, 252] },
-  });
-
-  pdf.save(exportFileName('pdf'));
-});
-
-// --- Import Excel / CSV --------------------------------------------------------------
-// Colonnes attendues : Matricule, Montant, Méthode (optionnel), Statut (optionnel),
-// Date de paiement (optionnel). Chaque ligne est appliquée à l'élève dont le matricule
-// correspond exactement ; les lignes sans correspondance sont ignorées.
-const importBtn = document.getElementById('importBtn');
-const importFileInput = document.getElementById('importFileInput');
-const importSummary = document.getElementById('importSummary');
-
-importBtn.addEventListener('click', () => importFileInput.click());
-function normalizeHeader(h) { return (h || '').toString().trim().toLowerCase(); }
-
-importFileInput.addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  importSummary.classList.add('hidden');
-
-  try {
-    const buffer = await file.arrayBuffer();
-    const wb = XLSX.read(buffer, { type: 'array' });
-    const sheet = wb.Sheets[wb.SheetNames[0]];
-    const rawRows = XLSX.utils.sheet_to_json(sheet, { defval: '' });
-
-    const annee = parseInt(yearSelect.value, 10);
-    const mois = parseInt(monthSelect.value, 10);
-
-    let success = 0, notFound = 0, invalid = 0;
-    for (const raw of rawRows) {
-      const map = {};
-      Object.keys(raw).forEach((k) => { map[normalizeHeader(k)] = raw[k]; });
-
-      const matricule = String(map['matricule'] || '').trim();
-      const montant = parseFloat(map['montant'] || map['montant (dh)']);
-      if (!matricule || isNaN(montant) || montant < 0) { invalid += 1; continue; }
-
-      const student = allStudents.find((s) => s.id === matricule);
-      if (!student) { notFound += 1; continue; }
-
-      const methode = ['Espèces', 'Chèque', 'Virement'].includes(String(map['méthode'] || map['methode'] || '').trim())
-        ? String(map['méthode'] || map['methode']).trim() : 'Espèces';
-      const statutRaw = String(map['statut'] || '').trim().toLowerCase();
-      const statut = statutRaw.startsWith('pay') && !statutRaw.includes('non') ? 'Payé' : 'Non payé';
-      const dateValue = map['date de paiement'] || map['date'];
-      let datePaiement = null;
-      if (dateValue) {
-        const parsed = new Date(dateValue);
-        if (!isNaN(parsed)) datePaiement = parsed.toISOString().slice(0, 10);
-      }
-
-      const pid = paymentId(student.id, annee, mois);
-      const dataObj = { studentId: student.id, annee, mois, montant, methode, statut, datePaiement };
-      try {
-        await setDoc(doc(db, 'student_payments', pid), dataObj);
-        paymentsByStudent[student.id] = dataObj;
-        success += 1;
-      } catch (err) {
-        invalid += 1;
-      }
+    if (!nomComplet || !cnie || !telephone || !dateEmbauche || !poste || salaire === '') {
+      formError.textContent = "Veuillez remplir tous les champs obligatoires avant d'ajouter le membre du personnel.";
+      formError.classList.remove('hidden');
+      return;
     }
+    formError.classList.add('hidden');
 
-    importSummary.textContent = `${success} paiement(s) importé(s) avec succès` +
-      (notFound > 0 ? `, ${notFound} matricule(s) non trouvé(s)` : '') +
-      (invalid > 0 ? `, ${invalid} ligne(s) invalide(s)` : '') + '.';
-    importSummary.classList.remove('hidden');
-    if (success > 0) { showToast('Import terminé'); renderRows(annee, mois); }
-  } catch (err) {
-    importSummary.textContent = "Erreur lors de la lecture du fichier. Vérifiez qu'il s'agit bien d'un fichier Excel (.xlsx) ou CSV valide.";
-    importSummary.classList.remove('hidden');
-  } finally {
-    importFileInput.value = '';
-  }
-});
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    const originalBtnHtml = submitBtn.innerHTML;
+    submitBtn.innerHTML = isEditMode ? 'Enregistrement...' : 'Ajout en cours...';
 
-requireAdmin(async () => {
-  try {
-    const snap = await getDocs(collection(db, 'students'));
-    allStudents = snap.docs.map((d) => ({ id: d.id, ...d.data() }))
-      .filter((s) => s.statut === 'Accepté')
-      .sort((a, b) => `${a.nom}${a.prenom}`.localeCompare(`${b.nom}${b.prenom}`));
-  } catch (e) {
-    allStudents = [];
-  }
-  populateLevelFilter();
-  reload();
-});
+    try {
+      const id = isEditMode ? editStaffId.value : genStaffId();
+      await setDoc(doc(db, 'staff', id), {
+        nomComplet, cnie, telephone, dateEmbauche, poste,
+        salaire: Number(salaire), rib,
+        createdAt: isEditMode ? undefined : new Date().toISOString()
+      });
 
-document.getElementById('logoutBtn').addEventListener('click', async () => {
-  await signOut(auth);
-  location.href = 'connexion.html';
-});
+      showToast(isEditMode ? 'Membre du personnel modifié avec succès' : 'Membre du personnel ajouté avec succès');
+      closeForm();
+      render();
+    } catch (err) {
+      alert("Erreur lors de l'opération : " + err.message);
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnHtml;
+    }
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', async () => {
+    await signOut(auth);
+    window.location.href = 'connexion.html';
+  });
+
+  render();
+</script>
+
+
+<!-- ===== Contenu de la barre latérale ===== -->
+<script>
+  (function () {
+    const SIDE_ITEMS = [
+      { href: 'admin-dashboard.html', category: 'Élèves & Scolarité', title: "Suivi des Inscriptions",
+        icon: `<path d="M9 12h6M9 16h6M9 8h6" stroke="#1B1464" stroke-width="1.8" stroke-linecap="round"/><path d="M4 19V6a2 2 0 012-2h9l5 5v10a2 2 0 01-2 2H6a2 2 0 01-2-2z" stroke="#1B1464" stroke-width="1.8" stroke-linejoin="round"/>` },
+      { href: 'liste-eleves-admis.html', category: 'Élèves & Scolarité', title: "Gestion des Élèves",
+        icon: `<path d="M22 10v6M2 10l10-5 10 5-10 5-10-5z" stroke="#F43F5E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 12v5c0 1.5 3 3 6 3s6-1.5 6-3v-5" stroke="#F43F5E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>` },
+      { href: 'gestion-absences.html', category: 'Élèves & Scolarité', title: "Gestion des Absences",
+        icon: `<rect x="3" y="4" width="18" height="17" rx="2" stroke="#EA580C" stroke-width="1.8"/><path d="M3 9h18M8 2v4M16 2v4" stroke="#EA580C" stroke-width="1.8" stroke-linecap="round"/><path d="M9 14l2 2 4-4" stroke="#EA580C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>` },
+      { href: 'gestion-coefficients.html', category: 'Élèves & Scolarité', title: "Coefficients",
+        icon: `<path d="M4 6h16M4 12h10M4 18h6" stroke="#5B3AA6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="19" cy="18" r="2.5" stroke="#5B3AA6" stroke-width="1.8"/>` },
+      { href: 'gestion-emploi-du-temps.html', category: 'Élèves & Scolarité', title: "Emploi du Temps",
+        icon: `<rect x="3" y="4" width="18" height="17" rx="2" stroke="#0891B2" stroke-width="1.8"/><path d="M3 9h18M8 2v4M16 2v4" stroke="#0891B2" stroke-width="1.8" stroke-linecap="round"/><path d="M7.5 13h3M7.5 17h3M13.5 13h3M13.5 17h3" stroke="#0891B2" stroke-width="1.8" stroke-linecap="round"/>` },
+
+      { href: 'gestion-enseignants.html', category: 'Personnel', title: "Gestion des Enseignants",
+        icon: `<path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" stroke="#5B3AA6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="7" r="4" stroke="#5B3AA6" stroke-width="1.8"/><path d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="#5B3AA6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>` },
+      { href: 'gestion-personnel-administratif.html', category: 'Personnel', title: "Personnel Administratif & Soutien",
+        icon: `<path d="M20.59 13.41L13.42 20.6a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" stroke="#D98F1F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="7" cy="7" r="1.2" fill="#D98F1F"/>` },
+      { href: 'connexion-enseignant.html', category: 'Personnel', title: "Espace Enseignant",
+        icon: `<path d="M12 14l9-5-9-5-9 5 9 5z" stroke="#0D9488" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 14l6.16-3.42A9 9 0 0121 12v3M6 12v5c0 1.5 2.5 3 6 3s6-1.5 6-3v-5" stroke="#0D9488" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>` },
+
+      { href: 'gestion-salaires.html', category: 'Finance', title: "Gestion des Salaires",
+        icon: `<path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="#10B981" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>` },
+      { href: 'gestion-paiements.html', category: 'Finance', title: "Gestion des Paiements",
+        icon: `<rect x="2" y="5" width="20" height="14" rx="2.5" stroke="#0EA5E9" stroke-width="1.8"/><path d="M2 10h20" stroke="#0EA5E9" stroke-width="1.8"/><path d="M6 15h4" stroke="#0EA5E9" stroke-width="1.8" stroke-linecap="round"/>` },
+      { href: 'depenses-diverses.html', category: 'Finance', title: "Dépenses Diverses",
+        icon: `<path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="#F43F5E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" transform="rotate(180 12 12)"/>` },
+      { href: 'tableau-financier.html', category: 'Finance', title: "Tableau de Bord Financier",
+        icon: `<path d="M3 3v18h18" stroke="#D98F1F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 15l4-4 3 3 5-6" stroke="#D98F1F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>` },
+
+      { href: 'gestion-annonces.html', category: 'Communication & Services', title: "Actualités & Annonces",
+        icon: `<path d="M4 4h16v12H7l-3 3V4z" stroke="#5B3AA6" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 9h8M8 12h5" stroke="#5B3AA6" stroke-width="1.8" stroke-linecap="round"/>` },
+      { href: 'gestion-transport.html', category: 'Communication & Services', title: "Transport Scolaire",
+        icon: `<path d="M4 17h16M4 17a2 2 0 002 2h1a2 2 0 002-2M4 17V8a2 2 0 012-2h12a2 2 0 012 2v9m-4 0a2 2 0 002 2h1a2 2 0 002-2M7 17v.01M17 17v.01" stroke="#1B1464" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12h16" stroke="#1B1464" stroke-width="1.8" stroke-linecap="round"/>` },
+
+      { href: 'rapports-statistiques.html', category: 'Rapports & Statistiques', title: "Rapports & Statistiques",
+        icon: `<path d="M4 19V5M4 19h16" stroke="#6366F1" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><rect x="7" y="12" width="3" height="7" rx="1" fill="#6366F1"/><rect x="12.5" y="8" width="3" height="11" rx="1" fill="#6366F1"/><rect x="18" y="14" width="3" height="5" rx="1" fill="#6366F1"/>` },
+    ];
+
+    const currentPage = location.pathname.split('/').pop() || 'espace-administration.html';
+    const scroll = document.getElementById('sideNavScroll');
+    let html = '';
+    let lastCategory = '';
+
+    SIDE_ITEMS.forEach(item => {
+      if (item.category !== lastCategory) {
+        html += `<div class="side-cat-label">${item.category}</div>`;
+        lastCategory = item.category;
+      }
+      const isActive = item.href === currentPage;
+      html += `
+        <a href="${item.href}" class="side-item ${isActive ? 'active' : ''}" title="${item.title}">
+          <span class="side-item-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">${item.icon}</svg>
+          </span>
+          <span class="side-item-label">${item.title}</span>
+        </a>
+      `;
+    });
+
+    scroll.innerHTML = html;
+  })();
 </script>
 
 </body>
