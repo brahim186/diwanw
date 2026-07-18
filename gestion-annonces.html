@@ -62,10 +62,79 @@
 
   .file-drop { transition: border-color .2s ease, background-color .2s ease; }
   .file-drop:hover { border-color:#5B3AA6; background:#FBF9FE; }
+
+  /* ---------- Barre latérale rétractable ---------- */
+  .side-nav {
+    position: fixed; top: 0; left: 0; height: 100vh; width: 72px;
+    background: #ffffff; border-right: 1px solid #E7E2F3; z-index: 50;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    transition: width .25s cubic-bezier(.2,.8,.25,1), box-shadow .25s ease;
+  }
+  .side-nav:hover {
+    width: 264px;
+    box-shadow: 16px 0 34px -20px rgba(27,20,100,.35);
+  }
+  .side-nav-logo {
+    height: 80px; flex-shrink: 0; display: flex; align-items: center; gap: 12px;
+    padding: 0 17px; border-bottom: 1px solid #E7E2F3;
+  }
+  .side-nav-logo img { width: 34px; height: 34px; object-fit: contain; flex-shrink: 0; }
+  .side-nav-logo span {
+    font-family: 'Fraunces', serif; font-weight: 600; color: #1B1464; font-size: 13px;
+    white-space: nowrap; opacity: 0; transform: translateX(-6px);
+    transition: opacity .2s ease .05s, transform .2s ease .05s;
+  }
+  .side-nav:hover .side-nav-logo span { opacity: 1; transform: translateX(0); }
+  .side-nav-scroll { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 10px 10px 16px; }
+  .side-nav-scroll::-webkit-scrollbar { width: 4px; }
+  .side-nav-scroll::-webkit-scrollbar-thumb { background: #E7E2F3; border-radius: 4px; }
+  .side-cat-label {
+    font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em;
+    color: #9C93BE; padding: 14px 10px 6px; white-space: nowrap;
+    opacity: 0; transition: opacity .2s ease .05s;
+  }
+  .side-nav:hover .side-cat-label { opacity: 1; }
+  .side-item {
+    display: flex; align-items: center; gap: 14px; padding: 10px 11px; border-radius: 14px;
+    margin-bottom: 2px; color: #221D3D; text-decoration: none; white-space: nowrap;
+    transition: background .2s ease;
+  }
+  .side-item:hover { background: #F6F4FC; }
+  .side-item.active { background: #1B1464; }
+  .side-item.active .side-item-label { color: #ffffff; }
+  .side-item.active .side-item-icon svg path,
+  .side-item.active .side-item-icon svg rect,
+  .side-item.active .side-item-icon svg circle { stroke: #ffffff !important; }
+  .side-item-icon {
+    width: 24px; height: 24px; flex-shrink: 0; display: grid; place-items: center;
+  }
+  .side-item-label {
+    font-size: 13px; font-weight: 700; color: #221D3D;
+    opacity: 0; transform: translateX(-6px);
+    transition: opacity .2s ease .05s, transform .2s ease .05s, color .2s ease;
+  }
+  .side-nav:hover .side-item-label { opacity: 1; transform: translateX(0); }
+
+  body.has-sidenav { padding-left: 72px; }
+  @media (max-width: 767px) {
+    .side-nav { display: none; }
+    body.has-sidenav { padding-left: 0; }
+  }
 </style>
 </head>
 
-<body class="antialiased min-h-screen">
+<body class="antialiased min-h-screen has-sidenav">
+
+<!-- ===== Barre latérale (icônes -> se déplie au survol) ===== -->
+<nav class="side-nav" id="sideNav" aria-label="Menu Administration">
+  <a href="espace-administration.html" class="side-nav-logo">
+    <img src="logo.png" alt="Logo RIHANIO">
+    <span>RIHANIO</span>
+  </a>
+  <div class="side-nav-scroll" id="sideNavScroll"></div>
+</nav>
+
 
 <script type="module">
   import { requireAdmin } from './supabase-config.js';
@@ -458,6 +527,72 @@
   });
 
   render();
+</script>
+
+
+<!-- ===== Contenu de la barre latérale ===== -->
+<script>
+  (function () {
+    const SIDE_ITEMS = [
+      { href: 'admin-dashboard.html', category: 'Élèves & Scolarité', title: "Suivi des Inscriptions",
+        icon: `<path d="M9 12h6M9 16h6M9 8h6" stroke="#1B1464" stroke-width="1.8" stroke-linecap="round"/><path d="M4 19V6a2 2 0 012-2h9l5 5v10a2 2 0 01-2 2H6a2 2 0 01-2-2z" stroke="#1B1464" stroke-width="1.8" stroke-linejoin="round"/>` },
+      { href: 'liste-eleves-admis.html', category: 'Élèves & Scolarité', title: "Gestion des Élèves",
+        icon: `<path d="M22 10v6M2 10l10-5 10 5-10 5-10-5z" stroke="#F43F5E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 12v5c0 1.5 3 3 6 3s6-1.5 6-3v-5" stroke="#F43F5E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>` },
+      { href: 'gestion-absences.html', category: 'Élèves & Scolarité', title: "Gestion des Absences",
+        icon: `<rect x="3" y="4" width="18" height="17" rx="2" stroke="#EA580C" stroke-width="1.8"/><path d="M3 9h18M8 2v4M16 2v4" stroke="#EA580C" stroke-width="1.8" stroke-linecap="round"/><path d="M9 14l2 2 4-4" stroke="#EA580C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>` },
+      { href: 'gestion-coefficients.html', category: 'Élèves & Scolarité', title: "Coefficients",
+        icon: `<path d="M4 6h16M4 12h10M4 18h6" stroke="#5B3AA6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="19" cy="18" r="2.5" stroke="#5B3AA6" stroke-width="1.8"/>` },
+      { href: 'gestion-emploi-du-temps.html', category: 'Élèves & Scolarité', title: "Emploi du Temps",
+        icon: `<rect x="3" y="4" width="18" height="17" rx="2" stroke="#0891B2" stroke-width="1.8"/><path d="M3 9h18M8 2v4M16 2v4" stroke="#0891B2" stroke-width="1.8" stroke-linecap="round"/><path d="M7.5 13h3M7.5 17h3M13.5 13h3M13.5 17h3" stroke="#0891B2" stroke-width="1.8" stroke-linecap="round"/>` },
+
+      { href: 'gestion-enseignants.html', category: 'Personnel', title: "Gestion des Enseignants",
+        icon: `<path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2" stroke="#5B3AA6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="7" r="4" stroke="#5B3AA6" stroke-width="1.8"/><path d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="#5B3AA6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>` },
+      { href: 'gestion-personnel-administratif.html', category: 'Personnel', title: "Personnel Administratif & Soutien",
+        icon: `<path d="M20.59 13.41L13.42 20.6a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z" stroke="#D98F1F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="7" cy="7" r="1.2" fill="#D98F1F"/>` },
+      { href: 'connexion-enseignant.html', category: 'Personnel', title: "Espace Enseignant",
+        icon: `<path d="M12 14l9-5-9-5-9 5 9 5z" stroke="#0D9488" stroke-width="1.8" stroke-linejoin="round"/><path d="M12 14l6.16-3.42A9 9 0 0121 12v3M6 12v5c0 1.5 2.5 3 6 3s6-1.5 6-3v-5" stroke="#0D9488" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>` },
+
+      { href: 'gestion-salaires.html', category: 'Finance', title: "Gestion des Salaires",
+        icon: `<path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="#10B981" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>` },
+      { href: 'gestion-paiements.html', category: 'Finance', title: "Gestion des Paiements",
+        icon: `<rect x="2" y="5" width="20" height="14" rx="2.5" stroke="#0EA5E9" stroke-width="1.8"/><path d="M2 10h20" stroke="#0EA5E9" stroke-width="1.8"/><path d="M6 15h4" stroke="#0EA5E9" stroke-width="1.8" stroke-linecap="round"/>` },
+      { href: 'depenses-diverses.html', category: 'Finance', title: "Dépenses Diverses",
+        icon: `<path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" stroke="#F43F5E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" transform="rotate(180 12 12)"/>` },
+      { href: 'tableau-financier.html', category: 'Finance', title: "Tableau de Bord Financier",
+        icon: `<path d="M3 3v18h18" stroke="#D98F1F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 15l4-4 3 3 5-6" stroke="#D98F1F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>` },
+
+      { href: 'gestion-annonces.html', category: 'Communication & Services', title: "Actualités & Annonces",
+        icon: `<path d="M4 4h16v12H7l-3 3V4z" stroke="#5B3AA6" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 9h8M8 12h5" stroke="#5B3AA6" stroke-width="1.8" stroke-linecap="round"/>` },
+      { href: 'gestion-transport.html', category: 'Communication & Services', title: "Transport Scolaire",
+        icon: `<path d="M4 17h16M4 17a2 2 0 002 2h1a2 2 0 002-2M4 17V8a2 2 0 012-2h12a2 2 0 012 2v9m-4 0a2 2 0 002 2h1a2 2 0 002-2M7 17v.01M17 17v.01" stroke="#1B1464" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12h16" stroke="#1B1464" stroke-width="1.8" stroke-linecap="round"/>` },
+
+      { href: 'rapports-statistiques.html', category: 'Rapports & Statistiques', title: "Rapports & Statistiques",
+        icon: `<path d="M4 19V5M4 19h16" stroke="#6366F1" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><rect x="7" y="12" width="3" height="7" rx="1" fill="#6366F1"/><rect x="12.5" y="8" width="3" height="11" rx="1" fill="#6366F1"/><rect x="18" y="14" width="3" height="5" rx="1" fill="#6366F1"/>` },
+    ];
+
+    const currentPage = location.pathname.split('/').pop() || 'espace-administration.html';
+    const scroll = document.getElementById('sideNavScroll');
+    let html = '';
+    let lastCategory = '';
+
+    SIDE_ITEMS.forEach(item => {
+      if (item.category !== lastCategory) {
+        html += `<div class="side-cat-label">${item.category}</div>`;
+        lastCategory = item.category;
+      }
+      const isActive = item.href === currentPage;
+      html += `
+        <a href="${item.href}" class="side-item ${isActive ? 'active' : ''}" title="${item.title}">
+          <span class="side-item-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">${item.icon}</svg>
+          </span>
+          <span class="side-item-label">${item.title}</span>
+        </a>
+      `;
+    });
+
+    scroll.innerHTML = html;
+  })();
 </script>
 
 </body>
