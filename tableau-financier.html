@@ -158,6 +158,29 @@
         <div id="chartLabels" class="flex gap-3 sm:gap-5 mt-2"></div>
       </section>
 
+      <!-- Répartition des dépenses (donut) + Indicateurs complémentaires -->
+      <section class="grid md:grid-cols-2 gap-6">
+        <div class="bg-white border border-line rounded-3xl shadow-sm p-6 sm:p-8">
+          <h3 class="font-display font-semibold text-navy text-lg mb-6">Répartition des dépenses</h3>
+          <div id="donutEmpty" class="hidden text-sm text-ink/40 text-center py-10">Aucune dépense enregistrée pour cette année.</div>
+          <div id="donutContent" class="flex flex-col sm:flex-row items-center gap-6">
+            <div class="relative w-40 h-40 flex-shrink-0">
+              <svg id="donutChart" viewBox="0 0 180 180" class="w-40 h-40 -rotate-90"></svg>
+              <div class="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
+                <span class="text-[10px] font-extrabold uppercase tracking-wide text-ink/40">Total</span>
+                <span id="donutTotal" class="font-display font-semibold text-navy text-sm num leading-tight mt-0.5">0 DH</span>
+              </div>
+            </div>
+            <div id="donutLegend" class="flex flex-col gap-2.5 text-sm w-full"></div>
+          </div>
+        </div>
+
+        <div class="bg-white border border-line rounded-3xl shadow-sm p-6 sm:p-8">
+          <h3 class="font-display font-semibold text-navy text-lg mb-6">Indicateurs complémentaires</h3>
+          <div id="extraStats" class="grid grid-cols-2 gap-4"></div>
+        </div>
+      </section>
+
       <!-- Résumé mensuel -->
       <section class="bg-white border border-line rounded-3xl shadow-sm overflow-hidden">
         <div class="px-6 sm:px-8 py-6 border-b border-line">
@@ -215,6 +238,12 @@ async function loadYearData(annee) {
   const expensesDue = Array(12).fill(0);
   const revenuesDue = Array(12).fill(0);
   const expenses = Array(12).fill(0);   // payé par mois (salaires + dépenses diverses)
+  const expensesByCategory = {};        // répartition des dépenses par catégorie (pour le donut)
+
+  const addCategory = (name, amount) => {
+    if (!amount) return;
+    expensesByCategory[name] = (expensesByCategory[name] || 0) + amount;
+  };
 
   studentPaySnap.docs.forEach((d) => {
     const row = d.data();
@@ -231,7 +260,10 @@ async function loadYearData(annee) {
     const idx = (row.mois || 1) - 1;
     if (idx < 0 || idx > 11) return;
     expensesDue[idx] += Number(row.montant) || 0;
-    if (row.statut === 'Payé') expenses[idx] += Number(row.montant) || 0;
+    if (row.statut === 'Payé') {
+      expenses[idx] += Number(row.montant) || 0;
+      addCategory('Salaires', Number(row.montant) || 0);
+    }
   });
 
   // Dépenses diverses (Administration, Entretien, Pédagogie, Communication, Transport...) :
@@ -243,9 +275,10 @@ async function loadYearData(annee) {
     if (idx < 0 || idx > 11) return;
     expensesDue[idx] += Number(row.montant) || 0;
     expenses[idx] += Number(row.montant) || 0;
+    addCategory(row.categorie || 'Autres dépenses', Number(row.montant) || 0);
   });
 
-  return { revenues, expenses, revenuesDue, expensesDue };
+  return { revenues, expenses, revenuesDue, expensesDue, expensesByCategory };
 }
 
 function renderChart(revenues, expenses) {
@@ -284,6 +317,105 @@ function renderChart(revenues, expenses) {
   });
 }
 
+const DONUT_COLORS = ['#1B1464', '#F0A93C', '#5B3AA6', '#10B981', '#F43F5E', '#0EA5E9', '#F97316', '#84CC16', '#EC4899', '#64748B'];
+
+function renderDonut(expensesByCategory) {
+  const svg = document.getElementById('donutChart');
+  const legend = document.getElementById('donutLegend');
+  const emptyEl = document.getElementById('donutEmpty');
+  const contentEl = document.getElementById('donutContent');
+  const totalEl = document.getElementById('donutTotal');
+
+  svg.innerHTML = '';
+  legend.innerHTML = '';
+
+  const entries = Object.entries(expensesByCategory || {}).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+  const total = entries.reduce((sum, [, v]) => sum + v, 0);
+
+  if (total <= 0) {
+    emptyEl.classList.remove('hidden');
+    contentEl.classList.add('hidden');
+    return;
+  }
+  emptyEl.classList.add('hidden');
+  contentEl.classList.remove('hidden');
+  totalEl.textContent = fmtDH(total);
+
+  const r = 70, cx = 90, cy = 90, strokeWidth = 24;
+  const circumference = 2 * Math.PI * r;
+
+  // Cercle de fond (piste)
+  const track = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  track.setAttribute('cx', cx); track.setAttribute('cy', cy); track.setAttribute('r', r);
+  track.setAttribute('fill', 'none'); track.setAttribute('stroke', '#E7E2F3'); track.setAttribute('stroke-width', strokeWidth);
+  svg.appendChild(track);
+
+  let cumulative = 0;
+  entries.forEach(([name, value], i) => {
+    const pct = value / total;
+    const dash = pct * circumference;
+    const color = DONUT_COLORS[i % DONUT_COLORS.length];
+
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', cx); circle.setAttribute('cy', cy); circle.setAttribute('r', r);
+    circle.setAttribute('fill', 'none');
+    circle.setAttribute('stroke', color);
+    circle.setAttribute('stroke-width', strokeWidth);
+    circle.setAttribute('stroke-dasharray', `${dash} ${circumference - dash}`);
+    circle.setAttribute('stroke-dashoffset', -cumulative);
+    circle.style.transition = 'stroke-dasharray .6s cubic-bezier(.2,.8,.25,1)';
+    svg.appendChild(circle);
+
+    cumulative += dash;
+
+    const row = document.createElement('div');
+    row.className = 'flex items-center justify-between gap-3';
+    row.innerHTML = `
+      <span class="flex items-center gap-2 text-ink/70 font-bold">
+        <span class="w-2.5 h-2.5 rounded-full inline-block flex-shrink-0" style="background:${color}"></span>
+        ${name}
+      </span>
+      <span class="num text-navy font-extrabold whitespace-nowrap">${fmtDH(value)} <span class="text-ink/40 font-bold">(${Math.round(pct * 100)}%)</span></span>
+    `;
+    legend.appendChild(row);
+  });
+}
+
+function renderExtraStats(revenues, expenses) {
+  const container = document.getElementById('extraStats');
+  container.innerHTML = '';
+
+  const soldes = revenues.map((r, i) => r - expenses[i]);
+  const monthsWithData = MONTHS_FULL.map((_, i) => i).filter(i => revenues[i] > 0 || expenses[i] > 0);
+
+  const avgRevenue = revenues.reduce((a, b) => a + b, 0) / 12;
+  const avgExpense = expenses.reduce((a, b) => a + b, 0) / 12;
+
+  let bestIdx = null, worstIdx = null;
+  if (monthsWithData.length) {
+    bestIdx = monthsWithData.reduce((best, i) => (soldes[i] > soldes[best] ? i : best), monthsWithData[0]);
+    worstIdx = monthsWithData.reduce((worst, i) => (soldes[i] < soldes[worst] ? i : worst), monthsWithData[0]);
+  }
+
+  const cards = [
+    { label: 'Recettes moy. / mois', value: fmtDH(avgRevenue), color: 'text-emerald-600' },
+    { label: 'Dépenses moy. / mois', value: fmtDH(avgExpense), color: 'text-rose-600' },
+    { label: 'Meilleur mois', value: bestIdx !== null ? MONTHS_FULL[bestIdx] : '—', sub: bestIdx !== null ? fmtDH(soldes[bestIdx]) : '', color: 'text-navy' },
+    { label: 'Mois le plus difficile', value: worstIdx !== null ? MONTHS_FULL[worstIdx] : '—', sub: worstIdx !== null ? fmtDH(soldes[worstIdx]) : '', color: 'text-navy' },
+  ];
+
+  cards.forEach((c) => {
+    const div = document.createElement('div');
+    div.className = 'bg-mist/60 rounded-2xl p-4';
+    div.innerHTML = `
+      <p class="text-[10px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">${c.label}</p>
+      <p class="font-display font-semibold ${c.color} text-lg num leading-tight">${c.value}</p>
+      ${c.sub ? `<p class="text-xs text-ink/40 font-bold mt-0.5 num">${c.sub}</p>` : ''}
+    `;
+    container.appendChild(div);
+  });
+}
+
 function renderMonthlyTable(revenues, expenses) {
   const tbody = document.getElementById('monthlyTableBody');
   tbody.innerHTML = '';
@@ -308,7 +440,7 @@ async function reload() {
   content.classList.add('hidden');
 
   const annee = parseInt(yearSelect.value, 10);
-  const { revenues, expenses, revenuesDue } = await loadYearData(annee);
+  const { revenues, expenses, revenuesDue, expensesByCategory } = await loadYearData(annee);
 
   const totalRevenue = revenues.reduce((a, b) => a + b, 0);
   const totalExpense = expenses.reduce((a, b) => a + b, 0);
@@ -320,6 +452,8 @@ async function reload() {
   document.getElementById('kpiRecoveryYear').textContent = totalDue > 0 ? Math.round((totalRevenue / totalDue) * 100) + '%' : '0%';
 
   renderChart(revenues, expenses);
+  renderDonut(expensesByCategory);
+  renderExtraStats(revenues, expenses);
   renderMonthlyTable(revenues, expenses);
 
   loadingState.classList.add('hidden');
