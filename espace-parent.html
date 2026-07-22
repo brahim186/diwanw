@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Espace Parent | RIHANIO</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" type="image/png" href="logo.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&family=Fraunces:wght@500;600&family=Manrope:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          navy:  { DEFAULT:'#1B1464', 700:'#170F52', 900:'#100B3B' },
+          purple:{ DEFAULT:'#5B3AA6' },
+          gold:  { DEFAULT:'#F0A93C', light:'#FBC873', dark:'#D98F1F' },
+          ink:   '#221D3D',
+          mist:  '#F6F4FC',
+          line:  '#E7E2F3',
+        },
+        fontFamily: { sans: ['Inter','sans-serif'], display: ['Fraunces','serif'] }
+      }
+    }
+  }
+</script>
+
+<style>
+  body { font-family:'Inter', sans-serif; color:#221D3D; background:#F6F4FC; }
+  .font-display { font-family:'Fraunces', serif; }
+  .num { font-family:'Manrope', sans-serif; }
+  ::selection { background:#F0A93C; color:#1B1464; }
+
+  a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 2px solid #F0A93C; outline-offset: 2px; border-radius: 6px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { animation-duration:.01ms !important; transition-duration:.01ms !important; }
+  }
+
+  .spinner {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 3px solid rgba(27,20,100,.15); border-top-color:#1B1464;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .row-enter { animation: rowEnter .3s cubic-bezier(.2,.8,.25,1) both; }
+  @keyframes rowEnter { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+
+  .total-pop { animation: totalPop .35s cubic-bezier(.2,.8,.25,1); }
+  @keyframes totalPop { 0%{transform:scale(.85);opacity:.4} 100%{transform:scale(1);opacity:1} }
+
+  .badge-ok   { background:#ECFDF5; color:#059669; }
+  .badge-mid  { background:#FFFBEB; color:#B7791F; }
+  .badge-low  { background:#FEF2F2; color:#DC2626; }
+  .coeff-pill { background:#EFEAFB; color:#5B3AA6; }
+
+  .status-badge { border-radius:999px; padding:.35rem .85rem; font-size:11px; font-weight:800; display:inline-block; }
+  .badge-absent { background:#FDECEE; color:#BE123C; }
+  .badge-retard { background:#FEF3C7; color:#B45309; }
+  .badge-justifie { background:#D1FAE5; color:#047857; }
+  .badge-non-justifie { background:#F1F0F6; color:#6B7280; }
+  .badge-nouveau { background:#DBEAFE; color:#1D4ED8; }
+  .badge-repondu { background:#D1FAE5; color:#047857; }
+
+  .modal-backdrop { animation: fadeIn .2s ease both; }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  .modal-card { animation: cardPop .25s cubic-bezier(.2,.8,.25,1) both; }
+  @keyframes cardPop { from{opacity:0;transform:translateY(10px) scale(.98)} to{opacity:1;transform:translateY(0) scale(1)} }
+
+  .toast { animation: toastIn .3s ease both, toastOut .3s ease 1.7s both; }
+  @keyframes toastIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes toastOut { from{opacity:1} to{opacity:0;transform:translateY(-6px)} }
+
+  .field { transition: border-color .2s ease, box-shadow .2s ease; }
+  .field:focus { border-color: #5B3AA6; box-shadow: 0 0 0 4px rgba(91,58,166,.12); }
+
+  /* Onglets */
+  .tab-btn { transition: color .2s ease, background-color .2s ease; }
+  .tab-btn.active { background:#1B1464; color:#fff; }
+  .tab-btn:not(.active) { color:#221D3D; }
+  .tab-panel { display:none; }
+  .tab-panel.active { display:block; animation: fadeIn .35s ease both; }
+</style>
+</head>
+
+<body class="antialiased min-h-screen">
+
+<header class="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-line">
+  <div class="max-w-6xl mx-auto px-5 sm:px-8 h-20 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <img src="logo.png" alt="Logo RIHANIO" class="h-11 w-11 object-contain">
+      <div class="hidden sm:flex flex-col leading-tight">
+        <span class="font-display font-semibold text-navy text-base">Espace Parent</span>
+        <span class="text-[11px] text-gold-dark font-bold">RIHANIO</span>
+      </div>
+    </div>
+    <button id="logoutBtn" type="button" class="inline-flex items-center gap-2 text-xs font-bold text-rose-600 hover:text-white hover:bg-rose-600 border border-rose-200 rounded-full px-4 py-2.5 transition-colors bg-rose-50">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span class="hidden sm:inline">Déconnexion</span>
+    </button>
+  </div>
+</header>
+
+<main class="max-w-6xl mx-auto px-5 sm:px-8 py-10 sm:py-12 flex flex-col gap-6">
+
+  <div>
+    <h2 id="welcomeTitle" class="font-display font-semibold text-navy text-2xl sm:text-3xl">Bonjour</h2>
+    <p class="text-ink/50 text-sm mt-2">Suivez ici les notes, les absences et échangez directement avec l'administration au sujet de votre enfant.</p>
+  </div>
+
+  <!-- Infos élève -->
+  <section class="grid sm:grid-cols-3 gap-4">
+    <div class="bg-white border border-line rounded-2xl p-5">
+      <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Matricule</p>
+      <p id="infoMatricule" class="font-bold text-navy text-sm num">—</p>
+    </div>
+    <div class="bg-white border border-line rounded-2xl p-5">
+      <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Niveau scolaire</p>
+      <p id="infoNiveau" class="font-bold text-navy text-sm">—</p>
+    </div>
+    <div class="bg-white border border-line rounded-2xl p-5">
+      <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Groupe</p>
+      <p id="infoGroupe" class="font-bold text-navy text-sm">—</p>
+    </div>
+  </section>
+
+  <!-- Onglets -->
+  <div class="flex flex-wrap gap-2 bg-white border border-line rounded-full p-1.5 w-fit">
+    <button type="button" data-tab="notes" class="tab-btn active rounded-full px-5 py-2.5 text-xs font-extrabold">Notes</button>
+    <button type="button" data-tab="absences" class="tab-btn rounded-full px-5 py-2.5 text-xs font-extrabold">Absences</button>
+    <button type="button" data-tab="messages" class="tab-btn rounded-full px-5 py-2.5 text-xs font-extrabold">Contacter l'administration</button>
+  </div>
+
+  <!-- ============================= ONGLET NOTES ============================= -->
+  <div id="panel-notes" class="tab-panel active flex flex-col gap-6">
+    <section id="tableSection" class="hidden bg-white border border-line rounded-3xl shadow-sm overflow-hidden">
+      <div class="px-6 sm:px-8 py-6 flex items-center justify-between border-b border-line flex-wrap gap-3">
+        <div>
+          <h3 class="font-display font-semibold text-navy text-lg">Matières</h3>
+          <p class="text-ink/40 text-xs mt-1">Le total s'affiche dès que 2 notes au moins ont été saisies. Les coefficients sont fixés par l'administration.</p>
+        </div>
+        <span id="countBadge" class="text-xs font-extrabold text-navy/60 bg-mist rounded-full px-3 py-1.5">0 matière</span>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-left text-[11px] font-extrabold uppercase tracking-wide text-ink/40 bg-mist/60">
+              <th class="px-6 sm:px-8 py-3.5 whitespace-nowrap">Matière</th>
+              <th class="px-3 py-3.5 whitespace-nowrap text-center">Note 1</th>
+              <th class="px-3 py-3.5 whitespace-nowrap text-center">Note 2</th>
+              <th class="px-3 py-3.5 whitespace-nowrap text-center">Note 3</th>
+              <th class="px-3 py-3.5 whitespace-nowrap text-center">Coeff.</th>
+              <th class="px-3 py-3.5 whitespace-nowrap text-center">Total</th>
+              <th class="px-3 sm:px-8 py-3.5 whitespace-nowrap text-center">Moyenne</th>
+            </tr>
+          </thead>
+          <tbody id="subjectsBody" class="divide-y divide-line"></tbody>
+        </table>
+      </div>
+
+      <div class="px-6 sm:px-8 py-6 border-t border-line bg-mist/40 grid sm:grid-cols-3 gap-4">
+        <div class="bg-white border border-line rounded-2xl px-5 py-4">
+          <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1">Matières comptabilisées</p>
+          <p id="countedSubjects" class="num font-extrabold text-navy text-xl">0</p>
+        </div>
+        <div class="bg-white border border-line rounded-2xl px-5 py-4">
+          <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1">Total général</p>
+          <p id="grandTotal" class="num font-extrabold text-navy text-xl">—</p>
+        </div>
+        <div class="bg-white border border-line rounded-2xl px-5 py-4">
+          <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1">Moyenne générale (sur coeff.)</p>
+          <p id="overallAverage" class="num font-extrabold text-navy text-xl">—</p>
+        </div>
+      </div>
+    </section>
+
+    <div id="notesEmptyState" class="hidden bg-white border border-dashed border-line rounded-3xl p-14 text-center">
+      <p class="text-ink/40 text-sm">Aucune matière n'a été trouvée pour ce niveau. Contactez l'administration si cela ne semble pas correct.</p>
+    </div>
+  </div>
+
+  <!-- ============================= ONGLET ABSENCES ============================= -->
+  <div id="panel-absences" class="tab-panel flex flex-col gap-6">
+    <section class="grid sm:grid-cols-3 gap-4">
+      <div class="bg-white border border-line rounded-2xl p-5">
+        <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Absences / retards</p>
+        <p id="kpiTotal" class="font-display font-semibold text-navy text-2xl num">0</p>
+      </div>
+      <div class="bg-white border border-line rounded-2xl p-5">
+        <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Justifiés</p>
+        <p id="kpiJustifie" class="font-display font-semibold text-emerald-600 text-2xl num">0</p>
+      </div>
+      <div class="bg-white border border-line rounded-2xl p-5">
+        <p class="text-[11px] font-extrabold uppercase tracking-wide text-ink/40 mb-1.5">Non justifiés</p>
+        <p id="kpiNonJustifie" class="font-display font-semibold text-rose-600 text-2xl num">0</p>
+      </div>
+    </section>
+
+    <section class="bg-white border border-line rounded-3xl shadow-sm overflow-hidden">
+      <div class="px-6 sm:px-8 py-6 border-b border-line">
+        <h3 class="font-display font-semibold text-navy text-lg">Registre des absences</h3>
+        <p class="text-ink/40 text-xs mt-1">Vous pouvez déposer un justificatif (PDF ou image) pour toute absence non justifiée.</p>
+      </div>
+
+      <div id="absLoadingState" class="flex flex-col items-center justify-center py-16 gap-4">
+        <span class="spinner" style="width:28px;height:28px;border-width:4px;"></span>
+        <p class="text-ink/50 text-sm">Chargement des absences...</p>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table id="absTable" class="hidden w-full text-sm">
+          <thead>
+            <tr class="text-left text-[11px] font-extrabold uppercase tracking-wide text-ink/40 bg-mist/60">
+              <th class="px-6 py-3.5 whitespace-nowrap">Date</th>
+              <th class="px-4 py-3.5 whitespace-nowrap">Séance</th>
+              <th class="px-4 py-3.5 whitespace-nowrap">Matière</th>
+              <th class="px-4 py-3.5 whitespace-nowrap text-center">Statut</th>
+              <th class="px-4 py-3.5 whitespace-nowrap text-center">Justification</th>
+              <th class="px-6 py-3.5 whitespace-nowrap text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="absTableBody" class="divide-y divide-line"></tbody>
+        </table>
+      </div>
+
+      <div id="absEmptyState" class="hidden px-8 py-14 text-center">
+        <p class="text-ink/40 text-sm">Aucune absence enregistrée pour le moment.</p>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============================= ONGLET MESSAGES ============================= -->
+  <div id="panel-messages" class="tab-panel flex flex-col gap-6">
+    <section class="bg-white border border-line rounded-3xl shadow-sm p-6 sm:p-8">
+      <h3 class="font-display font-semibold text-navy text-lg mb-1">Envoyer un message à l'administration</h3>
+      <p class="text-ink/40 text-xs mb-6">Votre message sera lié au dossier de votre enfant et une réponse apparaîtra ci-dessous dès qu'elle sera envoyée.</p>
+
+      <form id="messageForm" class="flex flex-col gap-4 max-w-xl">
+        <div>
+          <label for="msgSubject" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Sujet</label>
+          <input id="msgSubject" type="text" required placeholder="Ex : Absence du 12 mars"
+            class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy placeholder:text-ink/30 outline-none">
+        </div>
+        <div>
+          <label for="msgBody" class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Message</label>
+          <textarea id="msgBody" required rows="4" placeholder="Écrivez votre message ici..."
+            class="field w-full rounded-2xl border border-line bg-mist px-4 py-3 text-sm text-navy placeholder:text-ink/30 outline-none resize-none"></textarea>
+        </div>
+        <p id="msgError" class="hidden text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3"></p>
+        <button type="submit" id="msgSubmitBtn" class="self-start inline-flex items-center justify-center gap-2 bg-navy hover:bg-navy-700 text-white font-extrabold text-sm rounded-full px-6 py-3 transition-colors">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Envoyer le message
+        </button>
+      </form>
+    </section>
+
+    <section class="bg-white border border-line rounded-3xl shadow-sm overflow-hidden">
+      <div class="px-6 sm:px-8 py-6 border-b border-line">
+        <h3 class="font-display font-semibold text-navy text-lg">Historique des messages</h3>
+      </div>
+      <div id="msgLoadingState" class="flex flex-col items-center justify-center py-14 gap-4">
+        <span class="spinner" style="width:28px;height:28px;border-width:4px;"></span>
+        <p class="text-ink/50 text-sm">Chargement...</p>
+      </div>
+      <div id="msgList" class="hidden divide-y divide-line"></div>
+      <div id="msgEmptyState" class="hidden px-8 py-14 text-center">
+        <p class="text-ink/40 text-sm">Vous n'avez envoyé aucun message pour le moment.</p>
+      </div>
+    </section>
+  </div>
+
+</main>
+
+<!-- Modal Justifier une absence -->
+<div id="justifyModal" class="hidden fixed inset-0 z-50 flex items-center justify-center px-5">
+  <div id="justifyBackdrop" class="modal-backdrop absolute inset-0 bg-navy-900/40 backdrop-blur-sm"></div>
+  <div class="modal-card relative w-full max-w-sm bg-white border border-line rounded-3xl shadow-xl p-7">
+    <button id="closeJustifyBtn" type="button" class="absolute top-5 right-5 text-ink/40 hover:text-navy transition-colors" aria-label="Fermer">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+    <h3 class="font-display font-semibold text-navy text-lg mb-1">Déposer un justificatif</h3>
+    <p id="justifyInfo" class="text-ink/50 text-xs mb-6">—</p>
+
+    <form id="justifyForm" class="flex flex-col gap-4">
+      <div>
+        <label class="block text-navy text-xs font-extrabold tracking-wide uppercase mb-2">Document (PDF ou image)</label>
+        <input id="justifyFile" type="file" accept=".pdf,image/*" required
+          class="w-full rounded-2xl border border-line bg-mist px-4 py-3 text-xs text-navy outline-none file:mr-3 file:rounded-full file:border-0 file:bg-navy file:text-white file:px-3 file:py-1.5 file:text-xs file:font-bold">
+      </div>
+      <p id="justifyError" class="hidden text-xs font-bold text-rose-600 bg-rose-50 border border-rose-200 rounded-xl px-4 py-3"></p>
+      <button type="submit" id="justifySubmitBtn" class="inline-flex items-center justify-center gap-2 bg-navy hover:bg-navy-700 text-white font-extrabold text-sm rounded-full py-3.5 transition-colors">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0-12l4 4m-4-4L8 7M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Enregistrer le justificatif
+      </button>
+    </form>
+  </div>
+</div>
+
+<div id="toastWrap" class="fixed bottom-6 inset-x-0 flex justify-center pointer-events-none z-50"></div>
+
+<script type="module">
+import {
+  auth, db, signOut, collection, getDocs, query, where, doc, updateDoc, setDoc,
+  uploadToStorage, requireStudent
+} from './supabase-config.js';
+
+let currentUser = null;
+let currentStudent = null;
+
+function showToast(message) {
+  const toastWrap = document.getElementById('toastWrap');
+  const toast = document.createElement('div');
+  toast.className = 'toast pointer-events-auto bg-navy text-white text-sm font-bold rounded-full px-6 py-3 shadow-lg flex items-center gap-2';
+  toast.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#F0A93C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>${message}`;
+  toastWrap.appendChild(toast);
+  setTimeout(() => toast.remove(), 2000);
+}
+
+// --- Onglets --------------------------------------------------------------------------
+document.querySelectorAll('.tab-btn').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// =======================================================================================
+// NOTES (même logique que mes-notes.html, en lecture seule pour le parent)
+// =======================================================================================
+const SUBJECTS = {
+  primaire: [
+    'Langue arabe', 'Langue française', 'Mathématiques', 'Éducation islamique',
+    'Éveil scientifique / Sciences', 'Histoire-Géographie et Éducation civique',
+    'Éducation artistique', 'Éducation physique', 'Langue amazighe'
+  ],
+  college: [
+    'Langue arabe', 'Langue française', 'Mathématiques', 'Physique-Chimie',
+    'Sciences de la Vie et de la Terre (SVT)', 'Histoire-Géographie', 'Éducation islamique',
+    'Éducation physique', 'Informatique', 'Éducation technologique', 'Arts plastiques / Éducation musicale'
+  ],
+  lycee_lettres: [
+    'Langue arabe', 'Histoire-Géographie', 'Philosophie', 'Langue française', 'Langue anglaise',
+    'Éducation islamique', 'Mathématiques', 'Sciences de la Vie et de la Terre (SVT)',
+    'Éducation physique', 'Informatique'
+  ],
+  lycee_sciences: [
+    'Mathématiques', 'Physique-Chimie', 'Sciences de la Vie et de la Terre (SVT)',
+    'Langue française', 'Langue arabe', 'Langue anglaise', 'Histoire-Géographie',
+    'Éducation islamique', 'Philosophie', 'Éducation physique', 'Informatique'
+  ]
+};
+
+function detectCycle(niveau) {
+  const n = (niveau || '').toLowerCase();
+  if (n.includes('primair')) return 'primaire';
+  if (n.includes('collég') || n.includes('college') || n.includes('collège')) return 'college';
+  if (n.includes('lettres') || n.includes('humaines')) return 'lycee_lettres';
+  return 'lycee_sciences';
+}
+
+function averageBadgeClass(avg) {
+  if (avg === null) return '';
+  if (avg >= 10) return 'badge-ok';
+  if (avg >= 8)  return 'badge-mid';
+  return 'badge-low';
+}
+
+async function loadCoefficients(cycle) {
+  const q = query(collection(db, 'subject_coefficients'), where('cycle', '==', cycle));
+  const snap = await getDocs(q);
+  const map = {};
+  snap.docs.forEach((d) => {
+    const row = d.data();
+    map[row.matiere] = row.coefficient;
+  });
+  return map;
+}
+
+async function loadStudentNotes(matricule) {
+  const q = query(collection(db, 'notes'), where('studentId', '==', matricule));
+  const snap = await getDocs(q);
+  const map = {};
+  snap.docs.forEach((d) => {
+    const row = d.data();
+    if (row.matiere) map[row.matiere] = row;
+  });
+  return map;
+}
+
+function buildNotesTable(subjects, coeffMap, notesMap) {
+  const tableSection = document.getElementById('tableSection');
+  const emptyState = document.getElementById('notesEmptyState');
+  const subjectsBody = document.getElementById('subjectsBody');
+  const countBadge = document.getElementById('countBadge');
+
+  if (subjects.length === 0) {
+    tableSection.classList.add('hidden');
+    emptyState.classList.remove('hidden');
+    return;
+  }
+
+  tableSection.classList.remove('hidden');
+  emptyState.classList.add('hidden');
+  subjectsBody.innerHTML = '';
+  countBadge.textContent = subjects.length + (subjects.length > 1 ? ' matières' : ' matière');
+
+  function noteCell(val) {
+    return (val === null || val === undefined || val === '')
+      ? '<span class="text-ink/25">—</span>'
+      : `<span class="num font-bold text-navy">${val}</span>`;
+  }
+
+  subjects.forEach((subject, idx) => {
+    const coeff = coeffMap[subject] ?? 1;
+    const notes = notesMap[subject] || {};
+    const tr = document.createElement('tr');
+    tr.className = 'row-enter hover:bg-mist/40 transition-colors';
+    tr.dataset.index = idx;
+    tr.dataset.coeff = coeff;
+    tr.dataset.n1 = notes.examen1 ?? '';
+    tr.dataset.n2 = notes.examen2 ?? '';
+    tr.dataset.n3 = notes.examen3 ?? '';
+    tr.innerHTML = `
+      <td class="px-6 sm:px-8 py-3.5 font-bold text-navy text-sm">${subject}</td>
+      <td class="px-2 py-3.5 text-center">${noteCell(notes.examen1)}</td>
+      <td class="px-2 py-3.5 text-center">${noteCell(notes.examen2)}</td>
+      <td class="px-2 py-3.5 text-center">${noteCell(notes.examen3)}</td>
+      <td class="px-2 py-3.5 text-center">
+        <span class="coeff-pill inline-block num font-extrabold text-xs rounded-full px-3 py-1.5" title="Coefficient fixé par l'administration">${coeff}</span>
+      </td>
+      <td class="px-2 py-3.5 text-center">
+        <span data-role="total" class="num font-extrabold text-navy text-sm">—</span>
+      </td>
+      <td class="px-2 sm:px-8 py-3.5 text-center">
+        <span data-role="moyenne" class="inline-block min-w-[3rem] text-[11px] font-extrabold rounded-full px-3 py-1.5 num text-ink/40">—</span>
+      </td>
+    `;
+    subjectsBody.appendChild(tr);
+  });
+
+  recalcAllNotes();
+}
+
+function recalcNoteRow(tr) {
+  const filled = [tr.dataset.n1, tr.dataset.n2, tr.dataset.n3]
+    .map((v) => v === '' ? null : parseFloat(v))
+    .filter((v) => v !== null && !isNaN(v));
+
+  const totalEl   = tr.querySelector('[data-role="total"]');
+  const moyenneEl = tr.querySelector('[data-role="moyenne"]');
+
+  if (filled.length >= 2) {
+    const total   = filled.reduce((a, b) => a + b, 0);
+    const moyenne = total / filled.length;
+    totalEl.textContent = total.toFixed(2);
+    totalEl.classList.add('total-pop');
+    setTimeout(() => totalEl.classList.remove('total-pop'), 350);
+    moyenneEl.textContent = moyenne.toFixed(2);
+    moyenneEl.className = 'inline-block min-w-[3rem] text-[11px] font-extrabold rounded-full px-3 py-1.5 num ' + averageBadgeClass(moyenne);
+    tr.dataset.total = total;
+    tr.dataset.moyenne = moyenne;
+    tr.dataset.valid = '1';
+  } else {
+    totalEl.textContent = '—';
+    moyenneEl.textContent = '—';
+    moyenneEl.className = 'inline-block min-w-[3rem] text-[11px] font-extrabold rounded-full px-3 py-1.5 num text-ink/40';
+    delete tr.dataset.total;
+    delete tr.dataset.moyenne;
+    delete tr.dataset.valid;
+  }
+}
+
+function recalcAllNotes() {
+  let grandTotal = 0;
+  let weightedSum = 0;
+  let coeffSum = 0;
+  let countedSubjects = 0;
+
+  document.querySelectorAll('#subjectsBody tr').forEach((tr) => {
+    recalcNoteRow(tr);
+    if (tr.dataset.valid === '1') {
+      const coeff = parseFloat(tr.dataset.coeff) || 0;
+      const moyenne = parseFloat(tr.dataset.moyenne);
+      grandTotal += parseFloat(tr.dataset.total);
+      weightedSum += moyenne * coeff;
+      coeffSum += coeff;
+      countedSubjects += 1;
+    }
+  });
+
+  document.getElementById('countedSubjects').textContent = countedSubjects;
+  document.getElementById('grandTotal').textContent = countedSubjects > 0 ? grandTotal.toFixed(2) : '—';
+  document.getElementById('overallAverage').textContent =
+    (countedSubjects > 0 && coeffSum > 0) ? (weightedSum / coeffSum).toFixed(2) + ' / 20' : '—';
+}
+
+async function loadNotes(student) {
+  const cycle = detectCycle(student.niveau);
+  const subjects = SUBJECTS[cycle] || [];
+
+  let coeffMap = {};
+  try { coeffMap = await loadCoefficients(cycle); } catch (e) { coeffMap = {}; }
+
+  let notesMap = {};
+  try { notesMap = await loadStudentNotes(student.matricule); } catch (e) { notesMap = {}; }
+
+  buildNotesTable(subjects, coeffMap, notesMap);
+}
+
+// =======================================================================================
+// ABSENCES (lecture des absences de l'élève + dépôt de justificatif)
+// =======================================================================================
+let allAbsences = [];
+
+function statutBadgeHtml(statut) {
+  const cls = statut === 'Retard' ? 'badge-retard' : 'badge-absent';
+  return `<span class="status-badge ${cls}">${statut}</span>`;
+}
+function justifBadgeHtml(justifie) {
+  return justifie
+    ? '<span class="status-badge badge-justifie">Justifié</span>'
+    : '<span class="status-badge badge-non-justifie">Non justifié</span>';
+}
+
+function renderAbsencesTable() {
+  const tbody = document.getElementById('absTableBody');
+  const table = document.getElementById('absTable');
+  const emptyState = document.getElementById('absEmptyState');
+  tbody.innerHTML = '';
+
+  const rows = [...allAbsences].sort((a, b) => (b.date + (b.heureDebut || '')).localeCompare(a.date + (a.heureDebut || '')));
+
+  document.getElementById('kpiTotal').textContent = rows.length;
+  document.getElementById('kpiJustifie').textContent = rows.filter((r) => r.justifie).length;
+  document.getElementById('kpiNonJustifie').textContent = rows.filter((r) => !r.justifie).length;
+
+  if (rows.length === 0) {
+    table.classList.add('hidden');
+    emptyState.classList.remove('hidden');
+    return;
+  }
+  emptyState.classList.add('hidden');
+  table.classList.remove('hidden');
+
+  rows.forEach((a) => {
+    const tr = document.createElement('tr');
+    tr.className = 'row-enter hover:bg-mist/40 transition-colors';
+    tr.innerHTML = `
+      <td class="px-6 py-3.5 whitespace-nowrap num text-ink/60">${a.date || '—'}</td>
+      <td class="px-4 py-3.5 whitespace-nowrap num text-ink/60">${a.heureDebut || '—'} - ${a.heureFin || '—'}</td>
+      <td class="px-4 py-3.5 whitespace-nowrap text-ink/70">${a.matiere || '—'}</td>
+      <td class="px-4 py-3.5 text-center">${statutBadgeHtml(a.statut)}</td>
+      <td class="px-4 py-3.5 text-center">${justifBadgeHtml(a.justifie)}</td>
+      <td class="px-6 py-3.5 text-center whitespace-nowrap">
+        ${a.justifie
+          ? (a.justificatifURL ? `<a href="${a.justificatifURL}" target="_blank" rel="noopener" class="text-xs font-bold text-purple hover:underline">Voir le document</a>` : '<span class="text-xs text-ink/30">—</span>')
+          : `<button type="button" data-justify="${a.id}" class="justifyBtn text-xs font-extrabold text-navy bg-mist hover:bg-navy hover:text-white border border-line rounded-full px-4 py-2 transition-colors">Déposer un justificatif</button>`
+        }
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  tbody.querySelectorAll('.justifyBtn').forEach((btn) => {
+    btn.addEventListener('click', () => openJustifyModal(btn.dataset.justify));
+  });
+}
+
+async function loadAbsences(matricule) {
+  const loadingState = document.getElementById('absLoadingState');
+  const table = document.getElementById('absTable');
+  loadingState.classList.remove('hidden');
+  table.classList.add('hidden');
+
+  try {
+    const q = query(collection(db, 'absences'), where('studentId', '==', matricule));
+    const snap = await getDocs(q);
+    allAbsences = snap.docs.map((d) => d.data()).filter((a) => a.statut === 'Absent' || a.statut === 'Retard');
+  } catch (e) {
+    allAbsences = [];
+  }
+
+  loadingState.classList.add('hidden');
+  renderAbsencesTable();
+}
+
+// --- Modal Justifier --------------------------------------------------------------------
+let justifyingId = null;
+const justifyModal = document.getElementById('justifyModal');
+const justifyForm = document.getElementById('justifyForm');
+const justifyError = document.getElementById('justifyError');
+
+function openJustifyModal(absenceId) {
+  const a = allAbsences.find((x) => x.id === absenceId);
+  if (!a) return;
+  justifyingId = absenceId;
+  document.getElementById('justifyInfo').textContent = `${a.date || ''} — ${a.matiere || ''} (${a.heureDebut || ''} - ${a.heureFin || ''})`;
+  justifyError.classList.add('hidden');
+  justifyForm.reset();
+  justifyModal.classList.remove('hidden');
+}
+function closeJustifyModal() {
+  justifyModal.classList.add('hidden');
+  justifyingId = null;
+}
+document.getElementById('closeJustifyBtn').addEventListener('click', closeJustifyModal);
+document.getElementById('justifyBackdrop').addEventListener('click', closeJustifyModal);
+
+justifyForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  justifyError.classList.add('hidden');
+  const fileInput = document.getElementById('justifyFile');
+  const file = fileInput.files[0];
+  if (!file) {
+    justifyError.textContent = 'Veuillez choisir un fichier.';
+    justifyError.classList.remove('hidden');
+    return;
+  }
+
+  const submitBtn = document.getElementById('justifySubmitBtn');
+  submitBtn.disabled = true;
+  const originalHtml = submitBtn.innerHTML;
+  submitBtn.innerHTML = 'Envoi en cours...';
+
+  try {
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const path = `justificatifs/${justifyingId}-${Date.now()}-${safeName}`;
+    const url = await uploadToStorage(path, file);
+
+    await updateDoc(doc(db, 'absences', justifyingId), { justifie: true, justificatifURL: url });
+
+    allAbsences = allAbsences.map((a) => (a.id === justifyingId ? { ...a, justifie: true, justificatifURL: url } : a));
+    renderAbsencesTable();
+    closeJustifyModal();
+    showToast('Justificatif envoyé à l\'administration');
+  } catch (err) {
+    justifyError.textContent = "Erreur lors de l'envoi du justificatif. Réessayez ou contactez l'administration.";
+    justifyError.classList.remove('hidden');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalHtml;
+  }
+});
+
+// =======================================================================================
+// MESSAGES (table "parent_messages" — voir schema-parent-messages.sql)
+// =======================================================================================
+function msgStatusBadge(status) {
+  if (status === 'Répondu') return '<span class="status-badge badge-repondu">Répondu</span>';
+  return '<span class="status-badge badge-nouveau">En attente de réponse</span>';
+}
+
+function renderMessages(rows) {
+  const list = document.getElementById('msgList');
+  const empty = document.getElementById('msgEmptyState');
+
+  if (rows.length === 0) {
+    list.classList.add('hidden');
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  list.classList.remove('hidden');
+
+  list.innerHTML = rows.map((m) => `
+    <div class="row-enter px-6 sm:px-8 py-5">
+      <div class="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <p class="font-bold text-navy text-sm">${m.subject || '(Sans sujet)'}</p>
+          <p class="text-ink/40 text-[11px] mt-0.5 num">${m.createdAt ? new Date(m.createdAt).toLocaleString('fr-FR') : ''}</p>
+        </div>
+        ${msgStatusBadge(m.status)}
+      </div>
+      <p class="text-ink/70 text-sm mt-3 whitespace-pre-wrap">${m.message || ''}</p>
+      ${m.reply ? `
+        <div class="mt-4 bg-mist/60 border border-line rounded-2xl px-4 py-3.5">
+          <p class="text-[10px] font-extrabold uppercase tracking-wide text-gold-dark mb-1.5">Réponse de l'administration</p>
+          <p class="text-ink/80 text-sm whitespace-pre-wrap">${m.reply}</p>
+        </div>
+      ` : ''}
+    </div>
+  `).join('');
+}
+
+async function loadMessages(uid) {
+  const loadingState = document.getElementById('msgLoadingState');
+  loadingState.classList.remove('hidden');
+  document.getElementById('msgList').classList.add('hidden');
+  document.getElementById('msgEmptyState').classList.add('hidden');
+
+  try {
+    const q = query(collection(db, 'parent_messages'), where('senderUid', '==', uid));
+    const snap = await getDocs(q);
+    const rows = snap.docs.map((d) => d.data()).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+    renderMessages(rows);
+  } catch (e) {
+    renderMessages([]);
+  } finally {
+    loadingState.classList.add('hidden');
+  }
+}
+
+document.getElementById('messageForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const subjectInput = document.getElementById('msgSubject');
+  const bodyInput = document.getElementById('msgBody');
+  const errorEl = document.getElementById('msgError');
+  errorEl.classList.add('hidden');
+
+  const subject = subjectInput.value.trim();
+  const message = bodyInput.value.trim();
+  if (!message) {
+    errorEl.textContent = 'Veuillez écrire un message.';
+    errorEl.classList.remove('hidden');
+    return;
+  }
+
+  const submitBtn = document.getElementById('msgSubmitBtn');
+  submitBtn.disabled = true;
+  const originalHtml = submitBtn.innerHTML;
+  submitBtn.innerHTML = 'Envoi en cours...';
+
+  try {
+    const id = crypto.randomUUID();
+    await setDoc(doc(db, 'parent_messages', id), {
+      studentId: currentStudent.matricule,
+      senderUid: currentUser.uid,
+      subject,
+      message,
+      status: 'Nouveau',
+      reply: null,
+      createdAt: new Date().toISOString(),
+    });
+    document.getElementById('messageForm').reset();
+    showToast('Message envoyé à l\'administration');
+    await loadMessages(currentUser.uid);
+  } catch (err) {
+    errorEl.textContent = "Erreur lors de l'envoi du message. Réessayez plus tard.";
+    errorEl.classList.remove('hidden');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = originalHtml;
+  }
+});
+
+// =======================================================================================
+// Point d'entrée
+// =======================================================================================
+requireStudent(async (user, student) => {
+  currentUser = user;
+  currentStudent = student;
+
+  document.getElementById('welcomeTitle').textContent = `Bonjour, parent de ${student.prenom || ''} ${student.nom || ''}`.trim();
+  document.getElementById('infoMatricule').textContent = student.matricule || '—';
+  document.getElementById('infoNiveau').textContent = student.niveau || '—';
+  document.getElementById('infoGroupe').textContent = student.groupe || '—';
+
+  loadNotes(student);
+  loadAbsences(student.matricule);
+  loadMessages(user.uid);
+});
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await signOut(auth);
+  window.location.href = 'connexion-parent.html';
+});
+</script>
+
+</body>
+</html>
